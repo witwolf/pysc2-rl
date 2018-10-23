@@ -11,7 +11,7 @@ from . import get_units_by_type, select_unit, get_distances
 
 
 class CollectMineralShards(base_agent.BaseAgent):
-    def __init__(self):
+    def __init__(self,*args):
         super().__init__()
         self.minerals = None
         self.pairs = None

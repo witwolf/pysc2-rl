@@ -3,6 +3,20 @@
 #
 
 from pysc2.lib.run_parallel import RunParallel
+from algorithm.script.collect_mineral_shards import CollectMineralShards
+from algorithm.script.move_to_beacon import MoveToBeacon
+
+
+def script_agent_maker(map_name):
+    script_cls = {
+        'MoveToBeacon': MoveToBeacon,
+        'CollectMineralShards': CollectMineralShards
+    }
+
+    def agent_maker(*args):
+        return script_cls[map_name]
+
+    return agent_maker
 
 
 class ParallelAgent(object):

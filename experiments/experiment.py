@@ -43,6 +43,9 @@ class Experiment(object):
 
     @staticmethod
     def start(name):
+        import sys
+        from absl import flags
+        flags.FLAGS(sys.argv[:1])
         experiment_class = Experiment.experiments[name]
         logging.warning("Experiment %s running ...", name)
         experiment_class().run()

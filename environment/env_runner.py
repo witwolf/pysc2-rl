@@ -28,9 +28,9 @@ class EnvRunner(object):
 
     def run(self, *args, **kwargs):
         # train epochs and test after every epoch
-        for epoch in self._epoch_n:
+        for epoch in range(self._epoch_n):
             self._obs = self._env.reset()
-            for batch in self._batch_n:
+            for batch in range(self._batch_n):
                 logging.info("epoch:%d,batch:%d" % (epoch, batch))
                 self._batch()
             if self._test_after_epoch:

@@ -6,7 +6,7 @@ from tensorflow.contrib import layers
 
 
 def build_fcn(config):
-    sz = config.screen_sz
+    sz = config._size
     screen_dims = config.screen_dims
     minimap_dims = config.minimap_dims
     non_spatial_dims = config.non_spatial_dims

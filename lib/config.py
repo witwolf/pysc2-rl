@@ -64,8 +64,8 @@ class Config:
         self._action_index_table = self._index_table(self._action_indexes)
         action_args = set()
         for action in available_actions:
-            for action_args in action.args:
-                action_args.add(action_args.name)
+            for action_arg in action.args:
+                action_args.add(action_arg.name)
         self._action_args = action_args
         self._action_args_index_table = self._index_table(action_args)
 

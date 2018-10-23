@@ -11,6 +11,8 @@ from lib.adapter import DefaultActionAdapter as ActionAdapter
 from algorithm.a2c import A2C
 from lib.config import Config
 
+from experiments.exp_bc import network_creator
+
 
 # a2c train (imitation)
 class A2CExperiment(Experiment):
@@ -18,11 +20,10 @@ class A2CExperiment(Experiment):
     def __init__(self):
         super().__init__()
         parser = argparse.ArgumentParser()
-        parser.add_argument("--map_name", default="CollectMineralShards")
-        parser.add_argument("--env_num", default=32, help='env parallel run')
-        parser.add_argument("--epoch", default=1024),
-        parser.add_argument("--batch", default=256),
-        parser.add_argument("--td_step", default=16, help='td(n)')
+        parser.add_argument("--map_name", type=str, default="CollectMineralShards")
+        parser.add_argument("--env_num", type=int, default=32, help='env parallel run')
+        parser.add_argument("--epoch", type=int, default=1024),
+        parser.add_argument("--batch", type=int, default=256),
 
         args, _ = parser.parse_known_args()
         print(args)
