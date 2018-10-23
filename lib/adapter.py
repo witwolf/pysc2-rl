@@ -22,6 +22,17 @@ class DefaultObservationAdapter(Adapter):
         self._config = config
 
     def transform(self, timesteps):
+        '''
+        :param timesteps:
+        :return: state, next_state, reward, done, timesteps
+        '''
+        slice_len = 1
+        if isinstance(timesteps[0], list):
+            slice_len = len(timesteps[0])
+            for i in range(1, len(timesteps)):
+                timesteps[0].extend(timesteps[i])
+            timesteps = timesteps[0]
+
         states, dones, rewards = None, [], []
         screen_feature_indexes = \
             self._config._screen_feature_indexes
@@ -57,7 +68,11 @@ class DefaultObservationAdapter(Adapter):
         nonspatial = [np.array(e) for e in nonspatials]
 
         states = [screen, minimap] + nonspatial
-        return states, np.array(rewards), np.array(dones)
+        return ([s[:-slice_len] for s in states],
+                [s[slice_len:] for s in states],
+                np.array(rewards[slice_len:]),
+                np.array(dones[slice_len:]),
+                timesteps[:-slice_len])
 
     def reverse(self, *args, **kwargs):
         raise NotImplementedError()

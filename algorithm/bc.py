@@ -9,5 +9,11 @@ from pysc2.agents.base_agent import BaseAgent as BaseSC2Agent
 
 class BehaviorClone(BaseDeepAgent, BaseSC2Agent):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._value = self._network['value']
+        self._policies = self._network['policies']
+
     def init_network(self, *args, **kwargs):
         pass

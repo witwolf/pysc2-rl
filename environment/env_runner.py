@@ -3,6 +3,7 @@
 #
 
 import logging
+import numpy as np
 
 
 class EnvRunner(object):
@@ -39,11 +40,29 @@ class EnvRunner(object):
 
     def _batch(self):
         # train batch
-        batch = []
+        obs = []
+        actions = None
         for _ in range(self._step_n):
-            actions = self._agent.step(self._obs)
-            self._obs = self._env.step(actions)
-        self._agent.update(batch)
+            obs.append(self._obs)
+            action = self._agent.step(self._obs)
+            if not actions:
+                actions = [[] for _ in range(len(action))]
+            for c, e in zip(actions, action):
+                c.append(e)
+            function_calls = self._act_adapter.reverse(action)
+            self._obs = self._env.step(function_calls)
+        obs.append(self._obs)
+
+        (states, next_states,
+         rewards, dones, timestamps) = self._obs_adapter.transform(obs)
+
+        batch = (states,
+                 [np.concatenate(c, axis=0) for c in actions],
+                 next_states,
+                 rewards,
+                 dones,
+                 timestamps)
+        self._agent.update(*batch)
 
     def _test(self):
         obs = self._obs
@@ -63,7 +82,8 @@ class EnvRunner(object):
 
         total_reward = 0
         while not is_terminate(obs):
-            actions = self._agent.step(obs)
-            obs = self._env.step(actions)
+            action = self._agent.step(obs)
+            function_calls = self._act_adapter.reverse(action)
+            obs = self._env.step(function_calls)
             total_reward += get_reward(obs)
         return total_reward
