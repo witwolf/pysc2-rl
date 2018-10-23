@@ -5,6 +5,12 @@
 
 import argparse
 from experiments.experiment import Experiment
+from algorithm.bc import BehaviorClone
+from environment.parallel_env import ParallelEnvs
+from environment.env_runner import EnvRunner
+from lib.config import Config
+from lib.adapter import DefaultActionAdapter as ActionAdapter
+from lib.adapter import DefaultObservationAdapter as ObservationAdapter
 
 
 # behavior clone train (imitation)
@@ -13,14 +19,35 @@ class BCExperiment(Experiment):
     def __init__(self):
         super().__init__()
         parser = argparse.ArgumentParser()
+        parser.add_argument("--map_name", default="CollectMineralShards")
         parser.add_argument("--env_num", default=32, help='env parallel run')
+        parser.add_argument("--epoch", default=1024),
+        parser.add_argument("--batch", default=256),
         parser.add_argument("--td_step", default=16, help='td(n)')
 
         args, _ = parser.parse_known_args()
         print(args)
 
+        config = Config()
+        agent = BehaviorClone()
+        env = ParallelEnvs(
+            env_num=args.env_num,
+            env_args={'map_name': args.map_name})
+        obs_adapter = ObservationAdapter(config)
+        act_adapter = ActionAdapter(config)
+
+        self._env_runner = EnvRunner(
+            agent=agent,
+            env=env,
+            observation_adapter=obs_adapter,
+            action_adapter=act_adapter,
+            epoch_n=args.epoch,
+            batch_n=args.batch,
+            step_n=args.td_step,
+            test_after_epoch=True)
+
     def run(self):
-        pass
+        self._env_runner.run()
 
 
 Experiment.register(BCExperiment, 'Behavior clone training')

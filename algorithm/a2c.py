@@ -6,5 +6,5 @@ from lib.base import BaseDeepAgent
 from pysc2.agents.base_agent import BaseAgent as BaseSC2Agent
 
 
-class A2c(BaseDeepAgent, BaseSC2Agent):
+class A2C(BaseDeepAgent, BaseSC2Agent):
     pass
