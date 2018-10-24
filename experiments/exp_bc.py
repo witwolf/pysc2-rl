@@ -4,6 +4,7 @@
 
 
 import sys
+
 sys.path.append('.')
 
 import argparse
@@ -19,7 +20,6 @@ from experiments.fcn import FCNNetwork
 import tensorflow as tf
 from lib.base import Network
 from algorithm.script.parallel_agent import script_agent_maker
-
 
 
 def network_creator(config):
