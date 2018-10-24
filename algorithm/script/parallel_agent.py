@@ -14,7 +14,7 @@ def script_agent_maker(map_name):
     }
 
     def agent_maker(*args):
-        return script_cls[map_name]
+        return script_cls[map_name]()
 
     return agent_maker
 
@@ -54,3 +54,6 @@ class ParallelAgent(object):
 
     def close(self):
         self._parallel.shutdown()
+
+    def __getitem__(self, item):
+        return self._agents[item]

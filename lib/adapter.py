@@ -21,7 +21,7 @@ class DefaultObservationAdapter(Adapter):
     def __init__(self, config):
         self._config = config
 
-    def transform(self, timesteps):
+    def transform(self, timesteps, state_only=False):
         '''
         :param timesteps:
         :return: state, next_state, reward, done, timesteps
@@ -47,9 +47,9 @@ class DefaultObservationAdapter(Adapter):
             rewards.append(timestep.reward)
             dones.append(timestep.last())
             observation = timestep.observation
-            screen_features = observation.screen_feature[
+            screen_features = observation.feature_screen[
                 screen_feature_indexes]
-            minimap_features = observation.minimap_feature[
+            minimap_features = observation.feature_minimap[
                 minimap_feature_indexes]
 
             screens.append(screen_features)
@@ -68,6 +68,8 @@ class DefaultObservationAdapter(Adapter):
         nonspatial = [np.array(e) for e in nonspatials]
 
         states = [screen, minimap] + nonspatial
+        if state_only:
+            return states
         return ([s[:-slice_len] for s in states],
                 [s[slice_len:] for s in states],
                 np.array(rewards[slice_len:]),
@@ -96,8 +98,8 @@ class DefaultActionAdapter(Adapter):
         for i, func_call in enumerate(func_calls):
             act_id = action_index_table[int(func_call.function)]
             act_values[0][i][act_id] = 1
-            for i, arg_type in enumerate(FUNCTIONS[act_id].args):
-                arg = func_call.arguments[i]
+            for j, arg_type in enumerate(FUNCTIONS[act_id].args):
+                arg = func_call.arguments[j]
                 if arg_type.name in SPATIAL_ARG_TYPES:
                     arg = arg[0] + arg[1] * size
                 else:

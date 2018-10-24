@@ -7,6 +7,7 @@ from absl.testing import absltest
 from environment.parallel_env import ParallelEnvs
 from algorithm.script.move_to_beacon import MoveToBeacon
 from algorithm.script.parallel_agent import ParallelAgent
+from random import randint
 
 
 class TestParallelEnv(utils.TestCase):
@@ -18,20 +19,21 @@ class TestParallelEnv(utils.TestCase):
         }
         env_num = 2
         parallel_envs = ParallelEnvs(env_num=env_num, env_args=env_arg)
-        agents = [MoveToBeacon(), RandomAgent()]
+        agent_cls = [MoveToBeacon, RandomAgent]
+        agents = [agent_cls[randint(0, 1)]() for _ in range(env_num)]
 
         #  !!! it is not necessary when env_num value is small
         #  !!! this is just an example
         parallel_agents = ParallelAgent(agents)
         parallel_agents.setup(
-            list(spec[0] for spec in parallel_envs.observation_spec()),
-            list(spec[0] for spec in parallel_envs.action_spec())
-        )
+            parallel_envs.observation_spec(),
+            parallel_envs.action_spec())
 
         obs = parallel_envs.reset()
         for _ in range(100):
-            actions = parallel_agents.step(list(o[0] for o in obs))
-            obs = parallel_envs.step([(actions[0],), (actions[1],)])
+            actions = parallel_agents.step(obs)
+            acts = [(act,) for act in actions]
+            obs = parallel_envs.step(acts)
         parallel_envs.close()
         parallel_agents.close()
 

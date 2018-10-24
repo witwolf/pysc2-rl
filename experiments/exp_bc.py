@@ -57,8 +57,9 @@ class BCExperiment(Experiment):
         script_agents = ParallelAgent(agent_num=args.env_num,
                                       agent_makers=script_agent_maker(args.map_name))
 
+        sess = tf.Session()
         agent = BehaviorClone(network_creator=network_creator(config),
-                              script_agents=script_agents)
+                              script_agents=script_agents, sess=sess)
         env = ParallelEnvs(
             env_num=args.env_num,
             env_args={'map_name': args.map_name})

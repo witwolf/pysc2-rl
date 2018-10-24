@@ -55,18 +55,22 @@ class ParallelEnvs(object):
             self._envs = self._parallel.run(
                 (func, args) for func, args in zip(env_makers, env_args))
 
+    # todo support only one player mode
+
     def action_spec(self):
-        return list(env.action_spec() for env in self._envs)
+        return list(env.action_spec()[0] for env in self._envs)
 
     def observation_spec(self):
-        return list(env.observation_spec() for env in self._envs)
+        return list(env.observation_spec()[0] for env in self._envs)
 
     def step(self, actions):
-        return self._parallel.run(
+        obs = self._parallel.run(
             (env.step, acts) for env, acts in zip(self._envs, actions))
+        return [o[0] for o in obs]
 
     def reset(self):
-        return self._parallel.run(env.reset for env in self._envs)
+        obs = self._parallel.run(env.reset for env in self._envs)
+        return [o[0] for o in obs]
 
     def close(self):
         self._parallel.run(env.close for env in self._envs)
@@ -75,3 +79,6 @@ class ParallelEnvs(object):
     @property
     def state(self):
         return list(env.state for env in self._envs)
+
+    def __getitem__(self, item):
+        return self._envs[item]
