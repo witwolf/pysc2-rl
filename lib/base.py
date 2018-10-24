@@ -68,6 +68,12 @@ class BaseDeepAgent(object):
     def update(self, *args, **kwargs):
         raise NotImplementedError()
 
+    def save(self):
+        pass
+
+    def reset(self):
+        pass
+
     @property
     def network(self):
         return self._network

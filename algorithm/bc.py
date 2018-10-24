@@ -104,3 +104,8 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
         _, step, summary = self._sess.run(
             [self._train_op, self._step, self._summary],
             feed_dict=feed_dict)
+
+        return summary, step
+
+    def reset(self):
+        self._script_agents.reset()

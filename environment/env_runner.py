@@ -4,6 +4,8 @@
 
 import logging
 import numpy as np
+import tensorflow as tf
+from tensorflow.python.training.summary_io import SummaryWriterCache
 
 
 class EnvRunner(object):
@@ -14,7 +16,9 @@ class EnvRunner(object):
                  epoch_n=None,
                  batch_n=None,
                  step_n=16,
-                 test_after_epoch=True):
+                 test_after_epoch=True,
+                 train=True,
+                 logdir=None):
         self._env = env
         self._agent = agent
         self._obs_adapter = observation_adapter
@@ -24,18 +28,27 @@ class EnvRunner(object):
         self._step_n = step_n
         self._test_after_epoch = test_after_epoch
         self._obs = None
+        self._train = train
+        self._summary_writer = None
+        if logdir:
+            self._summary_writer = SummaryWriterCache.get(logdir)
 
     def run(self, *args, **kwargs):
         # train epochs and test after every epoch
+
         for epoch in range(self._epoch_n):
+            self._agent.reset()
             self._obs = self._env.reset()
-            for batch in range(self._batch_n):
-                logging.info("epoch:%d,batch:%d" % (epoch, batch))
-                self._batch()
+            if self._train:
+                for batch in range(self._batch_n):
+                    logging.info("epoch:%d,batch:%d" % (epoch, batch))
+                    self._batch()
+                self._agent.save()
             if self._test_after_epoch:
                 total_reward = self._test()
-                logging.info("epoch:%d, test total reward:%d" % (epoch, total_reward))
-            self._agent.save()
+                logging.info("epoch:%d,reward:%d" % (epoch, total_reward))
+                if self._train:
+                    self._record(step=epoch, reward=total_reward)
 
     def _batch(self):
         # train batch
@@ -65,7 +78,8 @@ class EnvRunner(object):
                  rewards,
                  dones,
                  timestamps)
-        self._agent.update(*batch)
+        summary, step = self._agent.update(*batch)
+        self._record(summary=summary, step=step)
 
     def _test(self):
         obs = self._obs
@@ -88,6 +102,16 @@ class EnvRunner(object):
             state = self._obs_adapter.transform(obs, state_only=True)
             action = self._agent.step(state=state, evaluate=True)
             function_calls = self._act_adapter.reverse(action)
-            obs = self._env.step(function_calls)
+            obs = self._env.step([(f,) for f in function_calls])
             total_reward += get_reward(obs)
         return total_reward
+
+    def _record(self, step=None, summary=None, **kwargs):
+        if self._summary_writer is None:
+            return
+        if summary:
+            self._summary_writer.add_summary(summary, step)
+        for tag, value in kwargs.items():
+            summary = tf.Summary()
+            summary.value.add(tag=tag, simple_value=np.mean(value))
+            self._summary_writer.add_summary(summary, step)

@@ -50,34 +50,38 @@ class BCExperiment(Experiment):
         parser.add_argument("--epoch", type=int, default=1024),
         parser.add_argument("--batch", type=int, default=256),
         parser.add_argument("--td_step", type=int, default=16, help='td(n)')
-
+        parser.add_argument("--logdir", type=str, default='log/bc')
+        parser.add_argument("--train", type=bool, default=True)
+        parser.add_argument("--restore", type=bool, default=False)
         args, _ = parser.parse_known_args()
-        print(args)
-        config = Config()
-        script_agents = ParallelAgent(agent_num=args.env_num,
-                                      agent_makers=script_agent_maker(args.map_name))
-
-        sess = tf.Session()
-        agent = BehaviorClone(network_creator=network_creator(config),
-                              script_agents=script_agents, sess=sess)
-        env = ParallelEnvs(
-            env_num=args.env_num,
-            env_args={'map_name': args.map_name})
-        obs_adapter = ObservationAdapter(config)
-        act_adapter = ActionAdapter(config)
-
-        self._env_runner = EnvRunner(
-            agent=agent,
-            env=env,
-            observation_adapter=obs_adapter,
-            action_adapter=act_adapter,
-            epoch_n=args.epoch,
-            batch_n=args.batch,
-            step_n=args.td_step,
-            test_after_epoch=True)
+        self._args = args
 
     def run(self):
-        self._env_runner.run()
+        args = self._args
+
+        with tf.Session() as sess:
+            config = Config()
+            script_agents = ParallelAgent(
+                agent_num=args.env_num,
+                agent_makers=script_agent_maker(args.map_name))
+            agent = BehaviorClone(network_creator=network_creator(config),
+                                  script_agents=script_agents, sess=sess)
+            env = ParallelEnvs(
+                env_num=args.env_num,
+                env_args={'map_name': args.map_name})
+            obs_adapter = ObservationAdapter(config)
+            act_adapter = ActionAdapter(config)
+            env_runner = EnvRunner(
+                agent=agent,
+                env=env,
+                observation_adapter=obs_adapter,
+                action_adapter=act_adapter,
+                epoch_n=args.epoch,
+                batch_n=args.batch,
+                step_n=args.td_step,
+                test_after_epoch=True,
+                logdir=args.logdir)
+            env_runner.run()
 
 
 Experiment.register(BCExperiment, 'Behavior clone training')
