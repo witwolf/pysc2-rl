@@ -30,7 +30,10 @@ class A2CExperiment(Experiment):
         parser.add_argument("--epoch", type=int, default=1024),
         parser.add_argument("--batch", type=int, default=256),
         parser.add_argument("--td_step", type=int, default=16, help='td(n)')
-        parser.add_argument("--logdir", type=str, default='log/bc')
+        parser.add_argument("--logdir", type=str, default='log/a2c')
+        parser.add_argument("--v_coef", type=float, default=0.25)
+        parser.add_argument("--ent_coef", type=float, default=1e-3)
+        parser.add_argument("--lr", type=float, default=1e-4)
         parser.add_argument("--train", type=bool, default=True)
         parser.add_argument("--restore", type=bool, default=False)
         args, _ = parser.parse_known_args()
@@ -40,7 +43,12 @@ class A2CExperiment(Experiment):
         args = self._args
         with tf.Session() as sess:
             config = Config()
-            agent = A2C(network_creator=network_creator(config), sess=sess)
+            agent = A2C(
+                network_creator=network_creator(config),
+                lr=args.lr,
+                ent_coef=args.ent_coef,
+                v_coef=args.v_coef,
+                sess=sess)
             env = ParallelEnvs(
                 env_num=args.env_num,
                 env_args={'map_name': args.map_name})

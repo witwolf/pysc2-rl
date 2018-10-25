@@ -34,8 +34,6 @@ class EnvRunner(object):
             self._summary_writer = SummaryWriterCache.get(logdir)
 
     def run(self, *args, **kwargs):
-        # train epochs and test after every epoch
-
         for epoch in range(self._epoch_n):
             self._agent.reset()
             self._obs = self._env.reset()
@@ -52,58 +50,46 @@ class EnvRunner(object):
 
     def _batch(self):
         # train batch
+        ## todo refactor
         obs = []
         func_calls = []
+        acts = None
         for _ in range(self._step_n):
             obs.append(self._obs)
-            # action = self._agent.step(self._obs)
-            # if not actions:
-            #     actions = [[] for _ in range(len(action))]
-            # for c, e in zip(actions, action):
-            #     c.append(e)
-            # function_calls = self._act_adapter.reverse(action)
-            # self._obs = self._env.step(function_calls)
-            function_calls = self._agent.step(self._obs)
-            func_calls.extend(function_calls)
+            state = self._obs_adapter.transform(obs, state_only=True)
+            funcs_or_acts = self._agent.step(state=state, obs=self._obs)
+            if isinstance(funcs_or_acts[0], tuple):
+                function_calls = funcs_or_acts
+                func_calls.extend(function_calls)
+            else:
+                if not acts:
+                    acts = [[] for _ in range(len(funcs_or_acts))]
+                for c, e in zip(acts, funcs_or_acts):
+                    c.append(e)
+                function_calls = self._act_adapter.reverse(funcs_or_acts)
             self._obs = self._env.step([(f,) for f in function_calls])
         obs.append(self._obs)
 
         (states, next_states,
          rewards, dones, timestamps) = self._obs_adapter.transform(obs)
 
-        actions = self._act_adapter.transform(func_calls)
+        if not acts:
+            acts = self._act_adapter.transform(func_calls)
         batch = (states,
-                 [np.concatenate(c, axis=0) for c in actions],
-                 next_states,
-                 rewards,
-                 dones,
-                 timestamps)
+                 [np.concatenate(c, axis=0) for c in acts],
+                 next_states, rewards, dones, timestamps)
         summary, step = self._agent.update(*batch)
         self._record(summary=summary, step=step)
 
     def _test(self):
-        obs = self._obs
-        if isinstance(obs, list):
-            obs = obs[:1]
-
-        def is_terminate(o):
-            if isinstance(o, list):
-                return o[0].last()
-            return o.last()
-
-        def get_reward(o):
-            if isinstance(o, list):
-                return o[0].reward
-            else:
-                return o.reward
-
+        obs = self._obs[:1]
         total_reward = 0
-        while not is_terminate(obs):
+        while not obs[0].last():
             state = self._obs_adapter.transform(obs, state_only=True)
             action = self._agent.step(state=state, evaluate=True)
             function_calls = self._act_adapter.reverse(action)
             obs = self._env.step([(f,) for f in function_calls])
-            total_reward += get_reward(obs)
+            total_reward += obs[0].reward
         return total_reward
 
     def _record(self, step=None, summary=None, **kwargs):

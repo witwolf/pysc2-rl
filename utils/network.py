@@ -28,3 +28,7 @@ class Utils(object):
         value = last_value
         _, value, _ = tf.while_loop(cond, body, [td_step - 1, value, last_value])
         return value[:-parallel_num]
+
+    @staticmethod
+    def clip_log(input, min=0.0, max=1.0):
+        tf.clip_by_value(input, min, max)

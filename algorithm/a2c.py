@@ -17,7 +17,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
                  network_creator=None,
                  lr=1e-4,
                  v_coef=0.25,
-                 ent_coef=0,
+                 ent_coef=1e-3,
                  discount=0.99,
                  **kwargs):
         if bool(network) == bool(network_creator):
@@ -52,21 +52,25 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
             self._value_input, self._discount)
         value = tf.stop_gradient(value)
         advance = tf.stop_gradient(value - self._value)
-        # todo
+
         log_pi = 0.0
         for a, p in zip(self._action_input, self._policies):
-            log_pi += tf.log(tf.gather_nd(p, a) + 1e-12)
+            r = tf.range(tf.shape(p)[0])
+            indices = tf.stack([r, a], axis=1)
+            log_pi += tf.log(tf.gather_nd(p, indices) + 1e-12)
         entropy = sum(
             [-tf.reduce_sum(p * tf.log(p + 1e-12), axis=-1)
              for p in self._policies])
+        entropy = tf.reduce_mean(entropy)
         policy_loss = -tf.reduce_mean(log_pi * advance)
-        entropy_loss = - self._ent_coef * tf.reduce_mean(entropy)
+        entropy_loss = -self._ent_coef * entropy
         value_loss = self._v_coef * tf.reduce_mean(
             tf.square(value - self._value))
         loss = policy_loss + entropy_loss + value_loss
         summary = tf.summary.merge([
             tf.summary.scalar('a2c/value', tf.reduce_mean(self._value)),
             tf.summary.scalar('a2c/policy_loss', policy_loss),
+            tf.summary.scalar('a2c/entropy', entropy),
             tf.summary.scalar('a2c/entropy_loss', entropy_loss),
             tf.summary.scalar('a2c/value_loss', value_loss),
             tf.summary.scalar('a2c/loss', loss)])
