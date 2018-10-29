@@ -97,7 +97,8 @@ class FCNNetwork():
     @staticmethod
     def _mask_probs(probs, mask):
         masked = probs * mask
-        return tf.nn.softmax(masked + 1e-12)
+        masked = tf.clip_by_value(masked, 1e-6, 1.0)
+        return tf.nn.softmax(masked)
 
     @staticmethod
     def _broadcast(input, size):
@@ -108,4 +109,5 @@ class FCNNetwork():
     @staticmethod
     def _sample(probs):
         u = tf.random_uniform(tf.shape(probs))
-        return tf.argmax(tf.log(u) / probs, axis=1)
+        clipped_u = tf.clip_by_value(u, 1e-6, 1.0)
+        return tf.argmax(tf.log(clipped_u) / probs, axis=1)

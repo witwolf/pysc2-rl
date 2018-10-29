@@ -83,14 +83,21 @@ class BCExperiment(Experiment):
                 lr=args.lr,
                 v_coef=args.v_coef,
                 script_agents=script_agents, sess=sess)
-            env = ParallelEnvs(
-                env_num=args.env_num,
+            if args.train:
+                env = ParallelEnvs(
+                    env_num=args.env_num,
+                    env_args={'map_name': args.map_name})
+            else:
+                env = None
+            test_env = ParallelEnvs(
+                env_num=1,
                 env_args={'map_name': args.map_name})
             obs_adapter = ObservationAdapter(config)
             act_adapter = ActionAdapter(config)
             env_runner = EnvRunner(
                 agent=agent,
                 env=env,
+                test_env=test_env,
                 observation_adapter=obs_adapter,
                 action_adapter=act_adapter,
                 epoch_n=args.epoch,

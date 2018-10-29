@@ -9,8 +9,9 @@ from tensorflow.python.training.summary_io import SummaryWriterCache
 
 
 class EnvRunner(object):
-    def __init__(self, env,
-                 agent,
+    def __init__(self, env=None,
+                 test_env=None,
+                 agent=None,
                  observation_adapter=None,
                  action_adapter=None,
                  epoch_n=None,
@@ -20,6 +21,7 @@ class EnvRunner(object):
                  train=True,
                  logdir=None):
         self._env = env
+        self._test_env = test_env
         self._agent = agent
         self._obs_adapter = observation_adapter
         self._act_adapter = action_adapter
@@ -35,9 +37,8 @@ class EnvRunner(object):
 
     def run(self, *args, **kwargs):
         for epoch in range(self._epoch_n):
-            self._agent.reset()
-            self._obs = self._env.reset()
             if self._train:
+                self._obs = self._env.reset()
                 for batch in range(self._batch_n):
                     logging.info("epoch:%d,batch:%d" % (epoch, batch))
                     self._batch()
@@ -83,13 +84,13 @@ class EnvRunner(object):
         self._record(summary=summary, step=step)
 
     def _test(self):
-        obs = self._obs[:1]
+        obs = self._test_env.reset()
         total_reward = 0
         while not obs[0].last():
             state = self._obs_adapter.transform(obs, state_only=True)
             action = self._agent.step(state=state, evaluate=True)
             function_calls = self._act_adapter.reverse(action)
-            obs = self._env.step([(f,) for f in function_calls])
+            obs = self._test_env.step([(f,) for f in function_calls])
             total_reward += obs[0].reward
         return total_reward
 

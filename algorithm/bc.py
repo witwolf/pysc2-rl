@@ -56,11 +56,10 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
     def init_updater(self, **kwargs):
         policy_loss = 0.
         for label, y in zip(self._action_input, self._policies):
-            one_hot = tf.one_hot(label, depth=tf.shape(y)[-1])
-            correction = 1e-12
-
+            one_hot = tf.one_hot(label, depth=y.shape[-1])
+            clipped_y = tf.clip_by_value(y, 1e-6, 1.0)
             cross_entropy = -tf.reduce_sum(
-                one_hot * tf.log(y + correction), axis=1)
+                one_hot * tf.log(clipped_y), axis=1)
             policy_loss += cross_entropy
 
         policy_loss = tf.reduce_mean(policy_loss)
