@@ -56,7 +56,7 @@ class EnvRunner(object):
         acts = None
         for _ in range(self._step_n):
             obs.append(self._obs)
-            state = self._obs_adapter.transform(obs, state_only=True)
+            state = self._obs_adapter.transform(self._obs, state_only=True)
             funcs_or_acts = self._agent.step(state=state, obs=self._obs)
             if isinstance(funcs_or_acts[0], tuple):
                 function_calls = funcs_or_acts
@@ -75,8 +75,9 @@ class EnvRunner(object):
 
         if not acts:
             acts = self._act_adapter.transform(func_calls)
-        batch = (states,
-                 [np.concatenate(c, axis=0) for c in acts],
+        else:
+            acts = [np.concatenate(c, axis=0) for c in acts]
+        batch = (states, acts,
                  next_states, rewards, dones, timestamps)
         summary, step = self._agent.update(*batch)
         self._record(summary=summary, step=step)

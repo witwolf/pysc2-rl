@@ -46,6 +46,7 @@ class A2CExperiment(Experiment):
             agent = A2C(
                 network_creator=network_creator(config),
                 lr=args.lr,
+                td_step=args.td_step,
                 ent_coef=args.ent_coef,
                 v_coef=args.v_coef,
                 sess=sess)

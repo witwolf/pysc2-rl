@@ -15,6 +15,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
                  sess=None,
                  network=None,
                  network_creator=None,
+                 td_step=16,
                  lr=1e-4,
                  v_coef=0.25,
                  ent_coef=1e-3,
@@ -25,6 +26,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
 
         self._network = network
         self._network_creator = network_creator
+        self._td_step = td_step
         self._discount = discount
         self._lr = lr
         self._v_coef = v_coef
@@ -47,11 +49,11 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
         self._actions = self._network['actions']
 
     def init_updater(self, **kwargs):
-        value = Utils.td_value(
+        target_value = Utils.td_value(
             self._reward_input, self._done_input,
             self._value_input, self._discount)
-        value = tf.stop_gradient(value)
-        advance = tf.stop_gradient(value - self._value)
+        target_value = tf.stop_gradient(target_value)
+        advance = tf.stop_gradient(target_value - self._value)
 
         log_pi = 0.0
         for a, p in zip(self._action_input, self._policies):
@@ -65,10 +67,11 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
         policy_loss = -tf.reduce_mean(log_pi * advance)
         entropy_loss = -self._ent_coef * entropy
         value_loss = self._v_coef * tf.reduce_mean(
-            tf.square(value - self._value))
+            tf.square(target_value - self._value))
         loss = policy_loss + entropy_loss + value_loss
         summary = tf.summary.merge([
             tf.summary.scalar('a2c/value', tf.reduce_mean(self._value)),
+            tf.summary.scalar('a2c/target_value', tf.reduce_mean(target_value)),
             tf.summary.scalar('a2c/policy_loss', policy_loss),
             tf.summary.scalar('a2c/entropy', entropy),
             tf.summary.scalar('a2c/entropy_loss', entropy_loss),
@@ -91,9 +94,10 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
 
     def update(self, states, actions,
                next_states, rewards, dones, *args):
+        begin = -len(dones) // self._td_step
+        last_state = [e[begin:] for e in next_states]
         value = self._sess.run(self._value, feed_dict=dict(
-            zip(self._state_input, next_states)))
-
+            zip(self._state_input, last_state)))
         input_vars = self._state_input + self._action_input + [
             self._reward_input, self._done_input, self._value_input]
         input_vals = states + actions + [rewards, dones, value]

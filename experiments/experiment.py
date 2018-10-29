@@ -35,7 +35,12 @@ class Experiment(object):
         parser = argparse.ArgumentParser()
         parser.add_argument("operation", default="list", choices=['list', 'run'])
         parser.add_argument("--name")
+        parser.add_argument("--job_name", default='worker')
         args, _ = parser.parse_known_args()
+        if args.job_name == 'ps':
+            import time
+            while True:
+                time.sleep(3600)
         if args.operation == "list":
             print(Experiment.list())
         elif args.operation == "run":

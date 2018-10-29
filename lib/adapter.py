@@ -3,6 +3,7 @@
 #
 
 
+import itertools
 from pysc2.lib.actions import FUNCTIONS, FunctionCall
 import numpy as np
 
@@ -27,11 +28,11 @@ class DefaultObservationAdapter(Adapter):
         :return: state, next_state, reward, done, timesteps
         '''
         slice_len = 1
+        _timesteps = timesteps
         if isinstance(timesteps[0], list):
             slice_len = len(timesteps[0])
-            for i in range(1, len(timesteps)):
-                timesteps[0].extend(timesteps[i])
-            timesteps = timesteps[0]
+            _timesteps = itertools.chain(*timesteps)
+            _timesteps = list(_timesteps)
 
         states, dones, rewards = None, [], []
         screen_feature_indexes = \
@@ -43,7 +44,7 @@ class DefaultObservationAdapter(Adapter):
         action_indexes = self._config._action_indexes
         screens, minimaps = [], []
         nonspatials = [[] for _ in range(len(nonspatial_features))]
-        for timestep in timesteps:
+        for timestep in _timesteps:
             rewards.append(timestep.reward)
             dones.append(timestep.last())
             observation = timestep.observation
@@ -74,7 +75,7 @@ class DefaultObservationAdapter(Adapter):
                 [s[slice_len:] for s in states],
                 np.array(rewards[slice_len:]),
                 np.array(dones[slice_len:]),
-                timesteps[:-slice_len])
+                _timesteps[:-slice_len])
 
     def reverse(self, *args, **kwargs):
         raise NotImplementedError()
@@ -93,11 +94,11 @@ class DefaultActionAdapter(Adapter):
             self._config._action_args_index_table
         length = len(func_calls)
         for dim, _ in self._config.policy_dims:
-            values.append(np.zeros(shape=(length, dim), dtype=np.int32))
+            values.append(np.zeros(shape=(length), dtype=np.int32))
         act_values, arg_values = [values[0]], values[1:]
         for i, func_call in enumerate(func_calls):
             act_id = action_index_table[int(func_call.function)]
-            act_values[0][i][act_id] = 1
+            act_values[0][i] = act_id
             for j, arg_type in enumerate(FUNCTIONS[act_id].args):
                 arg = func_call.arguments[j]
                 if arg_type.name in SPATIAL_ARG_TYPES:
@@ -105,7 +106,7 @@ class DefaultActionAdapter(Adapter):
                 else:
                     arg = int(arg[0])
                 arg_idx = action_args_index_table[arg_type.name]
-                arg_values[arg_idx][i][arg] = 1
+                arg_values[arg_idx][i] = arg
 
         return values
 

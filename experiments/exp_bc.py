@@ -8,6 +8,8 @@ import sys
 sys.path.append('.')
 
 import argparse
+import tensorflow as tf
+from pysc2.lib.actions import FUNCTIONS
 from experiments.experiment import Experiment
 from algorithm.bc import BehaviorClone
 from environment.parallel_env import ParallelEnvs
@@ -17,7 +19,7 @@ from lib.config import Config
 from lib.adapter import DefaultActionAdapter as ActionAdapter
 from lib.adapter import DefaultObservationAdapter as ObservationAdapter
 from experiments.fcn import FCNNetwork
-import tensorflow as tf
+
 from lib.base import Network
 from algorithm.script.parallel_agent import script_agent_maker
 
@@ -56,6 +58,8 @@ class BCExperiment(Experiment):
         parser.add_argument("--td_step", type=int, default=16, help='td(n)')
         parser.add_argument("--logdir", type=str, default='log/bc')
         parser.add_argument("--train", type=bool, default=True)
+        parser.add_argument("--v_coef", type=float, default=0.0)
+        parser.add_argument("--lr", type=float, default=1e-3)
         parser.add_argument("--restore", type=bool, default=False)
         args, _ = parser.parse_known_args()
         self._args = args
@@ -64,12 +68,21 @@ class BCExperiment(Experiment):
         args = self._args
 
         with tf.Session() as sess:
+            available_actions = [
+                FUNCTIONS[0],  # no_op
+                FUNCTIONS[2],  # select point
+                FUNCTIONS[331]  # move screen
+            ]
             config = Config()
             script_agents = ParallelAgent(
                 agent_num=args.env_num,
                 agent_makers=script_agent_maker(args.map_name))
-            agent = BehaviorClone(network_creator=network_creator(config),
-                                  script_agents=script_agents, sess=sess)
+            agent = BehaviorClone(
+                network_creator=network_creator(config),
+                td_step=args.td_step,
+                lr=args.lr,
+                v_coef=args.v_coef,
+                script_agents=script_agents, sess=sess)
             env = ParallelEnvs(
                 env_num=args.env_num,
                 env_args={'map_name': args.map_name})

@@ -67,7 +67,8 @@ class Config:
         for action in available_actions:
             for action_arg in action.args:
                 action_args.add(action_arg.name)
-        self._action_args = list(action_args)
+        action_args = list(action_args)
+        self._action_args = action_args
         self._action_args_index_table = self._index_table(action_args)
 
         # policy dims

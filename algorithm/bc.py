@@ -17,8 +17,10 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
                  sess=None,
                  network=None,
                  network_creator=None,
+                 td_step=16,
                  script_agents=None,
-                 lr=1e-4,
+                 lr=1e-3,
+                 v_coef=0.01,
                  discount=0.99,
                  **kwargs):
 
@@ -28,8 +30,10 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
         self._sess = sess
         self._network = network
         self._network_creator = network_creator
+        self._td_step = td_step
         self._script_agents = script_agents
         self._lr = lr
+        self._v_coef = v_coef
         self._discount = discount
 
         super().__init__(sess, **kwargs)
@@ -52,21 +56,27 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
     def init_updater(self, **kwargs):
         policy_loss = 0.
         for label, y in zip(self._action_input, self._policies):
+            one_hot = tf.one_hot(label, depth=tf.shape(y)[-1])
             correction = 1e-12
+
             cross_entropy = -tf.reduce_sum(
-                tf.to_float(label) * tf.log(y + correction))
+                one_hot * tf.log(y + correction), axis=1)
             policy_loss += cross_entropy
 
-        values = Utils.td_value(
+        policy_loss = tf.reduce_mean(policy_loss)
+
+        target_value = Utils.td_value(
             self._reward_input, self._done_input,
             self._value_input, self._discount)
-        values = tf.stop_gradient(values)
+        target_value = tf.stop_gradient(target_value)
 
-        value_loss = tf.reduce_mean(tf.square(values - self._value))
-        loss = policy_loss + 0.25 * value_loss
+        value_loss = self._v_coef * tf.reduce_mean(
+            tf.square(target_value - self._value))
+        loss = policy_loss + value_loss
 
         summary = tf.summary.merge([
             tf.summary.scalar('bc/value', tf.reduce_mean(self._value)),
+            tf.summary.scalar('bc/target_value', tf.reduce_mean(target_value)),
             tf.summary.scalar('bc/policy_loss', policy_loss),
             tf.summary.scalar('bc/value_loss', value_loss),
             tf.summary.scalar('bc/loss', loss)])
@@ -75,7 +85,7 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
             learning_rate=self._lr, decay=0.99, epsilon=1e-5)
         step = tf.Variable(0, trainable=False)
         train_op = layers.optimize_loss(
-            loss=policy_loss, optimizer=opt,
+            loss=loss, optimizer=opt,
             learning_rate=None, global_step=step, clip_gradients=1.0)
 
         # todo
@@ -92,9 +102,10 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
 
     def update(self, states, actions,
                next_states, rewards, dones, *args):
-
+        begin = -len(dones) // self._td_step
+        last_state = [e[begin:] for e in next_states]
         value = self._sess.run(self._value, feed_dict=dict(
-            zip(self._state_input, next_states)))
+            zip(self._state_input, last_state)))
 
         input_vars = self._state_input + self._action_input + [
             self._reward_input, self._done_input, self._value_input]
