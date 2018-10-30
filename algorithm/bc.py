@@ -20,7 +20,7 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
                  td_step=16,
                  script_agents=None,
                  lr=1e-3,
-                 v_coef=0.01,
+                 v_coef=0.001,
                  discount=0.99,
                  **kwargs):
 
@@ -57,7 +57,7 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
         policy_loss = 0.
         for label, y in zip(self._action_input, self._policies):
             one_hot = tf.one_hot(label, depth=y.shape[-1])
-            clipped_y = tf.clip_by_value(y, 1e-6, 1.0)
+            clipped_y = tf.clip_by_value(y, 1e-12, 1.0)
             cross_entropy = -tf.reduce_sum(
                 one_hot * tf.log(clipped_y), axis=1)
             policy_loss += cross_entropy
