@@ -49,27 +49,38 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
         self._actions = self._network['actions']
 
     def init_updater(self, **kwargs):
+        # advantage
         target_value = Utils.td_value(
             self._reward_input, self._done_input,
             self._value_input, self._discount)
         target_value = tf.stop_gradient(target_value)
         advance = tf.stop_gradient(target_value - self._value)
 
+        # log pi
         log_pi = 0.0
         for a, p in zip(self._action_input, self._policies):
             r = tf.range(tf.shape(p)[0])
             indices = tf.stack([r, a], axis=1)
-            log_pi += tf.log(tf.gather_nd(p, indices) + 1e-12)
-        entropy = sum(
-            [-tf.reduce_sum(p * tf.log(p + 1e-12), axis=-1)
-             for p in self._policies])
+            # select index 0 in unused arg_policy
+            selected_p = tf.gather_nd(p, indices)
+            log_pi += tf.log(tf.clip_by_value(selected_p, 1e-12, 1.0))
+
+        # entropy
+        entropy = 0.0
+        for p in self._policies:
+            entropy += -tf.reduce_sum(
+                p * tf.log(tf.clip_by_value(p, 1e-12, 1.0)), axis=-1)
         entropy = tf.reduce_mean(entropy)
+
+        # loss
         policy_loss = -tf.reduce_mean(log_pi * advance)
         entropy_loss = -self._ent_coef * entropy
         value_loss = self._v_coef * tf.reduce_mean(
             tf.square(target_value - self._value))
         loss = policy_loss + entropy_loss + value_loss
         summary = tf.summary.merge([
+            tf.summary.scalar('a2c/advantage', tf.reduce_mean(advance)),
+            tf.summary.scalar('a2c/log_pi', tf.reduce_mean(log_pi)),
             tf.summary.scalar('a2c/value', tf.reduce_mean(self._value)),
             tf.summary.scalar('a2c/target_value', tf.reduce_mean(target_value)),
             tf.summary.scalar('a2c/policy_loss', policy_loss),
