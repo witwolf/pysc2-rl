@@ -7,6 +7,7 @@ import sys
 sys.path.append('.')
 
 import argparse
+import ast
 import tensorflow as tf
 from experiments.experiment import Experiment
 from environment.parallel_env import ParallelEnvs
@@ -15,6 +16,7 @@ from lib.adapter import DefaultObservationAdapter as ObservationAdapter
 from lib.adapter import DefaultActionAdapter as ActionAdapter
 from algorithm.a2c import A2C
 from lib.config import Config
+
 
 from experiments.exp_bc import network_creator
 
@@ -33,9 +35,9 @@ class A2CExperiment(Experiment):
         parser.add_argument("--logdir", type=str, default='log/a2c')
         parser.add_argument("--v_coef", type=float, default=0.25)
         parser.add_argument("--ent_coef", type=float, default=1e-3)
-        parser.add_argument("--lr", type=float, default=1e-4)
-        parser.add_argument("--train", type=bool, default=True)
-        parser.add_argument("--restore", type=bool, default=False)
+        parser.add_argument("--lr", type=float, default=7e-4)
+        parser.add_argument("--train", type=ast.literal_eval, default=True)
+        parser.add_argument("--restore", type=ast.literal_eval, default=False)
         args, _ = parser.parse_known_args()
         self._args = args
 
@@ -70,6 +72,7 @@ class A2CExperiment(Experiment):
                 epoch_n=args.epoch,
                 batch_n=args.batch,
                 step_n=args.td_step,
+                restore=args.restore,
                 test_after_epoch=True,
                 logdir=args.logdir)
             env_runner.run()

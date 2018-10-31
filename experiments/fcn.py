@@ -28,10 +28,10 @@ class FCNNetwork():
         policies = []
         act_dim, _ = policy_dims[0]
         act_policy = layers.fully_connected(
-            fc, num_outputs=act_dim, activation_fn=tf.nn.softmax)
+            fc, num_outputs=act_dim, activation_fn=None)
         available_actions = non_spatial_input[
             config._non_spatial_index_table['available_actions']]
-        act_policy = FCNNetwork._mask_probs(act_policy, available_actions)
+        act_policy = tf.nn.softmax(act_policy * available_actions)
         policies.append(act_policy)
 
         for arg_dim, is_spatial in policy_dims[1:]:
@@ -95,12 +95,6 @@ class FCNNetwork():
         return tf.concat(embedding_layers, axis=3)
 
     @staticmethod
-    def _mask_probs(probs, mask):
-        masked = probs * mask
-        masked = tf.clip_by_value(masked, 1e-6, 1.0)
-        return tf.nn.softmax(masked)
-
-    @staticmethod
     def _broadcast(input, size):
         t0 = tf.expand_dims(input, 1)
         t1 = tf.expand_dims(t0, 1)
@@ -109,5 +103,5 @@ class FCNNetwork():
     @staticmethod
     def _sample(probs):
         u = tf.random_uniform(tf.shape(probs))
-        clipped_u = tf.clip_by_value(u, 1e-6, 1.0)
+        clipped_u = tf.clip_by_value(u, 1e-12, 1.0)
         return tf.argmax(tf.log(clipped_u) / probs, axis=1)

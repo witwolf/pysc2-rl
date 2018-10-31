@@ -8,6 +8,7 @@ import sys
 sys.path.append('.')
 
 import argparse
+import ast
 import tensorflow as tf
 from pysc2.lib.actions import FUNCTIONS
 from experiments.experiment import Experiment
@@ -57,10 +58,10 @@ class BCExperiment(Experiment):
         parser.add_argument("--batch", type=int, default=256),
         parser.add_argument("--td_step", type=int, default=16, help='td(n)')
         parser.add_argument("--logdir", type=str, default='log/bc')
-        parser.add_argument("--train", type=bool, default=True)
+        parser.add_argument("--train", type=ast.literal_eval, default=True)
         parser.add_argument("--v_coef", type=float, default=0.0)
         parser.add_argument("--lr", type=float, default=1e-3)
-        parser.add_argument("--restore", type=bool, default=False)
+        parser.add_argument("--restore", type=ast.literal_eval, default=False)
         args, _ = parser.parse_known_args()
         self._args = args
 
@@ -103,6 +104,7 @@ class BCExperiment(Experiment):
                 epoch_n=args.epoch,
                 batch_n=args.batch,
                 step_n=args.td_step,
+                restore=args.restore,
                 test_after_epoch=True,
                 logdir=args.logdir)
             env_runner.run()

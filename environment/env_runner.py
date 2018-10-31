@@ -4,6 +4,7 @@
 
 import logging
 import numpy as np
+import os
 import tensorflow as tf
 from tensorflow.python.training.summary_io import SummaryWriterCache
 
@@ -19,6 +20,7 @@ class EnvRunner(object):
                  step_n=16,
                  test_after_epoch=True,
                  train=True,
+                 restore=False,
                  logdir=None):
         self._env = env
         self._test_env = test_env
@@ -32,22 +34,30 @@ class EnvRunner(object):
         self._obs = None
         self._train = train
         self._summary_writer = None
+        self._saver = tf.train.Saver()
+        self._logdir = logdir
         if logdir:
+            if not os.path.isdir(logdir):
+                os.makedirs(logdir)
             self._summary_writer = SummaryWriterCache.get(logdir)
+        if restore or not train:
+            self._saver.restore(
+                self._agent._sess, tf.train.latest_checkpoint(logdir))
 
     def run(self, *args, **kwargs):
+        if self._train:
+            self._obs = self._env.reset()
         for epoch in range(self._epoch_n):
             if self._train:
-                self._obs = self._env.reset()
                 for batch in range(self._batch_n):
                     logging.info("epoch:%d,batch:%d" % (epoch, batch))
                     self._batch()
-                self._agent.save()
+                checkpoint = self._logdir + '/%d.ckpt' % epoch
+                self._saver.save(self._agent._sess, checkpoint)
             if self._test_after_epoch:
                 total_reward = self._test()
                 logging.info("epoch:%d,reward:%d" % (epoch, total_reward))
-                if self._train:
-                    self._record(step=epoch, reward=total_reward)
+                self._record(step=epoch, reward=total_reward)
 
     def _batch(self):
         # train batch
@@ -95,7 +105,7 @@ class EnvRunner(object):
         return total_reward
 
     def _record(self, step=None, summary=None, **kwargs):
-        if self._summary_writer is None:
+        if not self._train or not self._summary_writer:
             return
         if summary:
             self._summary_writer.add_summary(summary, step)
