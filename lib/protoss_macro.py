@@ -86,7 +86,7 @@ class U(object):
         return x, y
 
     @staticmethod
-    def minieral_location(obs):
+    def mineral_location(obs):
         unit_type = obs.observation.feature_screen.unit_type
         mineral_type = units.Neutral.MineralFiel
         xs, ys = (unit_type == mineral_type).nonzero()
@@ -199,232 +199,310 @@ class U(object):
         return (attack_direction[0] * ratio - screen_h / 2,
                 attack_direction[1] * ratio - screen_h / 2)
 
-
-def _move_to_base(obs, *args):
-    # move camera to base
-    base_location = U.base_minimap_location(obs)
-    move_to_base = FUNCTIONS.move_camera((base_location,))
-    return [move_to_base]
-
-
-def _select_worker(obs, *args):
-    # select worker
-    _worker_type = U.worker_type(obs)
-    worker_location = U.random_unit_location(obs, _worker_type)
-    select_worker = FUNCTIONS.select_point(
-        "select_all_type", worker_location)
-    return [select_worker]
-
-
-def _select_gateway(obs, *args):
-    # select gateway
-    gateway_type = units.Protoss.Gateway
-    gateway_location = U.random_unit_location(obs, gateway_type)
-    select_gateway = FUNCTIONS.select_point(
-        "select_all_type", gateway_location)
-    return [select_gateway]
+def build_a_pylon():
+    funcs = [
+        # move camera to base
+        FUNCTIONS.move_camera,
+        # select all workers
+        FUNCTIONS.select_point,
+        # build a pylon
+        FUNCTIONS.Build_Pylon_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.base_minimap_location(obs),),
+        lambda obs:("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
+        lambda obs:("now", U.new_pylon_location(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-# macros
-
-def build_a_pylon(obs, *args):
-    move_to_base = _move_to_base(obs, *args)
-    select_worker = _select_worker(obs, *args)
-    # build pylon
-    pylon_location = U.new_pylon_location(obs)
-    build_pylon = FUNCTIONS.Build_Pylon_screen(
-        "now", pylon_location)
-    return move_to_base + select_worker + [build_pylon]
-
-
-def build_a_gateway(obs, *args):
-    move_to_base = _move_to_base(obs, *args)
-    select_worker = _select_worker(obs, *args)
-    # build gateway
-    gateway_location = U.new_gateway_location(obs)
-    build_gateway = FUNCTIONS.Build_Gateway_screen(
-        "now", gateway_location)
-    return move_to_base + select_worker + [build_gateway]
+def build_a_gateway():
+    funcs = [
+        # move camera to base
+        FUNCTIONS.move_camera,
+        # select all workers
+        FUNCTIONS.select_point,
+        # build a gateway
+        FUNCTIONS.Build_Gateway_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.base_minimap_location(obs),),
+        lambda obs:("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
+        lambda obs:("now", U.new_gateway_location(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def build_a_assimilator(obs, *args):
-    move_to_base = _move_to_base(obs, *args)
-    select_worker = _select_worker(obs, *args)
-    # build assimilator
-    assimilator_location = U.new_assimilator_location(obs)
-    build_assimilator = FUNCTIONS.Build_Assimilator_screen(
-        "now", assimilator_location)
-    return move_to_base + select_worker + [build_assimilator]
+def build_a_assimilator():
+    funcs = [
+        # move camera to base
+        FUNCTIONS.move_camera,
+        # select all workers
+        FUNCTIONS.select_point,
+        # build a assimilator
+        FUNCTIONS.Build_Assimilator_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.base_minimap_location(obs),),
+        lambda obs:("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
+        lambda obs:("now", U.new_assimilator_location(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def build_a_CyberneticsCore(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs, *args)
-    # select worker
-    select_worker = _select_worker(obs, *args)
-    # build cyberneticscore
-    cybernet_location = U.new_cyberneticscore_location(obs)
-    build_cybernet = FUNCTIONS.Build_CyberneticsCore_screen(
-        "now", cybernet_location)
-    return move_to_base + select_worker + [build_cybernet]
+def build_a_cyberneticscore():
+    funcs = [
+        # move camera to base
+        FUNCTIONS.move_camera,
+        # select all workers
+        FUNCTIONS.select_point,
+        # build a CyberneticsCore
+        FUNCTIONS.Build_CyberneticsCore_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.base_minimap_location(obs),),
+        lambda obs:("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
+        lambda obs:("now", U.new_cyberneticscore_location(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def training_a_probe(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs, *args)
-    # select worker
-    worker_type = units.Protoss.Nexus
-    worker_location = U.random_unit_location(obs, worker_type)
-    select_worker = FUNCTIONS.select_point(
-        "select_all_type", worker_location)
-    # train probe
-    train_probe = FUNCTIONS.Train_Probe_quick("now", )
-    return move_to_base + [select_worker, train_probe]
+def training_a_probe():
+    funcs = [
+        # move camera to base
+        FUNCTIONS.move_camera,
+        # select all gateways
+        FUNCTIONS.select_point,
+        # train a zealot
+        FUNCTIONS.Train_Probe_quick
+    ]
+    funcs_args = [
+        lambda obs:(U.base_minimap_location(obs),),
+        lambda obs:("select_all_type", U.random_unit_location(obs, units.Protoss.Nexus)),
+        lambda obs:("now",)
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def train_a_zealot(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs, *args)
-    # select gateway
-    select_gateway = _select_gateway(obs, *args)
-    # train zealot
-    train_zealot = FUNCTIONS.Train_Zealot_quick("now", )
-    return move_to_base + select_gateway + [train_zealot]
+def training_a_zealot():
+    funcs = [
+        # move camera to base
+        FUNCTIONS.move_camera,
+        # select all gateways
+        FUNCTIONS.select_point,
+        # train a zealot
+        FUNCTIONS.Train_Zealot_quick
+    ]
+    funcs_args = [
+        lambda obs:(U.base_minimap_location(obs),),
+        lambda obs:("select_all_type", U.random_unit_location(obs, units.Protoss.Gateway)),
+        lambda obs:("now",)
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def training_a_stalker(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs, *args)
-    # select gateway
-    select_gateway = _select_gateway(obs, *args)
-    # train stalker
-    train_stalker = FUNCTIONS.Train_Stalker_quick("now", )
-    return move_to_base + select_gateway + [train_stalker]
+def training_a_stalker():
+    funcs = [
+        # move camera to base
+        FUNCTIONS.move_camera,
+        # select all gateways
+        FUNCTIONS.select_point,
+        # train a stalker
+        FUNCTIONS.Train_Stalker_quick
+    ]
+    funcs_args = [
+        lambda obs:(U.base_minimap_location(obs),),
+        lambda obs:("select_all_type", U.random_unit_location(obs, units.Protoss.Gateway)),
+        lambda obs:("now",)
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def collect_minerals(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs, *args)
-    # select idle worker
-    select_idle_worker = FUNCTIONS.select_idle_worker("select_all")
-    # collect mineral
-    mineral_location = U.minieral_location(obs)
-    collect_mineral = FUNCTIONS.Smart_screen("now", mineral_location)
-    return move_to_base + [select_idle_worker, collect_mineral]
+def collect_minerals():
+    funcs = [
+        # move camera to base
+        FUNCTIONS.move_camera,
+        # select idle workers
+        FUNCTIONS.select_idle_worker,
+        # collect minerals
+        FUNCTIONS.Smart_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.base_minimap_location(obs),),
+        lambda obs:("select_all",),
+        lambda obs:("now", U.mineral_location(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def collect_gas(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs)
-    # select worker
-    _worker_type = U.worker_type(obs)
-    worker_location = U.random_unit_location(obs, _worker_type)
-    select_worker = FUNCTIONS.select_point("select", worker_location)
-    # collect gas
-    _gas_location = U.gas_location(obs)
-    collect_gas = FUNCTIONS.Smart_screen("now", _gas_location)
-    return move_to_base + [select_worker, collect_gas]
+def collect_gas():
+    funcs = [
+        # move camera to base
+        FUNCTIONS.move_camera,
+        # select a worker
+        FUNCTIONS.select_point,
+        # collect gas
+        FUNCTIONS.Smart_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.base_minimap_location(obs),),
+        lambda obs:("select", U.random_unit_location(obs, U.worker_type(obs))),
+        lambda obs:("now", U.gas_location(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def move_screen_topleft(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs)
-    # select army
-    select_army = FUNCTIONS.select_army("select", )
-    # move screen
-    top_left = U.screen_topleft(obs)
-    move_screen = FUNCTIONS.Move_screen("now", top_left)
-    return move_to_base + [select_army, move_screen]
+def move_screen_topleft():
+    funcs = [
+        # move camera to army
+        FUNCTIONS.move_camera,
+        # select all army
+        FUNCTIONS.select_army,
+        # move to one corner
+        FUNCTIONS.Move_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.base_minimap_location(obs),),
+        lambda obs:("select",),
+        lambda obs:("now", U.screen_topleft(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def move_screen_top(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs)
-    # select army
-    select_army = FUNCTIONS.select_army("select", )
-    # move screen
-    top = U.screen_top(obs)
-    move_screen = FUNCTIONS.Move_screen("now", top)
-    return move_to_base + [select_army, move_screen]
+def move_screen_top():
+    funcs = [
+        # move camera to army
+        FUNCTIONS.move_camera,
+        # select all army
+        FUNCTIONS.select_army,
+        # move to one corner
+        FUNCTIONS.Move_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.army_minimap_location(obs),),
+        lambda obs:("select",),
+        lambda obs:("now", U.screen_top(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def move_screen_topright(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs)
-    # select army
-    select_army = FUNCTIONS.select_army("select", )
-    # move screen
-    top_right = U.screen_topright(obs)
-    move_screen = FUNCTIONS.Move_screen("now", top_right)
-    return move_to_base + [select_army, move_screen]
+def move_screen_topright():
+    funcs = [
+        # move camera to army
+        FUNCTIONS.move_camera,
+        # select all army
+        FUNCTIONS.select_army,
+        # move to one corner
+        FUNCTIONS.Move_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.army_minimap_location(obs),),
+        lambda obs:("select",),
+        lambda obs:("now", U.screen_topright(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def move_screen_right(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs)
-    # select army
-    select_army = FUNCTIONS.select_army("select", )
-    # move screen
-    right = U.screen_right(obs)
-    move_screen = FUNCTIONS.Move_screen("now", right)
-    return move_to_base + [select_army, move_screen]
+def move_screen_right():
+    funcs = [
+        # move camera to army
+        FUNCTIONS.move_camera,
+        # select all army
+        FUNCTIONS.select_army,
+        # move to one corner
+        FUNCTIONS.Move_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.army_minimap_location(obs),),
+        lambda obs:("select",),
+        lambda obs:("now", U.screen_right(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def move_screen_bottomright(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs)
-    # select army
-    select_army = FUNCTIONS.select_army("select", )
-    # move screen
-    bottom_right = U.screen_bottomright(obs)
-    move_screen = FUNCTIONS.Move_screen("now", bottom_right)
-    return move_to_base + [select_army, move_screen]
+def move_screen_bottomright():
+    funcs = [
+        # move camera to army
+        FUNCTIONS.move_camera,
+        # select all army
+        FUNCTIONS.select_army,
+        # move to one corner
+        FUNCTIONS.Move_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.army_minimap_location(obs),),
+        lambda obs:("select",),
+        lambda obs:("now", U.screen_bottomright(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def move_screen_bottom(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs)
-    # select army
-    select_army = FUNCTIONS.select_army("select", )
-    # move screen
-    bottom = U.screen_bottom(obs)
-    move_screen = FUNCTIONS.Move_screen("now", bottom)
-    return move_to_base + [select_army, move_screen]
+def move_screen_bottom():
+    funcs = [
+        # move camera to army
+        FUNCTIONS.move_camera,
+        # select all army
+        FUNCTIONS.select_army,
+        # move to one corner
+        FUNCTIONS.Move_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.army_minimap_location(obs),),
+        lambda obs:("select",),
+        lambda obs:("now", U.screen_bottom(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def move_screen_bottomleft(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs)
-    # select army
-    select_army = FUNCTIONS.select_army("select", )
-    # move screen
-    bottom_left = U.screen_bottomleft(obs)
-    move_screen = FUNCTIONS.Move_screen("now", bottom_left)
-    return move_to_base + [select_army, move_screen]
+def move_screen_bottomleft():
+    funcs = [
+        # move camera to army
+        FUNCTIONS.move_camera,
+        # select all army
+        FUNCTIONS.select_army,
+        # move to one corner
+        FUNCTIONS.Move_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.army_minimap_location(obs),),
+        lambda obs:("select",),
+        lambda obs:("now", U.screen_bottomleft(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def move_screen_left(obs, *args):
-    # move to base
-    move_to_base = _move_to_base(obs)
-    # select army
-    select_army = FUNCTIONS.select_army("select", )
-    # move screen
-    left = U.screen_left(obs)
-    move_screen = FUNCTIONS.Move_screen("now", left)
-    return move_to_base + [select_army, move_screen]
+def move_screen_left():
+    funcs = [
+        # move camera to army
+        FUNCTIONS.move_camera,
+        # select all army
+        FUNCTIONS.select_army,
+        # move to one corner
+        FUNCTIONS.Move_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.army_minimap_location(obs),),
+        lambda obs:("select",),
+        lambda obs:("now", U.screen_left(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 
-def attack_enemy(obs, *args):
-    # move to army
-    army_location = U.army_minimap_location(obs)
-    move_to_army = FUNCTIONS.move_camera(army_location)
-    # select all army
-    select_army = FUNCTIONS.select_army("select")
-    # attack enemy
-    attack_location = U.attack_location(obs)
-    attack_enemy = FUNCTIONS.Attack_screen("now", attack_location)
-    return [move_to_army, select_army, attack_enemy]
-
+def attack_enemy():
+    funcs = [
+        # move camera to army
+        FUNCTIONS.move_camera,
+        # select all army
+        FUNCTIONS.select_army,
+        # attack enemy
+        FUNCTIONS.Attack_screen
+    ]
+    funcs_args = [
+        lambda obs:(U.army_minimap_location(obs),),
+        lambda obs:("select",),
+        lambda obs:("now", U.attack_location(obs))
+    ]
+    return list(zip(funcs, funcs_args))
 
 class ProtossMacro(collections.namedtuple(
     "ProtossMacro", ["id", "name", "ability_id",
@@ -446,9 +524,9 @@ _PROTOSS_MACROS = [
     ProtossMacro.ability(0, "Build_Pylon", build_a_pylon, 0),
     ProtossMacro.ability(1, "Build_Gateway", build_a_gateway, 1),
     ProtossMacro.ability(2, "Build_Assimilator", build_a_assimilator, 2),
-    ProtossMacro.ability(3, "Build_CyberneticsCore", build_a_CyberneticsCore, 3),
+    ProtossMacro.ability(3, "Build_CyberneticsCore", build_a_cyberneticscore, 3),
     ProtossMacro.ability(4, "Train_Probe", training_a_probe, 4),
-    ProtossMacro.ability(5, "Train_Zealot", train_a_zealot, 5),
+    ProtossMacro.ability(5, "Train_Zealot", training_a_zealot, 5),
     ProtossMacro.ability(6, "Train_Stalker", training_a_stalker, 6),
     ProtossMacro.ability(7, "Collect_Mineral", collect_minerals, 7),
     ProtossMacro.ability(8, "Collect_Gas", collect_gas, 8),
@@ -513,3 +591,6 @@ _ProtossMacros = enum.IntEnum(
     "_ProtossMacros", {f.name: f.id for f in _PROTOSS_MACROS})
 
 PROTOSS_MACROS = ProtossMacros(_PROTOSS_MACROS)
+
+
+
