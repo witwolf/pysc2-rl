@@ -207,13 +207,12 @@ def build_a_pylon():
         # select all workers
         FUNCTIONS.select_point,
         # build a pylon
-        FUNCTIONS.Build_Pylon_screen
-    ]
+        FUNCTIONS.Build_Pylon_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
-        lambda obs: ("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
-        lambda obs: ("now", U.new_pylon_location(obs))
-    ]
+        lambda obs: ("select_all_type", U.random_unit_location(
+            obs, U.worker_type(obs))),
+        lambda obs: ("now", U.new_pylon_location(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -224,13 +223,12 @@ def build_a_gateway():
         # select all workers
         FUNCTIONS.select_point,
         # build a gateway
-        FUNCTIONS.Build_Gateway_screen
-    ]
+        FUNCTIONS.Build_Gateway_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
-        lambda obs: ("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
-        lambda obs: ("now", U.new_gateway_location(obs))
-    ]
+        lambda obs: ("select_all_type", U.random_unit_location(
+            obs, U.worker_type(obs))),
+        lambda obs: ("now", U.new_gateway_location(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -241,13 +239,12 @@ def build_a_assimilator():
         # select all workers
         FUNCTIONS.select_point,
         # build a assimilator
-        FUNCTIONS.Build_Assimilator_screen
-    ]
+        FUNCTIONS.Build_Assimilator_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
-        lambda obs: ("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
-        lambda obs: ("now", U.new_assimilator_location(obs))
-    ]
+        lambda obs: ("select_all_type", U.random_unit_location(
+            obs, U.worker_type(obs))),
+        lambda obs: ("now", U.new_assimilator_location(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -258,13 +255,12 @@ def build_a_cyberneticscore():
         # select all workers
         FUNCTIONS.select_point,
         # build a CyberneticsCore
-        FUNCTIONS.Build_CyberneticsCore_screen
-    ]
+        FUNCTIONS.Build_CyberneticsCore_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
-        lambda obs: ("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
-        lambda obs: ("now", U.new_cyberneticscore_location(obs))
-    ]
+        lambda obs: ("select_all_type", U.random_unit_location(
+            obs, U.worker_type(obs))),
+        lambda obs: ("now", U.new_cyberneticscore_location(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -275,13 +271,12 @@ def training_a_probe():
         # select all gateways
         FUNCTIONS.select_point,
         # train a zealot
-        FUNCTIONS.Train_Probe_quick
-    ]
+        FUNCTIONS.Train_Probe_quick]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
-        lambda obs: ("select_all_type", U.random_unit_location(obs, units.Protoss.Nexus)),
-        lambda obs: ("now",)
-    ]
+        lambda obs: ("select_all_type", U.random_unit_location(
+            obs, units.Protoss.Nexus)),
+        lambda obs: ("now",)]
     return list(zip(funcs, funcs_args))
 
 
@@ -292,13 +287,12 @@ def training_a_zealot():
         # select all gateways
         FUNCTIONS.select_point,
         # train a zealot
-        FUNCTIONS.Train_Zealot_quick
-    ]
+        FUNCTIONS.Train_Zealot_quick]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
-        lambda obs: ("select_all_type", U.random_unit_location(obs, units.Protoss.Gateway)),
-        lambda obs: ("now",)
-    ]
+        lambda obs: ("select_all_type", U.random_unit_location(
+            obs, units.Protoss.Gateway)),
+        lambda obs: ("now",)]
     return list(zip(funcs, funcs_args))
 
 
@@ -309,13 +303,12 @@ def training_a_stalker():
         # select all gateways
         FUNCTIONS.select_point,
         # train a stalker
-        FUNCTIONS.Train_Stalker_quick
-    ]
+        FUNCTIONS.Train_Stalker_quick]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
-        lambda obs: ("select_all_type", U.random_unit_location(obs, units.Protoss.Gateway)),
-        lambda obs: ("now",)
-    ]
+        lambda obs: ("select_all_type", U.random_unit_location(
+            obs, units.Protoss.Gateway)),
+        lambda obs: ("now",)]
     return list(zip(funcs, funcs_args))
 
 
@@ -326,13 +319,11 @@ def collect_minerals():
         # select idle workers
         FUNCTIONS.select_idle_worker,
         # collect minerals
-        FUNCTIONS.Smart_screen
-    ]
+        FUNCTIONS.Smart_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("select_all",),
-        lambda obs: ("now", U.mineral_location(obs))
-    ]
+        lambda obs: ("now", U.mineral_location(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -343,13 +334,12 @@ def collect_gas():
         # select a worker
         FUNCTIONS.select_point,
         # collect gas
-        FUNCTIONS.Smart_screen
-    ]
+        FUNCTIONS.Smart_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
-        lambda obs: ("select", U.random_unit_location(obs, U.worker_type(obs))),
-        lambda obs: ("now", U.gas_location(obs))
-    ]
+        lambda obs: ("select", U.random_unit_location(
+            obs, U.worker_type(obs))),
+        lambda obs: ("now", U.gas_location(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -360,13 +350,11 @@ def move_screen_topleft():
         # select all army
         FUNCTIONS.select_army,
         # move to one corner
-        FUNCTIONS.Move_screen
-    ]
+        FUNCTIONS.Move_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("select",),
-        lambda obs: ("now", U.screen_topleft(obs))
-    ]
+        lambda obs: ("now", U.screen_topleft(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -377,13 +365,11 @@ def move_screen_top():
         # select all army
         FUNCTIONS.select_army,
         # move to one corner
-        FUNCTIONS.Move_screen
-    ]
+        FUNCTIONS.Move_screen]
     funcs_args = [
         lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
-        lambda obs: ("now", U.screen_top(obs))
-    ]
+        lambda obs: ("now", U.screen_top(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -394,13 +380,11 @@ def move_screen_topright():
         # select all army
         FUNCTIONS.select_army,
         # move to one corner
-        FUNCTIONS.Move_screen
-    ]
+        FUNCTIONS.Move_screen]
     funcs_args = [
         lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
-        lambda obs: ("now", U.screen_topright(obs))
-    ]
+        lambda obs: ("now", U.screen_topright(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -411,13 +395,11 @@ def move_screen_right():
         # select all army
         FUNCTIONS.select_army,
         # move to one corner
-        FUNCTIONS.Move_screen
-    ]
+        FUNCTIONS.Move_screen]
     funcs_args = [
         lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
-        lambda obs: ("now", U.screen_right(obs))
-    ]
+        lambda obs: ("now", U.screen_right(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -428,13 +410,11 @@ def move_screen_bottomright():
         # select all army
         FUNCTIONS.select_army,
         # move to one corner
-        FUNCTIONS.Move_screen
-    ]
+        FUNCTIONS.Move_screen]
     funcs_args = [
         lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
-        lambda obs: ("now", U.screen_bottomright(obs))
-    ]
+        lambda obs: ("now", U.screen_bottomright(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -445,13 +425,11 @@ def move_screen_bottom():
         # select all army
         FUNCTIONS.select_army,
         # move to one corner
-        FUNCTIONS.Move_screen
-    ]
+        FUNCTIONS.Move_screen]
     funcs_args = [
         lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
-        lambda obs: ("now", U.screen_bottom(obs))
-    ]
+        lambda obs: ("now", U.screen_bottom(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -462,13 +440,11 @@ def move_screen_bottomleft():
         # select all army
         FUNCTIONS.select_army,
         # move to one corner
-        FUNCTIONS.Move_screen
-    ]
+        FUNCTIONS.Move_screen]
     funcs_args = [
         lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
-        lambda obs: ("now", U.screen_bottomleft(obs))
-    ]
+        lambda obs: ("now", U.screen_bottomleft(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -479,13 +455,11 @@ def move_screen_left():
         # select all army
         FUNCTIONS.select_army,
         # move to one corner
-        FUNCTIONS.Move_screen
-    ]
+        FUNCTIONS.Move_screen]
     funcs_args = [
         lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
-        lambda obs: ("now", U.screen_left(obs))
-    ]
+        lambda obs: ("now", U.screen_left(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -496,13 +470,11 @@ def attack_enemy():
         # select all army
         FUNCTIONS.select_army,
         # attack enemy
-        FUNCTIONS.Attack_screen
-    ]
+        FUNCTIONS.Attack_screen]
     funcs_args = [
         lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
-        lambda obs: ("now", U.attack_location(obs))
-    ]
+        lambda obs: ("now", U.attack_location(obs))]
     return list(zip(funcs, funcs_args))
 
 

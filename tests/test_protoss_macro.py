@@ -10,7 +10,6 @@ from pysc2.agents import base_agent
 from pysc2.lib import units
 from pysc2.lib.actions import FUNCTIONS
 from lib.protoss_macro import PROTOSS_MACROS
-from lib.protoss_macro import U
 
 
 class ProtossAgent(base_agent.BaseAgent):
@@ -30,7 +29,8 @@ class ProtossAgent(base_agent.BaseAgent):
 
     def get_all_complete_units_by_type(self, obs, unit_type):
         return [unit for unit in obs.observation.raw_units
-                if unit.unit_type == unit_type and int(unit.build_progress) == 100]
+                if unit.unit_type == unit_type
+                and int(unit.build_progress) == 100]
 
     def get_unit_counts(self, obs, unit_type):
         for unit in obs.observation.unit_counts:
@@ -42,15 +42,14 @@ class ProtossAgent(base_agent.BaseAgent):
         return action in obs.observation.available_actions
 
     def future_food(self, obs):
-        nexus = len(self.get_all_units_by_type(obs, units.Protoss.Nexus))
-        pylons = len(self.get_all_units_by_type(obs, units.Protoss.Pylon))
+        nexus = len(self.get_all_units_by_type(
+            obs, units.Protoss.Nexus))
+        pylons = len(self.get_all_units_by_type(
+            obs, units.Protoss.Pylon))
         return 15 * (nexus) + 8 * (pylons)
 
     def step(self, obs):
         super(ProtossAgent, self).step(obs)
-        if obs.first():
-            U.base_minimap_location(obs)
-            U.enemy_minimap_location(obs)
 
         self.frame += 1
         if self.frame % 4 != 1:
@@ -65,32 +64,29 @@ class ProtossAgent(base_agent.BaseAgent):
             # build a pylon if not enough food
             elif mineral > 100:
                 self.actions = PROTOSS_MACROS.Build_Pylon()
-        # execute action
-        else:
-            # if macro execute end, clear action
-            if self.aid == len(self.actions):
-                self.aid, self.actions = 0, []
-            else:
-                # execute one step macro
-                action, actions_args_func = self.actions[self.aid]
-                action_args = actions_args_func(obs)
-                if self.can_do(obs, action.id):
-                    self.aid += 1
-                    return action(*action_args)
+
+            return FUNCTIONS.no_op()
+
+        action, arg_func = self.actions[0]
+        if self.can_do(obs, action.id):
+            self.actions = self.actions[1:]
+            action_args = arg_func(obs)
+            return action(*action_args)
+
         return FUNCTIONS.no_op()
 
 
 class TestProtossMacro(utils.TestCase):
-    def test_protoss_macro(self):
-        attack_enemy = PROTOSS_MACROS.Attack_Enemy()
-        assert len(attack_enemy) == 3
-        for func, arg in attack_enemy:
-            print(func, arg)
 
-        for i in range(3):
-            print(attack_enemy[i][0], attack_enemy[i][1])
+    # def test_protoss_macro(self):
+    #     attack_enemy = PROTOSS_MACROS.Attack_Enemy()
+    #     assert len(attack_enemy) == 3
+    #     for func, arg in attack_enemy:
+    #         pass
+    #     for i in range(3):
+    #         pass
 
-    def test_protoss_macro_(self):
+    def test_protoss_agent(self):
         agent = ProtossAgent()
         with sc2_env.SC2Env(
                 map_name="Simple64",
@@ -98,17 +94,14 @@ class TestProtossMacro(utils.TestCase):
                          sc2_env.Bot(sc2_env.Race.terran,
                                      sc2_env.Difficulty.very_easy)],
                 agent_interface_format=features.AgentInterfaceFormat(
-                    feature_dimensions=features.Dimensions(screen=64, minimap=64),
+                    feature_dimensions=features.Dimensions(screen=84, minimap=64),
                     use_feature_units=True, use_raw_units=True, use_unit_counts=True),
                 step_mul=4,
                 game_steps_per_episode=0,
                 visualize=True) as env:
-
             agent.setup(env.observation_spec(), env.action_spec())
-
             timesteps = env.reset()
             agent.reset()
-
             while True:
                 step_actions = [agent.step(timesteps[0])]
                 if timesteps[0].last():
