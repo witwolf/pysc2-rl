@@ -54,7 +54,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
             self._reward_input, self._done_input,
             self._value_input, self._discount)
         target_value = tf.stop_gradient(target_value)
-        advance = tf.stop_gradient(target_value - self._value)
+        advantage = tf.stop_gradient(target_value - self._value)
 
         # log pi
         log_pi = 0.0
@@ -73,13 +73,13 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
         entropy = tf.reduce_mean(entropy)
 
         # loss
-        policy_loss = -tf.reduce_mean(log_pi * advance)
+        policy_loss = -tf.reduce_mean(log_pi * advantage)
         entropy_loss = -self._ent_coef * entropy
         value_loss = self._v_coef * tf.reduce_mean(
             tf.square(target_value - self._value))
         loss = policy_loss + entropy_loss + value_loss
         summary = tf.summary.merge([
-            tf.summary.scalar('a2c/advantage', tf.reduce_mean(advance)),
+            tf.summary.scalar('a2c/advantage', tf.reduce_mean(advantage)),
             tf.summary.scalar('a2c/log_pi', tf.reduce_mean(log_pi)),
             tf.summary.scalar('a2c/value', tf.reduce_mean(self._value)),
             tf.summary.scalar('a2c/target_value', tf.reduce_mean(target_value)),
