@@ -517,7 +517,7 @@ class ProtossMacro(collections.namedtuple(
         return self.id
 
     def __call__(self, *args):
-        return MacroCall.init(self.id, args)
+        return MacroCall.init(self, args)
 
 
 _PROTOSS_MACROS = [
@@ -543,13 +543,17 @@ _PROTOSS_MACROS = [
 
 
 class MacroCall(collections.namedtuple(
-    "MacroCall", ["macro", "arguments"])):
+    "MacroCall", ["macro", "func", "arguments"])):
     __slots__ = ()
 
     @classmethod
     def init(cls, macro, arguments):
-        macro = PROTOSS_MACROS[macro]
-        return cls(macro.id, arguments)
+        return cls(macro.id, macro.function_calls, arguments)
+
+    def __call__(self):
+        func = self.func
+        args = self.arguments
+        func(*args)
 
 
 class ProtossMacros(object):
@@ -591,6 +595,4 @@ _ProtossMacros = enum.IntEnum(
     "_ProtossMacros", {f.name: f.id for f in _PROTOSS_MACROS})
 
 PROTOSS_MACROS = ProtossMacros(_PROTOSS_MACROS)
-
-
 
