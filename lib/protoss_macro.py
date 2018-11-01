@@ -199,6 +199,7 @@ class U(object):
         return (attack_direction[0] * ratio - screen_h / 2,
                 attack_direction[1] * ratio - screen_h / 2)
 
+
 def build_a_pylon():
     funcs = [
         # move camera to base
@@ -209,9 +210,9 @@ def build_a_pylon():
         FUNCTIONS.Build_Pylon_screen
     ]
     funcs_args = [
-        lambda obs:(U.base_minimap_location(obs),),
-        lambda obs:("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
-        lambda obs:("now", U.new_pylon_location(obs))
+        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: ("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
+        lambda obs: ("now", U.new_pylon_location(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -226,9 +227,9 @@ def build_a_gateway():
         FUNCTIONS.Build_Gateway_screen
     ]
     funcs_args = [
-        lambda obs:(U.base_minimap_location(obs),),
-        lambda obs:("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
-        lambda obs:("now", U.new_gateway_location(obs))
+        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: ("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
+        lambda obs: ("now", U.new_gateway_location(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -243,9 +244,9 @@ def build_a_assimilator():
         FUNCTIONS.Build_Assimilator_screen
     ]
     funcs_args = [
-        lambda obs:(U.base_minimap_location(obs),),
-        lambda obs:("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
-        lambda obs:("now", U.new_assimilator_location(obs))
+        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: ("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
+        lambda obs: ("now", U.new_assimilator_location(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -260,9 +261,9 @@ def build_a_cyberneticscore():
         FUNCTIONS.Build_CyberneticsCore_screen
     ]
     funcs_args = [
-        lambda obs:(U.base_minimap_location(obs),),
-        lambda obs:("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
-        lambda obs:("now", U.new_cyberneticscore_location(obs))
+        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: ("select_all_type", U.random_unit_location(obs, U.worker_type(obs))),
+        lambda obs: ("now", U.new_cyberneticscore_location(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -277,9 +278,9 @@ def training_a_probe():
         FUNCTIONS.Train_Probe_quick
     ]
     funcs_args = [
-        lambda obs:(U.base_minimap_location(obs),),
-        lambda obs:("select_all_type", U.random_unit_location(obs, units.Protoss.Nexus)),
-        lambda obs:("now",)
+        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: ("select_all_type", U.random_unit_location(obs, units.Protoss.Nexus)),
+        lambda obs: ("now",)
     ]
     return list(zip(funcs, funcs_args))
 
@@ -294,9 +295,9 @@ def training_a_zealot():
         FUNCTIONS.Train_Zealot_quick
     ]
     funcs_args = [
-        lambda obs:(U.base_minimap_location(obs),),
-        lambda obs:("select_all_type", U.random_unit_location(obs, units.Protoss.Gateway)),
-        lambda obs:("now",)
+        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: ("select_all_type", U.random_unit_location(obs, units.Protoss.Gateway)),
+        lambda obs: ("now",)
     ]
     return list(zip(funcs, funcs_args))
 
@@ -311,9 +312,9 @@ def training_a_stalker():
         FUNCTIONS.Train_Stalker_quick
     ]
     funcs_args = [
-        lambda obs:(U.base_minimap_location(obs),),
-        lambda obs:("select_all_type", U.random_unit_location(obs, units.Protoss.Gateway)),
-        lambda obs:("now",)
+        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: ("select_all_type", U.random_unit_location(obs, units.Protoss.Gateway)),
+        lambda obs: ("now",)
     ]
     return list(zip(funcs, funcs_args))
 
@@ -328,9 +329,9 @@ def collect_minerals():
         FUNCTIONS.Smart_screen
     ]
     funcs_args = [
-        lambda obs:(U.base_minimap_location(obs),),
-        lambda obs:("select_all",),
-        lambda obs:("now", U.mineral_location(obs))
+        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: ("select_all",),
+        lambda obs: ("now", U.mineral_location(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -345,9 +346,9 @@ def collect_gas():
         FUNCTIONS.Smart_screen
     ]
     funcs_args = [
-        lambda obs:(U.base_minimap_location(obs),),
-        lambda obs:("select", U.random_unit_location(obs, U.worker_type(obs))),
-        lambda obs:("now", U.gas_location(obs))
+        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: ("select", U.random_unit_location(obs, U.worker_type(obs))),
+        lambda obs: ("now", U.gas_location(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -362,9 +363,9 @@ def move_screen_topleft():
         FUNCTIONS.Move_screen
     ]
     funcs_args = [
-        lambda obs:(U.base_minimap_location(obs),),
-        lambda obs:("select",),
-        lambda obs:("now", U.screen_topleft(obs))
+        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: ("select",),
+        lambda obs: ("now", U.screen_topleft(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -379,9 +380,9 @@ def move_screen_top():
         FUNCTIONS.Move_screen
     ]
     funcs_args = [
-        lambda obs:(U.army_minimap_location(obs),),
-        lambda obs:("select",),
-        lambda obs:("now", U.screen_top(obs))
+        lambda obs: (U.army_minimap_location(obs),),
+        lambda obs: ("select",),
+        lambda obs: ("now", U.screen_top(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -396,9 +397,9 @@ def move_screen_topright():
         FUNCTIONS.Move_screen
     ]
     funcs_args = [
-        lambda obs:(U.army_minimap_location(obs),),
-        lambda obs:("select",),
-        lambda obs:("now", U.screen_topright(obs))
+        lambda obs: (U.army_minimap_location(obs),),
+        lambda obs: ("select",),
+        lambda obs: ("now", U.screen_topright(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -413,9 +414,9 @@ def move_screen_right():
         FUNCTIONS.Move_screen
     ]
     funcs_args = [
-        lambda obs:(U.army_minimap_location(obs),),
-        lambda obs:("select",),
-        lambda obs:("now", U.screen_right(obs))
+        lambda obs: (U.army_minimap_location(obs),),
+        lambda obs: ("select",),
+        lambda obs: ("now", U.screen_right(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -430,9 +431,9 @@ def move_screen_bottomright():
         FUNCTIONS.Move_screen
     ]
     funcs_args = [
-        lambda obs:(U.army_minimap_location(obs),),
-        lambda obs:("select",),
-        lambda obs:("now", U.screen_bottomright(obs))
+        lambda obs: (U.army_minimap_location(obs),),
+        lambda obs: ("select",),
+        lambda obs: ("now", U.screen_bottomright(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -447,9 +448,9 @@ def move_screen_bottom():
         FUNCTIONS.Move_screen
     ]
     funcs_args = [
-        lambda obs:(U.army_minimap_location(obs),),
-        lambda obs:("select",),
-        lambda obs:("now", U.screen_bottom(obs))
+        lambda obs: (U.army_minimap_location(obs),),
+        lambda obs: ("select",),
+        lambda obs: ("now", U.screen_bottom(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -464,9 +465,9 @@ def move_screen_bottomleft():
         FUNCTIONS.Move_screen
     ]
     funcs_args = [
-        lambda obs:(U.army_minimap_location(obs),),
-        lambda obs:("select",),
-        lambda obs:("now", U.screen_bottomleft(obs))
+        lambda obs: (U.army_minimap_location(obs),),
+        lambda obs: ("select",),
+        lambda obs: ("now", U.screen_bottomleft(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -481,9 +482,9 @@ def move_screen_left():
         FUNCTIONS.Move_screen
     ]
     funcs_args = [
-        lambda obs:(U.army_minimap_location(obs),),
-        lambda obs:("select",),
-        lambda obs:("now", U.screen_left(obs))
+        lambda obs: (U.army_minimap_location(obs),),
+        lambda obs: ("select",),
+        lambda obs: ("now", U.screen_left(obs))
     ]
     return list(zip(funcs, funcs_args))
 
@@ -498,26 +499,27 @@ def attack_enemy():
         FUNCTIONS.Attack_screen
     ]
     funcs_args = [
-        lambda obs:(U.army_minimap_location(obs),),
-        lambda obs:("select",),
-        lambda obs:("now", U.attack_location(obs))
+        lambda obs: (U.army_minimap_location(obs),),
+        lambda obs: ("select",),
+        lambda obs: ("now", U.attack_location(obs))
     ]
     return list(zip(funcs, funcs_args))
 
+
 class ProtossMacro(collections.namedtuple(
     "ProtossMacro", ["id", "name", "ability_id",
-                     "general_id", "function_calls", "args"])):
+                     "general_id", "func", "args"])):
     __slots__ = ()
 
     @classmethod
-    def ability(cls, id_, name, function_calls, ability_id, general_id=0):
-        return cls(id_, name, ability_id, general_id, function_calls, [])
+    def ability(cls, id_, name, func, ability_id, general_id=0):
+        return cls(id_, name, ability_id, general_id, func, [])
 
     def __hash__(self):
         return self.id
 
-    def __call__(self, *args):
-        return MacroCall.init(self, args)
+    def __call__(self):
+        return MacroCall(self)
 
 
 _PROTOSS_MACROS = [
@@ -542,18 +544,21 @@ _PROTOSS_MACROS = [
 ]
 
 
-class MacroCall(collections.namedtuple(
-    "MacroCall", ["macro", "func", "arguments"])):
-    __slots__ = ()
+class MacroCall(object):
 
-    @classmethod
-    def init(cls, macro, arguments):
-        return cls(macro.id, macro.function_calls, arguments)
+    def __init__(self, macro):
+        func = macro.func()
+        self.macro = macro.id
+        self.func = func
 
-    def __call__(self):
-        func = self.func
-        args = self.arguments
-        func(*args)
+    def __getitem__(self, item):
+        return self.func[item]
+
+    def __iter__(self):
+        return iter(self.func)
+
+    def __len__(self):
+        return len(self.func)
 
 
 class ProtossMacros(object):
@@ -568,7 +573,7 @@ class ProtossMacros(object):
             raise ValueError("Macro names must be unique.")
 
     def __getattr__(self, name):
-        return self._macro_dict[name]
+        return self._macro_dict.get(name, None)
 
     def __getitem__(self, key):
         if isinstance(key, numbers.Integral):
@@ -595,4 +600,3 @@ _ProtossMacros = enum.IntEnum(
     "_ProtossMacros", {f.name: f.id for f in _PROTOSS_MACROS})
 
 PROTOSS_MACROS = ProtossMacros(_PROTOSS_MACROS)
-
