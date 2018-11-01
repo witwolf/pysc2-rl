@@ -29,8 +29,10 @@ class FCNNetwork():
         act_dim, _ = policy_dims[0]
         act_policy = layers.fully_connected(
             fc, num_outputs=act_dim, activation_fn=None)
-        available_actions = non_spatial_input[
-            config._non_spatial_index_table['available_actions']]
+        available_actions = 1
+        if 'available_actions' in config._non_spatial_index_table:
+            available_actions = non_spatial_input[
+                config._non_spatial_index_table['available_actions']]
         act_policy = tf.nn.softmax(act_policy * available_actions)
         policies.append(act_policy)
 

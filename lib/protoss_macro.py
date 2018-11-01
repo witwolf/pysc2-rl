@@ -88,7 +88,7 @@ class U(object):
     @staticmethod
     def mineral_location(obs):
         unit_type = obs.observation.feature_screen.unit_type
-        mineral_type = units.Neutral.MineralFiel
+        mineral_type = units.Neutral.MineralField
         xs, ys = (unit_type == mineral_type).nonzero()
         # if no mineral, go to center
         if len(xs) == 0:

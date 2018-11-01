@@ -6,7 +6,7 @@
 import itertools
 from pysc2.lib.actions import FUNCTIONS, FunctionCall
 import numpy as np
-
+from lib.protoss_macro import PROTOSS_MACROS
 from .config import SPATIAL_ARG_TYPES
 
 
@@ -130,3 +130,29 @@ class DefaultActionAdapter(Adapter):
             function_call = FunctionCall(act_id, act_args)
             function_calls.append(function_call)
         return function_calls
+
+
+class DefaultProtossMacroAdapter(Adapter):
+    def __init__(self, config):
+        self._config = config
+
+    def transform(self, macros):
+        values = []
+
+        action_index_table = \
+            self._config._action_index_table
+
+        length = len(macros)
+        for dim, _ in self._config.policy_dims:
+            values.append(np.zeros(shape=(length), dtype=np.int32))
+        for i, macro in enumerate(macros):
+            macro_id = action_index_table[macro.macro]
+            values[0][i] = macro_id
+
+    def reverse(self, actions):
+        action_indexes = self._config._action_indexes
+        macros = []
+        for action in actions[0]:
+            macro_id = action_indexes[action]
+            macros.append(PROTOSS_MACROS[macro_id]())
+        return macros
