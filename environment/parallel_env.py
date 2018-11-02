@@ -21,14 +21,13 @@ def default_env_maker(kwargs):
     screen_sz = kwargs.pop('screen_size', DEFAULT_SCREEN_SIZE)
     minimap_sz = kwargs.pop('minimap_size', DEFAULT_MINIMAP_SIZE)
     assert screen_sz == minimap_sz
-
-    kwargs['agent_interface_format'] = sc2_env.AgentInterfaceFormat(
-        use_feature_units=True,
-        use_raw_units=True,
-        feature_dimensions=sc2_env.Dimensions(
-            screen=(screen_sz, screen_sz),
-            minimap=(minimap_sz, minimap_sz)))
-
+    if 'agent_interface_format' not in kwargs:
+        kwargs['agent_interface_format'] = sc2_env.AgentInterfaceFormat(
+            use_feature_units=True,
+            use_raw_units=True,
+            feature_dimensions=sc2_env.Dimensions(
+                screen=(screen_sz, screen_sz),
+                minimap=(minimap_sz, minimap_sz)))
     if 'visualize' not in kwargs:
         kwargs['visualize'] = False
     if 'step_mul' not in kwargs:
