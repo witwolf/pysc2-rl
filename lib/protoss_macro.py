@@ -29,15 +29,15 @@ class U(object):
         player_y, player_x = (
                 player_relative == player_self).nonzero()
         if player_y.mean() > 31 and player_x.mean() > 31:
-            x, y = 51, 49
+            x, y = 38, 43
         else:
-            x, y = 10, 15
+            x, y = 21, 25
         return x, y
 
     @staticmethod
     def enemy_minimap_location(obs):
         base_x, base_y = U.base_minimap_location(obs)
-        (x, y) = (49, 51) if base_x < 31 else (15, 10)
+        (x, y) = (38, 43) if base_x < 31 else (21, 25)
         return x, y
 
     @staticmethod
