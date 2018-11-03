@@ -5,6 +5,7 @@ import enum
 import collections
 import numbers
 import numpy as np
+import logging
 
 from numpy.random import randint
 from pysc2.lib import units
@@ -19,6 +20,14 @@ class U(object):
         screen_shape = feature_screen.shape
         h = screen_shape[-2]
         w = screen_shape[-1]
+        return w, h
+
+    @staticmethod
+    def minimap_size(obs):
+        feature_minimap = obs.observation.feature_minimap
+        minimap_shape = feature_minimap.shape
+        h = minimap_shape[-2]
+        w = minimap_shape[-1]
         return w, h
 
     @staticmethod
@@ -54,8 +63,13 @@ class U(object):
         units_pos = [(unit.x, unit.y)
                      for unit in feature_units if
                      unit.unit_type == unit_type]
+        # todo check
+        if (len(units_pos)) == 0:
+            logging.warning("No units, unit_type:%d" % unit_type)
+            return 0, 0
         random_pos = randint(0, len(units_pos))
-        return units_pos[random_pos]
+        x, y = units_pos[random_pos]
+        return U._valid_screen_x_y(x, y, obs)
 
     @staticmethod
     def new_pylon_location(obs):
@@ -95,7 +109,8 @@ class U(object):
             screen_w, screen_h = U.screen_size(obs)
             return screen_w / 2, screen_h / 2
         mineral_id = randint(0, len(xs))
-        return xs[mineral_id], ys[mineral_id]
+        x, y = xs[mineral_id], ys[mineral_id]
+        return U._valid_screen_x_y(x, y, obs)
 
     @staticmethod
     def gas_location(obs):
@@ -107,7 +122,8 @@ class U(object):
             screen_w, screen_h = U.screen_size(obs)
             return screen_w / 2, screen_h / 2
         gas_id = randint(0, len(xs))
-        return xs[gas_id], ys[gas_id]
+        x, y = xs[gas_id], ys[gas_id]
+        return U._valid_screen_x_y(x, y, obs)
 
     @staticmethod
     def screen_top(obs):
@@ -162,7 +178,8 @@ class U(object):
         for (i, x, y) in zip(range(len(xs)), xs, ys):
             dists[i] = abs(x - enemy_x) + abs(y - enemy_y)
         pos = np.argmin(dists)
-        return xs[pos], ys[pos]
+        x, y = xs[pos], ys[pos]
+        return U._valid_minimap_x_y(x, y, obs)
 
     @staticmethod
     def attack_location(obs):
@@ -172,7 +189,7 @@ class U(object):
         player_self = features.PlayerRelative.SELF
         enemy_xs, enemy_ys = \
             (player_relative == player_enemy).nonzero()
-        if len(enemy_xs[0]) == 0:
+        if len(enemy_xs) == 0:
             # if no enemy on screen follow army-enemy direction
             return U.attack_location_army2enemy(obs)
 
@@ -183,7 +200,8 @@ class U(object):
         for i, x, y in zip(range(len(enemy_xs)), enemy_xs, enemy_ys):
             distances[i] = abs(x - army_c_x) + abs(y - army_c_y)
         pos = np.argmin(distances)
-        return enemy_xs[pos], enemy_ys[pos]
+        x, y = enemy_xs[pos], enemy_ys[pos]
+        return U._valid_screen_x_y(x, y, obs)
 
     @staticmethod
     def attack_location_army2enemy(obs):
@@ -196,8 +214,23 @@ class U(object):
         radius = attack_direction[0] * attack_direction[0] \
                  + attack_direction[1] * attack_direction[1]
         ratio = float(min(screen_w, screen_h) / 2.5) / float(radius)
-        return (attack_direction[0] * ratio - screen_h / 2,
+        x, y = (attack_direction[0] * ratio - screen_h / 2,
                 attack_direction[1] * ratio - screen_h / 2)
+        return U._valid_screen_x_y(x, y, obs)
+
+    @staticmethod
+    def _valid_screen_x_y(x, y, obs):
+        screen_w, screen_h = U.screen_size(obs)
+        _x = np.clip(x, 0, screen_w - 1)
+        _y = np.clip(y, 0, screen_h - 1)
+        return _x, _y
+
+    @staticmethod
+    def _valid_minimap_x_y(x, y, obs):
+        minimap_w, minimap_h = U.minimap_size(obs)
+        _x = np.clip(x, 0, minimap_w - 1)
+        _y = np.clip(y, 0, minimap_h - 1)
+        return _x, _y
 
 
 def build_a_pylon():
