@@ -38,15 +38,15 @@ class U(object):
         player_y, player_x = (
                 player_relative == player_self).nonzero()
         if player_y.mean() > 31 and player_x.mean() > 31:
-            x, y = 38, 43
+            x, y = 40, 46
         else:
-            x, y = 21, 25
+            x, y = 19, 24
         return x, y
 
     @staticmethod
     def enemy_minimap_location(obs):
         base_x, base_y = U.base_minimap_location(obs)
-        (x, y) = (38, 43) if base_x < 31 else (21, 25)
+        (x, y) = (40, 46) if base_x < 31 else (19, 24)
         return x, y
 
     @staticmethod
@@ -352,7 +352,7 @@ def collect_minerals():
         # select idle workers
         FUNCTIONS.select_idle_worker,
         # collect minerals
-        FUNCTIONS.Smart_screen]
+        FUNCTIONS.Harvest_Gather_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("select_all",),
@@ -367,7 +367,7 @@ def collect_gas():
         # select a worker
         FUNCTIONS.select_point,
         # collect gas
-        FUNCTIONS.Smart_screen]
+        FUNCTIONS.Harvest_Gather_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("select", U.random_unit_location(
