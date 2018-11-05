@@ -3,11 +3,13 @@
 #
 
 import sys
+
 sys.path.append('.')
 from pysc2.lib import units
 from pysc2.lib.actions import FUNCTIONS
 from lib.protoss_macro import PROTOSS_MACROS
 from tests.agent_test.protoss_base_agent import ProtossBaseAgent
+
 
 class ProtossZealotAgent(ProtossBaseAgent):
 
@@ -25,9 +27,11 @@ class ProtossZealotAgent(ProtossBaseAgent):
             # if can build a building
             if idle_workers > 0:
                 self.actions = PROTOSS_MACROS.Collect_Mineral()
-            elif mineral > 50 and food > 1 and self.get_unit_counts(obs, units.Protoss.Probe) < 16:
+            elif mineral > 50 and food > 1 and\
+                    self.get_unit_counts(obs, units.Protoss.Probe) < 16:
                 self.actions = PROTOSS_MACROS.Train_Probe()
-            elif mineral > 100 and food > 2 and len(self.get_all_complete_units_by_type(obs, units.Protoss.Gateway)) > 0:
+            elif mineral > 100 and food > 2 and len(
+                    self.get_all_complete_units_by_type(obs, units.Protoss.Gateway)) > 0:
                 self.actions = PROTOSS_MACROS.Train_Zealot()
             elif self.can_build():
                 if food < 4 and mineral > 100:
@@ -46,4 +50,3 @@ class ProtossZealotAgent(ProtossBaseAgent):
             return action(*action_args)
 
         return FUNCTIONS.no_op()
-

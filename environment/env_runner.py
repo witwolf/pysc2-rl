@@ -20,7 +20,6 @@ class EnvRunner(object):
                  step_n=16,
                  test_after_epoch=True,
                  train=True,
-                 restore=False,
                  logdir=None):
         self._env = env
         self._test_env = test_env
@@ -34,15 +33,8 @@ class EnvRunner(object):
         self._obs = None
         self._train = train
         self._summary_writer = None
-        self._saver = tf.train.Saver()
         self._logdir = logdir
-        if logdir:
-            if not os.path.isdir(logdir):
-                os.makedirs(logdir)
-            self._summary_writer = SummaryWriterCache.get(logdir)
-        if restore or not train:
-            self._saver.restore(
-                self._agent._sess, tf.train.latest_checkpoint(logdir))
+        self._summary_writer = SummaryWriterCache.get(logdir)
 
     def run(self, *args, **kwargs):
         if self._train:
@@ -52,8 +44,6 @@ class EnvRunner(object):
                 for batch in range(self._batch_n):
                     logging.info("epoch:%d,batch:%d" % (epoch, batch))
                     self._batch()
-                checkpoint = self._logdir + '/%d.ckpt' % epoch
-                self._saver.save(self._agent._sess, checkpoint)
             if self._test_after_epoch:
                 total_reward = self._test()
                 logging.info("epoch:%d,reward:%d" % (epoch, total_reward))

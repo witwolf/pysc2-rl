@@ -14,7 +14,6 @@ from utils.network import Utils
 class BehaviorClone(BaseDeepAgent, BaseAgent):
 
     def __init__(self,
-                 sess=None,
                  network=None,
                  network_creator=None,
                  td_step=16,
@@ -27,7 +26,6 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
         if bool(network) == bool(network_creator):
             raise Exception()
 
-        self._sess = sess
         self._network = network
         self._network_creator = network_creator
         self._td_step = td_step
@@ -36,9 +34,7 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
         self._v_coef = v_coef
         self._discount = discount
 
-        super().__init__(sess, **kwargs)
-
-        self._sess.run(tf.global_variables_initializer())
+        super().__init__(**kwargs)
 
     def init_network(self, **kwargs):
         if not self._network:
@@ -101,6 +97,7 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
 
     def update(self, states, actions,
                next_states, rewards, dones, *args):
+        super().update()
         begin = -len(dones) // self._td_step
         last_state = [e[begin:] for e in next_states]
         value = self._sess.run(self._value, feed_dict=dict(

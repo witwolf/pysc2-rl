@@ -12,7 +12,6 @@ from utils.network import Utils
 class A2C(BaseDeepAgent, BaseSC2Agent):
 
     def __init__(self,
-                 sess=None,
                  network=None,
                  network_creator=None,
                  td_step=16,
@@ -32,8 +31,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
         self._v_coef = v_coef
         self._ent_coef = ent_coef
 
-        super().__init__(sess, **kwargs)
-        self._sess.run(tf.global_variables_initializer())
+        super().__init__(**kwargs)
 
     def init_network(self, **kwargs):
         if not self._network:
@@ -105,6 +103,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
 
     def update(self, states, actions,
                next_states, rewards, dones, *args):
+        super().update()
         begin = -len(dones) // self._td_step
         last_state = [e[begin:] for e in next_states]
         value = self._sess.run(self._value, feed_dict=dict(

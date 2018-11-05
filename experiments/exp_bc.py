@@ -8,10 +8,9 @@ import sys
 sys.path.append('.')
 
 import argparse
-import ast
 import tensorflow as tf
-from pysc2.lib.actions import FUNCTIONS
 from experiments.experiment import Experiment
+from experiments.experiment import DistributedExperiment
 from algorithm.bc import BehaviorClone
 from environment.parallel_env import ParallelEnvs
 from algorithm.script.parallel_agent import ParallelAgent
@@ -47,66 +46,50 @@ def network_creator(config):
 
 
 # behavior clone train (imitation)
-class BCExperiment(Experiment):
+class BCExperiment(DistributedExperiment):
 
     def __init__(self):
         super().__init__()
         parser = argparse.ArgumentParser()
         parser.add_argument("--map_name", type=str, default="MoveToBeacon")
-        parser.add_argument("--env_num", type=int, default=32, help='env parallel run')
+        parser.add_argument("--env_num", type=int, default=32)
         parser.add_argument("--epoch", type=int, default=1024),
         parser.add_argument("--batch", type=int, default=256),
-        parser.add_argument("--td_step", type=int, default=16, help='td(n)')
+        parser.add_argument("--td_step", type=int, default=16)
         parser.add_argument("--logdir", type=str, default='log/bc')
-        parser.add_argument("--train", type=ast.literal_eval, default=True)
         parser.add_argument("--v_coef", type=float, default=0.0)
         parser.add_argument("--lr", type=float, default=1e-3)
-        parser.add_argument("--restore", type=ast.literal_eval, default=False)
+
         args, _ = parser.parse_known_args()
-        self._args = args
+        self._local_args = args
 
-    def run(self):
-        args = self._args
-
-        with tf.Session() as sess:
-            available_actions = [
-                FUNCTIONS[0],  # no_op
-                FUNCTIONS[2],  # select point
-                FUNCTIONS[331]  # move screen
-            ]
-            config = Config()
-            script_agents = ParallelAgent(
-                agent_num=args.env_num,
-                agent_makers=script_agent_maker(args.map_name))
+    def run(self, global_args):
+        local_args = self._local_args
+        config = Config()
+        script_agents = ParallelAgent(
+            agent_num=local_args.env_num,
+            agent_makers=script_agent_maker(local_args.map_name))
+        env_arg = {'map_name': local_args.map_name}
+        env = ParallelEnvs(
+            env_num=local_args.env_num,
+            env_args=env_arg) if global_args.train else None
+        test_env = ParallelEnvs(
+            env_num=1, env_args=env_arg)
+        obs_adapter = ObservationAdapter(config)
+        act_adapter = ActionAdapter(config)
+        with tf.device(self.tf_device(global_args)):
             agent = BehaviorClone(
                 network_creator=network_creator(config),
-                td_step=args.td_step,
-                lr=args.lr,
-                v_coef=args.v_coef,
-                script_agents=script_agents, sess=sess)
-            if args.train:
-                env = ParallelEnvs(
-                    env_num=args.env_num,
-                    env_args={'map_name': args.map_name})
-            else:
-                env = None
-            test_env = ParallelEnvs(
-                env_num=1,
-                env_args={'map_name': args.map_name})
-            obs_adapter = ObservationAdapter(config)
-            act_adapter = ActionAdapter(config)
+                td_step=local_args.td_step, lr=local_args.lr,
+                v_coef=local_args.v_coef, script_agents=script_agents)
+        with agent.create_session(**self.tf_sess_opts(global_args)) as sess:
             env_runner = EnvRunner(
-                agent=agent,
-                env=env,
-                test_env=test_env,
-                observation_adapter=obs_adapter,
-                action_adapter=act_adapter,
-                epoch_n=args.epoch,
-                batch_n=args.batch,
-                step_n=args.td_step,
-                restore=args.restore,
-                test_after_epoch=True,
-                logdir=args.logdir)
+                agent=agent, env=env, test_env=test_env,
+                train=global_args.train,
+                observation_adapter=obs_adapter, action_adapter=act_adapter,
+                epoch_n=local_args.epoch, batch_n=local_args.batch,
+                step_n=local_args.td_step, test_after_epoch=True,
+                logdir=local_args.logdir)
             env_runner.run()
 
 
