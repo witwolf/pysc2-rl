@@ -58,6 +58,12 @@ class U(object):
         return units.Protoss.Assimilator
 
     @staticmethod
+    def locations_by_type(obs, unit_type):
+        screen_w, screen_h = U.screen_size(obs)
+        locations = [(unit.x, unit.y) for unit in obs.observation.feature_units if unit.unit_type == unit_type]
+        return list(filter(lambda p:p[0] > 0 and p[0] < screen_w and p[1] > 0 and p[1] < screen_h, locations))
+
+    @staticmethod
     def random_unit_location(obs, unit_type):
         feature_units = obs.observation.feature_units
         units_pos = [(unit.x, unit.y)
@@ -70,6 +76,23 @@ class U(object):
         random_pos = randint(0, len(units_pos))
         x, y = units_pos[random_pos]
         return U._valid_screen_x_y(x, y, obs)
+
+    @staticmethod
+    def bad_worker_location(obs):
+        overload_geysers = [(unit.x, unit.y) for unit in obs.observation.feature_units if
+                           unit.unit_type == units.Protoss.Assimilator and unit.assigned_harvesters >= 3]
+        if len(overload_geysers) > 0:
+            geyser_location = overload_geysers[0]
+            min_dist = 10000
+            min_location = (1, 1)
+            for unit in obs.observation.feature_units:
+                if unit.unit_type == units.Protoss.Probe:
+                    dist = abs(unit.x - geyser_location[0]) + abs(unit.y - geyser_location[1])
+                    if dist < min_dist:
+                        min_dist = dist
+                        min_location = (unit.x, unit.y)
+            return min_location
+        return 1, 1
 
     @staticmethod
     def new_pylon_location(obs):
@@ -87,10 +110,13 @@ class U(object):
 
     @staticmethod
     def new_assimilator_location(obs):
-        screen_w, screen_h = U.screen_size(obs)
-        x = randint(0, screen_w)
-        y = randint(0, screen_h)
-        return x, y
+        vesps = U.locations_by_type(obs, units.Neutral.VespeneGeyser)
+        assimilators = U.locations_by_type(obs, units.Protoss.Assimilator)
+        valid_vespenes = list(set(vesps) - set(assimilators))
+
+        if len(valid_vespenes) == 0:
+            return 1, 1
+        return valid_vespenes[randint(0, len(valid_vespenes))]
 
     @staticmethod
     def new_cyberneticscore_location(obs):
@@ -101,29 +127,20 @@ class U(object):
 
     @staticmethod
     def mineral_location(obs):
-        unit_type = obs.observation.feature_screen.unit_type
-        mineral_type = units.Neutral.MineralField
-        xs, ys = (unit_type == mineral_type).nonzero()
+        minerals = U.locations_by_type(obs, units.Neutral.MineralField)
         # if no mineral, go to center
-        if len(xs) == 0:
-            screen_w, screen_h = U.screen_size(obs)
-            return screen_w / 2, screen_h / 2
-        mineral_id = randint(0, len(xs))
-        x, y = xs[mineral_id], ys[mineral_id]
-        return U._valid_screen_x_y(x, y, obs)
+        if len(minerals) == 0:
+            return 1, 1
+        return minerals[randint(0, len(minerals))]
 
     @staticmethod
     def gas_location(obs):
-        unit_type = obs.observation.feature_screen.unit_type
-        gas_type = U.geyser_type(obs)
-        xs, ys = (unit_type == gas_type).nonzero()
-        # if no gas, go to center
-        if len(xs) == 0:
-            screen_w, screen_h = U.screen_size(obs)
-            return screen_w / 2, screen_h / 2
-        gas_id = randint(0, len(xs))
-        x, y = xs[gas_id], ys[gas_id]
-        return U._valid_screen_x_y(x, y, obs)
+        assimilators = [unit for unit in obs.observation.feature_units if unit.unit_type == units.Protoss.Assimilator]
+        for assimilator in assimilators:
+            if assimilator.assigned_harvesters < 3:
+                return (assimilator.x, assimilator.y)
+        # if no mineral, go to center
+        return 1, 1
 
     @staticmethod
     def screen_top(obs):
@@ -169,7 +186,7 @@ class U(object):
         player_relative = \
             obs.observation.feature_minimap.player_relative
         player_self = features.PlayerRelative.SELF
-        xs, ys = \
+        ys, xs = \
             (player_relative == player_self).nonzero()
         if len(xs) == 0:
             return U.base_minimap_location(obs)
@@ -187,14 +204,14 @@ class U(object):
             obs.observation.feature_screen.player_relative
         player_enemy = features.PlayerRelative.ENEMY
         player_self = features.PlayerRelative.SELF
-        enemy_xs, enemy_ys = \
+        enemy_ys, enemy_xs = \
             (player_relative == player_enemy).nonzero()
         if len(enemy_xs) == 0:
             # if no enemy on screen follow army-enemy direction
             return U.attack_location_army2enemy(obs)
 
         # if enemy on screen follow enemy closest
-        army_xs, army_ys = (player_relative == player_self).nonzero()
+        army_ys, army_xs = (player_relative == player_self).nonzero()
         army_c_x, army_c_y = (army_xs.mean(), army_ys.mean())
         distances = np.ndarray(shape=[len(enemy_xs)], dtype=np.float32)
         for i, x, y in zip(range(len(enemy_xs)), enemy_xs, enemy_ys):
@@ -344,19 +361,32 @@ def training_a_stalker():
         lambda obs: ("now",)]
     return list(zip(funcs, funcs_args))
 
+def callback_idle_workers():
+    funcs = [
+        # select idle workers
+        FUNCTIONS.select_idle_worker,
+        # move camera to base
+        FUNCTIONS.move_camera,
+        # collect minerals
+        FUNCTIONS.Harvest_Gather_screen]
+    funcs_args = [
+        lambda obs: ("select_all",),
+        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: ("now", U.mineral_location(obs))]
+    return list(zip(funcs, funcs_args))
 
 def collect_minerals():
     funcs = [
         # move camera to base
         FUNCTIONS.move_camera,
-        # select idle workers
-        FUNCTIONS.select_idle_worker,
+        # select a worker
+        FUNCTIONS.select_point,
         # collect minerals
-        FUNCTIONS.Harvest_Gather_screen]
+        FUNCTIONS.Smart_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
-        lambda obs: ("select_all",),
-        lambda obs: ("now", U.mineral_location(obs))]
+        lambda obs: ("select", U.bad_worker_location(obs)),
+        lambda obs: ("now", U.gas_location(obs))]
     return list(zip(funcs, funcs_args))
 
 
@@ -378,135 +408,135 @@ def collect_gas():
 
 def move_screen_topleft():
     funcs = [
-        # move camera to army
-        FUNCTIONS.move_camera,
         # select all army
         FUNCTIONS.select_army,
+        # move camera to army
+        FUNCTIONS.move_camera,
         # move to one corner
         FUNCTIONS.Move_screen]
     funcs_args = [
-        lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("select",),
+        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("now", U.screen_topleft(obs))]
     return list(zip(funcs, funcs_args))
 
 
 def move_screen_top():
     funcs = [
-        # move camera to army
-        FUNCTIONS.move_camera,
         # select all army
         FUNCTIONS.select_army,
+        # move camera to army
+        FUNCTIONS.move_camera,
         # move to one corner
         FUNCTIONS.Move_screen]
     funcs_args = [
-        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
+        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("now", U.screen_top(obs))]
     return list(zip(funcs, funcs_args))
 
 
 def move_screen_topright():
     funcs = [
-        # move camera to army
-        FUNCTIONS.move_camera,
         # select all army
         FUNCTIONS.select_army,
+        # move camera to army
+        FUNCTIONS.move_camera,
         # move to one corner
         FUNCTIONS.Move_screen]
     funcs_args = [
-        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
+        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("now", U.screen_topright(obs))]
     return list(zip(funcs, funcs_args))
 
 
 def move_screen_right():
     funcs = [
-        # move camera to army
-        FUNCTIONS.move_camera,
         # select all army
         FUNCTIONS.select_army,
+        # move camera to army
+        FUNCTIONS.move_camera,
         # move to one corner
         FUNCTIONS.Move_screen]
     funcs_args = [
-        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
+        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("now", U.screen_right(obs))]
     return list(zip(funcs, funcs_args))
 
 
 def move_screen_bottomright():
     funcs = [
-        # move camera to army
-        FUNCTIONS.move_camera,
         # select all army
         FUNCTIONS.select_army,
+        # move camera to army
+        FUNCTIONS.move_camera,
         # move to one corner
         FUNCTIONS.Move_screen]
     funcs_args = [
-        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
+        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("now", U.screen_bottomright(obs))]
     return list(zip(funcs, funcs_args))
 
 
 def move_screen_bottom():
     funcs = [
-        # move camera to army
-        FUNCTIONS.move_camera,
         # select all army
         FUNCTIONS.select_army,
+        # move camera to army
+        FUNCTIONS.move_camera,
         # move to one corner
         FUNCTIONS.Move_screen]
     funcs_args = [
-        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
+        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("now", U.screen_bottom(obs))]
     return list(zip(funcs, funcs_args))
 
 
 def move_screen_bottomleft():
     funcs = [
-        # move camera to army
-        FUNCTIONS.move_camera,
         # select all army
         FUNCTIONS.select_army,
+        # move camera to army
+        FUNCTIONS.move_camera,
         # move to one corner
         FUNCTIONS.Move_screen]
     funcs_args = [
-        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
+        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("now", U.screen_bottomleft(obs))]
     return list(zip(funcs, funcs_args))
 
 
 def move_screen_left():
     funcs = [
-        # move camera to army
-        FUNCTIONS.move_camera,
         # select all army
         FUNCTIONS.select_army,
+        # move camera to army
+        FUNCTIONS.move_camera,
         # move to one corner
         FUNCTIONS.Move_screen]
     funcs_args = [
-        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
+        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("now", U.screen_left(obs))]
     return list(zip(funcs, funcs_args))
 
 
 def attack_enemy():
     funcs = [
-        # move camera to army
-        FUNCTIONS.move_camera,
         # select all army
         FUNCTIONS.select_army,
+        # move camera to army
+        FUNCTIONS.move_camera,
         # attack enemy
         FUNCTIONS.Attack_screen]
     funcs_args = [
-        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("select",),
+        lambda obs: (U.army_minimap_location(obs),),
         lambda obs: ("now", U.attack_location(obs))]
     return list(zip(funcs, funcs_args))
 
@@ -535,17 +565,18 @@ _PROTOSS_MACROS = [
     ProtossMacro.ability(4, "Train_Probe", training_a_probe, 4),
     ProtossMacro.ability(5, "Train_Zealot", training_a_zealot, 5),
     ProtossMacro.ability(6, "Train_Stalker", training_a_stalker, 6),
-    ProtossMacro.ability(7, "Collect_Mineral", collect_minerals, 7),
-    ProtossMacro.ability(8, "Collect_Gas", collect_gas, 8),
-    ProtossMacro.ability(9, "Move_TopLeft", move_screen_topleft, 9),
-    ProtossMacro.ability(10, "Move_Top", move_screen_top, 10),
-    ProtossMacro.ability(11, "Move_TopRight", move_screen_topright, 11),
-    ProtossMacro.ability(12, "Move_Right", move_screen_right, 12),
-    ProtossMacro.ability(13, "Move_BottomRight", move_screen_bottomright, 13),
-    ProtossMacro.ability(14, "Move_Bottom", move_screen_bottom, 14),
-    ProtossMacro.ability(15, "Move_BottomLeft", move_screen_bottomleft, 15),
-    ProtossMacro.ability(16, "Move_Left", move_screen_left, 16),
-    ProtossMacro.ability(17, "Attack_Enemy", attack_enemy, 17)
+    ProtossMacro.ability(7, "Callback_Idle_Workers", callback_idle_workers, 7),
+    ProtossMacro.ability(8, "Collect_Mineral", collect_minerals, 8),
+    ProtossMacro.ability(9, "Collect_Gas", collect_gas, 9),
+    ProtossMacro.ability(10, "Move_TopLeft", move_screen_topleft, 10),
+    ProtossMacro.ability(11, "Move_Top", move_screen_top, 11),
+    ProtossMacro.ability(12, "Move_TopRight", move_screen_topright, 12),
+    ProtossMacro.ability(13, "Move_Right", move_screen_right, 13),
+    ProtossMacro.ability(14, "Move_BottomRight", move_screen_bottomright, 14),
+    ProtossMacro.ability(15, "Move_Bottom", move_screen_bottom, 15),
+    ProtossMacro.ability(16, "Move_BottomLeft", move_screen_bottomleft, 16),
+    ProtossMacro.ability(17, "Move_Left", move_screen_left, 17),
+    ProtossMacro.ability(18, "Attack_Enemy", attack_enemy, 18)
 ]
 
 
