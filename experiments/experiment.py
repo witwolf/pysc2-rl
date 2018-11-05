@@ -40,7 +40,7 @@ class Experiment(object):
         parser.add_argument("--job_name", default='worker')
         parser.add_argument("--ps_hosts", type=str, default=None)
         parser.add_argument("--worker_hosts", type=str, default=None)
-        parser.add_argument("--worker_index", type=int, default=0)
+        parser.add_argument("--task_index", type=int, default=0)
         parser.add_argument("--train", type=ast.literal_eval, default=True)
         parser.add_argument("--logdir", type=str, default='.')
         parser.add_argument("--save_step", type=int, default=4096)
@@ -71,7 +71,7 @@ class Experiment(object):
         logging.info("starting ps server...")
         cluster = {
             'ps': args.ps_hosts.split(','),
-            'worker': args.worker_hosts.split('')
+            'worker': args.worker_hosts.split(',')
         }
         logging.warning("Cluster:%s" % cluster)
         cluster_spec = tf.train.ClusterSpec(cluster)
