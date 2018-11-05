@@ -9,7 +9,8 @@ import tensorflow as tf
 
 
 class Network(object):
-    def __init__(self, network_creator, var_scope, name_scope=None, reuse=False):
+    def __init__(self, network_creator, var_scope,
+                 name_scope=None, reuse=False):
         self._var_scope = var_scope
         self._name_scope = name_scope
         self._network_creator = network_creator
@@ -57,9 +58,9 @@ class NetworkUpdater(object):
 class BaseDeepAgent(object):
     def __init__(self, **kwargs):
         self._sess = None
+        self._global_step = tf.train.get_or_create_global_step()
         self._network = self.init_network(**kwargs)
         self._updater = self.init_updater(**kwargs)
-        self._global_step = tf.train.get_or_create_global_step()
 
     def init_network(self, **kwargs):
         raise NotImplementedError()
@@ -121,7 +122,7 @@ class RestoreVariablesHook(tf.train.SessionRunHook):
         if not (ckpt and ckpt.model_checkpoint_path):
             logging.warning("No checkpoint in %s" % self._dir)
             return
-        logging.info("Restore checkpoint: %s", ckpt.model_checkpoint_path)
+        logging.warning("Restore checkpoint: %s", ckpt.model_checkpoint_path)
         self._saver.restore(session, ckpt.model_checkpoint_path)
         self._saver.recover_last_checkpoints(ckpt.all_model_checkpoint_paths)
 
@@ -142,33 +143,28 @@ def MonitoredTrainingSession(
             os.makedirs(checkpoint_dir)
 
     if not is_chief:
+        logging.warning("create worker session")
         session_creator = tf.train.WorkerSessionCreator(
             scaffold=scaffold, master=master, config=config)
         return tf.train.MonitoredSession(
             session_creator=session_creator, hooks=[],
             stop_grace_period_secs=stop_grace_period_secs)
 
-    all_hooks = []
-
+    logging.warning("create cheif session")
     if restore:
-        all_hooks.append(RestoreVariablesHook(
-            checkpoint_dir, var_list=restore_var_list))
-        all_vars = tf.get_collection(
-            tf.GraphKeys.GLOBAL_VARIABLES)
-        if restore_var_list:
-            missing_vars = [v for v in all_vars if not (v in restore_var_list)]
-            logging.warning("Not restore missing vars, count:%d", len(missing_vars))
+        logging.warning("checkpoint dir:%s", checkpoint_dir)
+
+    session_creator = tf.train.ChiefSessionCreator(
+        scaffold=scaffold,
+        checkpoint_dir=checkpoint_dir if restore else None,
+        master=master,
+        config=config)
+    all_hooks = []
 
     if save_checkpoint_steps and save_checkpoint_steps > 0:
         all_hooks.append(tf.train.CheckpointSaverHook(
             checkpoint_dir, save_steps=save_checkpoint_steps,
             scaffold=scaffold))
-
-    session_creator = tf.train.ChiefSessionCreator(
-        scaffold=scaffold,
-        checkpoint_dir=None,
-        master=master,
-        config=config)
 
     return tf.train.MonitoredSession(
         session_creator=session_creator, hooks=all_hooks,
