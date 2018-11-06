@@ -8,7 +8,8 @@ from pysc2.lib.actions import FUNCTIONS, FunctionCall
 import numpy as np
 from lib.protoss_macro import PROTOSS_MACROS
 from .config import SPATIAL_ARG_TYPES
-
+from lib.protoss_unit import _PROTOSS_UNITS, _PROTOSS_UNITS_MACROS, _PROTOSS_BUILDINGS, _PROTOSS_BUILDINGS_MACROS
+from pysc2.lib import units
 
 class Adapter(object):
     def transform(self, *args, **kwargs):
@@ -17,6 +18,70 @@ class Adapter(object):
     def reverse(self, *args, **kwargs):
         raise NotImplementedError()
 
+class DefaultActionRewardAdapter(Adapter):
+    def __init__(self, config):
+        self._config = config
+
+    def get_feature_vector(self, timestep):
+        features = {}
+        for unit in timestep.observation.raw_units:
+            if unit.alliance == 1:
+                if unit.unit_type not in features:
+                    features[unit.unit_type] = 1
+                else:
+                    features[unit.unit_type] += 1
+        return features, timestep.observation.player.minerals, timestep.observation.player.vespene,\
+               timestep.observation.player.food_cap - timestep.observation.player.food_used
+
+    def get_reward(self, timestep, action):
+        features, minerals, gas, food = self.get_feature_vector(timestep)
+        # check unit requirements
+        if action.id in _PROTOSS_UNITS_MACROS:
+            unit = _PROTOSS_UNITS_MACROS[action.id]
+            # if resource not enough
+            if minerals < unit.minerals or gas < unit.gas or food < unit.food:
+                return -1
+            for requirement in unit.requirement_types:
+                # if requirements miss
+                if requirement not in features:
+                    return -1
+            return float(unit.minerals + unit.gas + unit.gas) / 1000.0
+
+        # check building requirements
+        if action.id in _PROTOSS_BUILDINGS_MACROS:
+            building = _PROTOSS_BUILDINGS_MACROS[action.id]
+            # if resource not enough
+            if minerals < building.minerals or gas < building.gas:
+                return -1
+            for requirement in building.requirement_types:
+                # if requirements miss
+                if requirement not in features:
+                    return -1
+            # first building return 1
+            if building.unit_type not in features:
+                return 1
+            # if need food
+            elif building.unit_type == units.Protoss.Pylon and food < 2:
+                return 1
+            else:
+                return np.exp(-features[building.unit_type])
+
+        # other function return 0
+        return 0
+
+    def transform(self, timesteps, actions):
+        '''
+        :param timesteps:
+        :param actions:
+        :return:
+        '''
+        rewards = []
+        for timestep, action in zip(timesteps, actions):
+            rewards.append(self.get_reward(timestep, action))
+        return rewards
+
+    def reverse(self, *args, **kwargs):
+        raise NotImplementedError()
 
 class DefaultObservationAdapter(Adapter):
     def __init__(self, config):
