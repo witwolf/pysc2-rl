@@ -106,27 +106,6 @@ class BaseDeepAgent(object):
         return self._updater
 
 
-class RestoreVariablesHook(tf.train.SessionRunHook):
-
-    def __init__(self,
-                 checkpoint_dir,
-                 var_list=None):
-        super(RestoreVariablesHook, self).__init__()
-        self._dir, self._var_list = (checkpoint_dir, var_list)
-
-        self._saver = tf.train.Saver(var_list=self._var_list)
-
-    def after_create_session(self, session, coord):
-        super(RestoreVariablesHook, self).after_create_session(session, coord)
-        ckpt = tf.train.get_checkpoint_state(self._dir)
-        if not (ckpt and ckpt.model_checkpoint_path):
-            logging.warning("No checkpoint in %s" % self._dir)
-            return
-        logging.warning("Restore checkpoint: %s", ckpt.model_checkpoint_path)
-        self._saver.restore(session, ckpt.model_checkpoint_path)
-        self._saver.recover_last_checkpoints(ckpt.all_model_checkpoint_paths)
-
-
 def MonitoredTrainingSession(
         master='',
         is_chief=True,
@@ -166,6 +145,8 @@ def MonitoredTrainingSession(
             checkpoint_dir, save_steps=save_checkpoint_steps,
             scaffold=scaffold))
 
-    return tf.train.MonitoredSession(
+    sess = tf.train.MonitoredSession(
         session_creator=session_creator, hooks=all_hooks,
         stop_grace_period_secs=stop_grace_period_secs)
+    logging.warning("session created")
+    return sess

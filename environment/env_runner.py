@@ -4,7 +4,6 @@
 
 import logging
 import numpy as np
-import os
 import tensorflow as tf
 from tensorflow.python.training.summary_io import SummaryWriterCache
 
@@ -53,46 +52,47 @@ class EnvRunner(object):
 
     def _batch(self):
         # train batch
-        ## todo refactor
-        obs = []
-        func_calls = []
-        rewards = []
-        acts = None
+        states, actions, next_states = [], [], []
+        dones, rewards, timestamps = [], [], []
+        ss, *_ = self._obs_adapter.transform(self._obs)
         for _ in range(self._step_n):
-            obs.append(self._obs)
-            state = self._obs_adapter.transform(self._obs, state_only=True)
-            funcs_or_acts = self._agent.step(state=state, obs=self._obs)
-            if isinstance(funcs_or_acts[0], tuple):
-                function_calls = funcs_or_acts
-                func_calls.extend(function_calls)
-            else:
-                if not acts:
-                    acts = [[] for _ in range(len(funcs_or_acts))]
-                for c, e in zip(acts, funcs_or_acts):
-                    c.append(e)
-                function_calls = self._act_adapter.reverse(funcs_or_acts)
-            reward = self._reward_adapter.transform(self._obs, function_calls)
-            rewards.append(reward)
-            self._obs = self._env.step([(f,) for f in function_calls])
-        obs.append(self._obs)
-
-        (states, next_states,
-         _, dones, timestamps) = self._obs_adapter.transform(obs)
-
-        if not acts:
-            acts = self._act_adapter.transform(func_calls)
-        else:
-            acts = [np.concatenate(c, axis=0) for c in acts]
-        batch = (states, acts,
-                 next_states, rewards, dones, timestamps)
+            states.append(ss)
+            timestamps.extend(self._obs)
+            acts = self._agent.step(state=ss, obs=self._obs)
+            if not actions:
+                actions = [[] for _ in range(len(acts))]
+            for c, e in zip(actions, acts):
+                c.append(e)
+            func_calls = self._act_adapter.reverse(acts)
+            self._obs = self._env.step([(f,) for f in func_calls])
+            ss, rs, ds, _ = self._obs_adapter.transform(self._obs)
+            if self._reward_adapter:
+                rs = self._reward_adapter.transform(self._obs, func_calls)
+            next_states.append(ss)
+            rewards.append(rs)
+            dones.append(ds)
+        states = self._flatten_state(states)
+        next_states = self._flatten_state(next_states)
+        batch = (states, [np.concatenate(c, axis=0) for c in actions],
+                 next_states, np.concatenate(rewards, axis=0),
+                 np.concatenate(dones, axis=0), timestamps)
         summary, step = self._agent.update(*batch)
         self._record(summary=summary, step=step)
+
+    def _flatten_state(self, states):
+        columns = len(states[0])
+        rets = [[] for _ in range(columns)]
+        for row in states:
+            for c in range(columns):
+                rets[c].append(row[c])
+        rets = [np.concatenate(c, axis=0) for c in rets]
+        return rets
 
     def _test(self):
         obs = self._test_env.reset()
         total_reward = 0
         while not obs[0].last():
-            state = self._obs_adapter.transform(obs, state_only=True)
+            state, *_ = self._obs_adapter.transform(obs)
             action = self._agent.step(state=state, evaluate=True)
             function_calls = self._act_adapter.reverse(action)
             rewards = self._reward_adapter.transform(obs, function_calls)
@@ -109,3 +109,8 @@ class EnvRunner(object):
             summary = tf.Summary()
             summary.value.add(tag=tag, simple_value=np.mean(value))
             self._summary_writer.add_summary(summary, step)
+
+
+class EnvRunner2(EnvRunner):
+    def _batch(self):
+        super()._batch()

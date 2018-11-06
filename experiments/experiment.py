@@ -44,7 +44,7 @@ class Experiment(object):
         parser.add_argument("--train", type=ast.literal_eval, default=True)
         parser.add_argument("--logdir", type=str, default='.')
         parser.add_argument("--save_step", type=int, default=4096)
-        parser.add_argument("--restore", type=ast.literal_eval, default=True)
+        parser.add_argument("--restore", type=ast.literal_eval, default=False)
 
         args, _ = parser.parse_known_args()
         if args.job_name == 'ps':

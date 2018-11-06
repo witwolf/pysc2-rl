@@ -60,8 +60,14 @@ class U(object):
     @staticmethod
     def locations_by_type(obs, unit_type):
         screen_w, screen_h = U.screen_size(obs)
-        locations = [(unit.x, unit.y) for unit in obs.observation.feature_units if unit.unit_type == unit_type]
-        return list(filter(lambda p:p[0] > 0 and p[0] < screen_w and p[1] > 0 and p[1] < screen_h, locations))
+        _feature_units = obs.observation.feature_units
+        locations = [(unit.x, unit.y) for unit in _feature_units
+                     if unit.unit_type == unit_type]
+        return list(filter(
+            lambda p: (p[0] > 0) and
+                      (p[0] < screen_w) and
+                      (p[1] > 0) and
+                      p[1] < screen_h, locations))
 
     @staticmethod
     def random_unit_location(obs, unit_type):
@@ -79,15 +85,19 @@ class U(object):
 
     @staticmethod
     def bad_worker_location(obs):
-        overload_geysers = [(unit.x, unit.y) for unit in obs.observation.feature_units if
-                           unit.unit_type == units.Protoss.Assimilator and unit.assigned_harvesters >= 3]
+        assimilator_type = units.Protoss.Assimilator
+        _feature_units = obs.observation.feature_units
+        overload_geysers = [
+            (unit.x, unit.y) for unit in _feature_units if
+            unit.unit_type == assimilator_type and unit.assigned_harvesters >= 3]
         if len(overload_geysers) > 0:
             geyser_location = overload_geysers[0]
             min_dist = 10000
             min_location = (1, 1)
-            for unit in obs.observation.feature_units:
+            for unit in _feature_units:
                 if unit.unit_type == units.Protoss.Probe:
-                    dist = abs(unit.x - geyser_location[0]) + abs(unit.y - geyser_location[1])
+                    dist = abs(unit.x - geyser_location[0]) + \
+                           abs(unit.y - geyser_location[1])
                     if dist < min_dist:
                         min_dist = dist
                         min_location = (unit.x, unit.y)
@@ -135,7 +145,11 @@ class U(object):
 
     @staticmethod
     def gas_location(obs):
-        assimilators = [unit for unit in obs.observation.feature_units if unit.unit_type == units.Protoss.Assimilator]
+        _feature_units = obs.observation.feature_units
+        assimilator_type = units.Protoss.Assimilator
+        assimilators = [
+            unit for unit in _feature_units if
+            unit.unit_type == assimilator_type]
         for assimilator in assimilators:
             if assimilator.assigned_harvesters < 3:
                 return (assimilator.x, assimilator.y)
@@ -361,6 +375,7 @@ def training_a_stalker():
         lambda obs: ("now",)]
     return list(zip(funcs, funcs_args))
 
+
 def callback_idle_workers():
     funcs = [
         # select idle workers
@@ -374,6 +389,7 @@ def callback_idle_workers():
         lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("now", U.mineral_location(obs))]
     return list(zip(funcs, funcs_args))
+
 
 def collect_minerals():
     funcs = [
@@ -584,7 +600,7 @@ class MacroCall(object):
 
     def __init__(self, macro):
         func = macro.func()
-        self.macro = macro.id
+        self.id = macro.id
         self.func = func
 
     def __getitem__(self, item):

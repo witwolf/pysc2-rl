@@ -26,13 +26,13 @@ SPATIAL_ARG_TYPES = {'screen', 'screen2', 'minimap'}
 
 
 class Config:
-    def __init__(self, screen_size=64,
-                 minimap_size=64,
-                 screen_features=features.SCREEN_FEATURES._fields,
-                 minimap_features=features.MINIMAP_FEATURES._fields,
-                 non_spatial_features=DEFAULT_NON_SPATIAL_FEATURES,
-                 available_actions=FUNCTIONS._func_list,
-                 ):
+    def __init__(
+            self, screen_size=64,
+            minimap_size=64,
+            screen_features=features.SCREEN_FEATURES._fields,
+            minimap_features=features.MINIMAP_FEATURES._fields,
+            non_spatial_features=DEFAULT_NON_SPATIAL_FEATURES,
+            available_actions=FUNCTIONS._func_list):
         assert screen_size == minimap_size
         self._size = screen_size
 

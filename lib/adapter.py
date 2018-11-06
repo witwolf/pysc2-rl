@@ -3,13 +3,14 @@
 #
 
 
-import itertools
-from pysc2.lib.actions import FUNCTIONS, FunctionCall
 import numpy as np
-from lib.protoss_macro import PROTOSS_MACROS
+from pysc2.lib.actions import FUNCTIONS, FunctionCall
 from .config import SPATIAL_ARG_TYPES
-from lib.protoss_unit import _PROTOSS_UNITS, _PROTOSS_UNITS_MACROS, _PROTOSS_BUILDINGS, _PROTOSS_BUILDINGS_MACROS
+from lib.protoss_unit import *
+from lib.protoss_unit import _PROTOSS_UNITS_MACROS
+from lib.protoss_unit import _PROTOSS_BUILDINGS_MACROS
 from pysc2.lib import units
+
 
 class Adapter(object):
     def transform(self, *args, **kwargs):
@@ -17,6 +18,7 @@ class Adapter(object):
 
     def reverse(self, *args, **kwargs):
         raise NotImplementedError()
+
 
 class DefaultActionRewardAdapter(Adapter):
     def __init__(self, config):
@@ -30,8 +32,10 @@ class DefaultActionRewardAdapter(Adapter):
                     features[unit.unit_type] = 1
                 else:
                     features[unit.unit_type] += 1
-        return features, timestep.observation.player.minerals, timestep.observation.player.vespene,\
-               timestep.observation.player.food_cap - timestep.observation.player.food_used
+        return (features,
+                timestep.observation.player.minerals,
+                timestep.observation.player.vespene,
+                timestep.observation.player.food_cap - timestep.observation.player.food_used)
 
     def get_reward(self, timestep, action):
         features, minerals, gas, food = self.get_feature_vector(timestep)
@@ -77,11 +81,13 @@ class DefaultActionRewardAdapter(Adapter):
         '''
         rewards = []
         for timestep, action in zip(timesteps, actions):
-            rewards.append(self.get_reward(timestep, action) + timestep.reward)
-        return rewards
+            rewards.append(self.get_reward(timestep, action)
+                           + timestep.reward)
+        return np.array(rewards)
 
     def reverse(self, *args, **kwargs):
         raise NotImplementedError()
+
 
 class DefaultObservationAdapter(Adapter):
     def __init__(self, config):
@@ -92,13 +98,6 @@ class DefaultObservationAdapter(Adapter):
         :param timesteps:
         :return: state, next_state, reward, done, timesteps
         '''
-        slice_len = 1
-        _timesteps = timesteps
-        if isinstance(timesteps[0], list):
-            slice_len = len(timesteps[0])
-            _timesteps = itertools.chain(*timesteps)
-            _timesteps = list(_timesteps)
-
         states, dones, rewards = None, [], []
         screen_feature_indexes = \
             self._config._screen_feature_indexes
@@ -109,7 +108,7 @@ class DefaultObservationAdapter(Adapter):
         action_indexes = self._config._action_indexes
         screens, minimaps = [], []
         nonspatials = [[] for _ in range(len(nonspatial_features))]
-        for timestep in _timesteps:
+        for timestep in timesteps:
             rewards.append(timestep.reward)
             dones.append(timestep.last())
             observation = timestep.observation
@@ -132,15 +131,8 @@ class DefaultObservationAdapter(Adapter):
         screen = np.array(screens).transpose((0, 2, 3, 1))
         minimap = np.array(minimaps).transpose((0, 2, 3, 1))
         nonspatial = [np.array(e) for e in nonspatials]
-
         states = [screen, minimap] + nonspatial
-        if state_only:
-            return states
-        return ([s[:-slice_len] for s in states],
-                [s[slice_len:] for s in states],
-                np.array(rewards[slice_len:]),
-                np.array(dones[slice_len:]),
-                _timesteps[:-slice_len])
+        return (states, np.array(rewards), np.array(dones), timesteps)
 
     def reverse(self, *args, **kwargs):
         raise NotImplementedError()
@@ -211,7 +203,7 @@ class DefaultProtossMacroAdapter(Adapter):
         for dim, _ in self._config.policy_dims:
             values.append(np.zeros(shape=(length), dtype=np.int32))
         for i, macro in enumerate(macros):
-            macro_id = action_index_table[macro.macro]
+            macro_id = action_index_table[macro.id]
             values[0][i] = macro_id
 
     def reverse(self, actions):

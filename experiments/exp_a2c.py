@@ -46,20 +46,21 @@ class A2CExperiment(DistributedExperiment):
         local_args = self._local_args
         config = Config()
         env_args = {'map_name': local_args.map_name}
-        env = ParallelEnvs(
-            env_num=local_args.env_num,
-            env_args=env_args) if global_args.train else None
-        test_env = ParallelEnvs(
-            env_num=1, env_args=env_args)
-        obs_adapter = ObservationAdapter(config)
-        act_adapter = ActionAdapter(config)
-        rwd_adapter = RewardAdapter(config)
+
         with tf.device(self.tf_device(global_args)):
             agent = A2C(
                 network_creator=network_creator(config),
                 lr=local_args.lr, td_step=local_args.td_step,
                 ent_coef=local_args.ent_coef, v_coef=local_args.v_coef)
-        with agent.create_session(**self.tf_sess_opts(global_args)) as sess:
+        with agent.create_session(**self.tf_sess_opts(global_args)):
+            env = ParallelEnvs(
+                env_num=local_args.env_num,
+                env_args=env_args) if global_args.train else None
+            test_env = ParallelEnvs(
+                env_num=1, env_args=env_args)
+            obs_adapter = ObservationAdapter(config)
+            act_adapter = ActionAdapter(config)
+            rwd_adapter = RewardAdapter(config)
             env_runner = EnvRunner(
                 agent=agent, env=env, test_env=test_env,
                 train=global_args.train,
@@ -84,22 +85,23 @@ class A2CProtossExperiment(A2CExperiment):
             available_actions=PROTOSS_MACROS._macro_list,
             non_spatial_features=['player'])
         env_args = {'map_name': "Simple64"}
-        env = ParallelEnvs(
-            env_makers=default_macro_env_maker,
-            env_num=local_args.env_num,
-            env_args=env_args) if global_args.train else None
-        test_env = ParallelEnvs(
-            env_makers=default_macro_env_maker,
-            env_num=1, env_args=env_args)
-        obs_adapter = ObservationAdapter(config)
-        act_adapter = MacroAdapter(config)
-        rwd_adapter = RewardAdapter(config)
         with tf.device(self.tf_device(global_args)):
             agent = A2C(
                 network_creator=network_creator(config),
                 lr=local_args.lr, td_step=local_args.td_step,
                 ent_coef=local_args.ent_coef, v_coef=local_args.v_coef)
-        with agent.create_session(**self.tf_sess_opts(global_args)) as sess:
+        with agent.create_session(**self.tf_sess_opts(global_args)):
+            env = ParallelEnvs(
+                env_makers=default_macro_env_maker,
+                env_num=local_args.env_num,
+                env_args=env_args) if global_args.train else None
+            # test_env = ParallelEnvs(
+            #     env_makers=default_macro_env_maker,
+            #     env_num=1, env_args=env_args)
+            test_env = None
+            obs_adapter = ObservationAdapter(config)
+            act_adapter = MacroAdapter(config)
+            rwd_adapter = RewardAdapter(config)
             env_runner = EnvRunner(
                 agent=agent, env=env, test_env=test_env,
                 train=global_args.train,
