@@ -15,6 +15,7 @@ from environment.env_runner import EnvRunner
 from lib.adapter import DefaultObservationAdapter as ObservationAdapter
 from lib.adapter import DefaultActionAdapter as ActionAdapter
 from lib.adapter import DefaultProtossMacroAdapter as MacroAdapter
+from lib.adapter import DefaultActionRewardAdapter as RewardAdapter
 from algorithm.a2c import A2C
 from lib.config import Config
 
@@ -52,6 +53,7 @@ class A2CExperiment(DistributedExperiment):
             env_num=1, env_args=env_args)
         obs_adapter = ObservationAdapter(config)
         act_adapter = ActionAdapter(config)
+        rwd_adapter = RewardAdapter(config)
         with tf.device(self.tf_device(global_args)):
             agent = A2C(
                 network_creator=network_creator(config),
@@ -63,6 +65,7 @@ class A2CExperiment(DistributedExperiment):
                 train=global_args.train,
                 observation_adapter=obs_adapter,
                 action_adapter=act_adapter, epoch_n=local_args.epoch,
+                reward_adapter=rwd_adapter,
                 batch_n=local_args.batch, step_n=local_args.td_step,
                 test_after_epoch=True, logdir=local_args.logdir)
             env_runner.run()
@@ -90,6 +93,7 @@ class A2CProtossExperiment(A2CExperiment):
             env_num=1, env_args=env_args)
         obs_adapter = ObservationAdapter(config)
         act_adapter = MacroAdapter(config)
+        rwd_adapter = RewardAdapter(config)
         with tf.device(self.tf_device(global_args)):
             agent = A2C(
                 network_creator=network_creator(config),
@@ -101,6 +105,7 @@ class A2CProtossExperiment(A2CExperiment):
                 train=global_args.train,
                 observation_adapter=obs_adapter,
                 action_adapter=act_adapter, epoch_n=local_args.epoch,
+                reward_adapter=rwd_adapter,
                 batch_n=local_args.batch, step_n=local_args.td_step,
                 test_after_epoch=True, logdir=local_args.logdir)
             env_runner.run()

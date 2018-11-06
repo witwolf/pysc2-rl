@@ -77,7 +77,7 @@ class DefaultActionRewardAdapter(Adapter):
         '''
         rewards = []
         for timestep, action in zip(timesteps, actions):
-            rewards.append(self.get_reward(timestep, action))
+            rewards.append(self.get_reward(timestep, action) + timestep.reward)
         return rewards
 
     def reverse(self, *args, **kwargs):

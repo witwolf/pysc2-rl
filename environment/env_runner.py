@@ -15,6 +15,7 @@ class EnvRunner(object):
                  agent=None,
                  observation_adapter=None,
                  action_adapter=None,
+                 reward_adapter=None,
                  epoch_n=None,
                  batch_n=None,
                  step_n=16,
@@ -26,6 +27,7 @@ class EnvRunner(object):
         self._agent = agent
         self._obs_adapter = observation_adapter
         self._act_adapter = action_adapter
+        self._reward_adapter = reward_adapter
         self._epoch_n = epoch_n
         self._batch_n = batch_n
         self._step_n = step_n
@@ -54,6 +56,7 @@ class EnvRunner(object):
         ## todo refactor
         obs = []
         func_calls = []
+        rewards = []
         acts = None
         for _ in range(self._step_n):
             obs.append(self._obs)
@@ -68,11 +71,13 @@ class EnvRunner(object):
                 for c, e in zip(acts, funcs_or_acts):
                     c.append(e)
                 function_calls = self._act_adapter.reverse(funcs_or_acts)
+            reward = self._reward_adapter.transform(self._obs, function_calls)
+            rewards.append(reward)
             self._obs = self._env.step([(f,) for f in function_calls])
         obs.append(self._obs)
 
         (states, next_states,
-         rewards, dones, timestamps) = self._obs_adapter.transform(obs)
+         _, dones, timestamps) = self._obs_adapter.transform(obs)
 
         if not acts:
             acts = self._act_adapter.transform(func_calls)
@@ -90,8 +95,9 @@ class EnvRunner(object):
             state = self._obs_adapter.transform(obs, state_only=True)
             action = self._agent.step(state=state, evaluate=True)
             function_calls = self._act_adapter.reverse(action)
+            rewards = self._reward_adapter.transform(obs, function_calls)
             obs = self._test_env.step([(f,) for f in function_calls])
-            total_reward += obs[0].reward
+            total_reward += rewards[0]
         return total_reward
 
     def _record(self, step=None, summary=None, **kwargs):

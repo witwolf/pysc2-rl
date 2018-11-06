@@ -18,6 +18,7 @@ from environment.env_runner import EnvRunner
 from lib.config import Config
 from lib.adapter import DefaultActionAdapter as ActionAdapter
 from lib.adapter import DefaultObservationAdapter as ObservationAdapter
+from lib.adapter import DefaultActionRewardAdapter as RewardAdapter
 from experiments.fcn import FCNNetwork
 
 from lib.base import Network
@@ -77,6 +78,7 @@ class BCExperiment(DistributedExperiment):
             env_num=1, env_args=env_arg)
         obs_adapter = ObservationAdapter(config)
         act_adapter = ActionAdapter(config)
+        rwd_adapter = RewardAdapter(config)
         with tf.device(self.tf_device(global_args)):
             agent = BehaviorClone(
                 network_creator=network_creator(config),
@@ -87,6 +89,7 @@ class BCExperiment(DistributedExperiment):
                 agent=agent, env=env, test_env=test_env,
                 train=global_args.train,
                 observation_adapter=obs_adapter, action_adapter=act_adapter,
+                reward_adapter=rwd_adapter,
                 epoch_n=local_args.epoch, batch_n=local_args.batch,
                 step_n=local_args.td_step, test_after_epoch=True,
                 logdir=local_args.logdir)
