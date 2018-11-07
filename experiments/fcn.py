@@ -11,24 +11,29 @@ class FCNNetwork():
     @staticmethod
     def build_fcn(config):
         size = config._size
-        screen_input, screen = FCNNetwork._conv_channels(
-            size, size, config.screen_dims, 'screen')
-        minimap_input, minimap = FCNNetwork._conv_channels(
-            size, size, config.minimap_dims, 'minimap')
-        non_spatial_input, non_spatial = FCNNetwork._non_spatial(
-            size, config.non_spatial_dims,
-            config._non_spatial_index_table)
+        with tf.variable_scope('screen'):
+            screen_input, screen = FCNNetwork._conv_channels(
+                size, size, config.screen_dims, 'screen')
+        with tf.variable_scope('minimap'):
+            minimap_input, minimap = FCNNetwork._conv_channels(
+                size, size, config.minimap_dims, 'minimap')
+        with tf.variable_scope('nonspatial'):
+            non_spatial_input, non_spatial = FCNNetwork._non_spatial(
+                size, config.non_spatial_dims,
+                config._non_spatial_index_table)
 
         state = tf.concat([screen, minimap, non_spatial], axis=3)
-        fc = layers.fully_connected(layers.flatten(state), num_outputs=256)
-        value = layers.fully_connected(fc, num_outputs=1, activation_fn=None)
+        fc = layers.fully_connected(
+            layers.flatten(state), num_outputs=256, scope='fc')
+        value = layers.fully_connected(
+            fc, num_outputs=1, activation_fn=None, scope='value')
         value = tf.squeeze(value, axis=1)
 
         policy_dims = config.policy_dims
         policies = []
         act_dim, _ = policy_dims[0]
         act_policy = layers.fully_connected(
-            fc, num_outputs=act_dim, activation_fn=None)
+            fc, num_outputs=act_dim, activation_fn=None, scope='act_policy')
         available_actions = 1
         if 'available_actions' in config._non_spatial_index_table:
             available_actions = non_spatial_input[
