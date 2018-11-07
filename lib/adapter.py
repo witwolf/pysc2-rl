@@ -35,7 +35,8 @@ class DefaultActionRewardAdapter(Adapter):
         return (features,
                 timestep.observation.player.minerals,
                 timestep.observation.player.vespene,
-                timestep.observation.player.food_cap - timestep.observation.player.food_used)
+                timestep.observation.player.food_cap -
+                timestep.observation.player.food_used)
 
     def get_reward(self, timestep, action):
         features, minerals, gas, food = self.get_feature_vector(timestep)
@@ -70,10 +71,12 @@ class DefaultActionRewardAdapter(Adapter):
             else:
                 return np.exp(-features[building.unit_type])
 
-        if action.id == PROTOSS_MACROS.Collect_Mineral or action.id == PROTOSS_MACROS.Callback_Idle_Workers:
-            full_harvesters = [unit.assigned_harvesters >= unit.ideal_harvesters
-                              for unit in timestep.observation.feature_units
-                              if unit.unit_type == units.Protoss.Nexus]
+        if (action.id == PROTOSS_MACROS.Collect_Mineral) or (
+                action.id == PROTOSS_MACROS.Callback_Idle_Workers):
+            full_harvesters = [
+                unit.assigned_harvesters >= unit.ideal_harvesters
+                for unit in timestep.observation.feature_units
+                if unit.unit_type == units.Protoss.Nexus]
             # not enough mineral harvester, positive reward
             for full in full_harvesters:
                 if not full:
@@ -83,8 +86,8 @@ class DefaultActionRewardAdapter(Adapter):
 
         if action.id == PROTOSS_MACROS.Collect_Gas:
             full_harvesters = [unit.assigned_harvesters >= unit.ideal_harvesters
-                              for unit in timestep.observation.feature_units
-                              if unit.unit_type == units.Protoss.Assimilator]
+                               for unit in timestep.observation.feature_units
+                               if unit.unit_type == units.Protoss.Assimilator]
             # not enough mineral harvester, positive reward
             for full in full_harvesters:
                 if not full:
@@ -99,11 +102,23 @@ class DefaultActionRewardAdapter(Adapter):
         if not last_timestep:
             return 0
         # self health
-        self_hp = np.sum([unit.health + unit.shield for unit in timestep.observation.raw_units if unit.alliance == 1])
-        self_last_hp = np.sum([unit.health + unit.shield for unit in last_timestep.observation.raw_units if unit.alliance == 1])
+        self_hp = np.sum([
+            unit.health + unit.shield for unit
+            in timestep.observation.raw_units
+            if unit.alliance == 1])
+        self_last_hp = np.sum([
+            unit.health + unit.shield
+            for unit in last_timestep.observation.raw_units
+            if unit.alliance == 1])
         # enemy health
-        enemy_hp = np.sum([unit.health + unit.shield for unit in timestep.observation.raw_units if unit.alliance == 4])
-        enemy_last_hp = np.sum([unit.health + unit.shield for unit in last_timestep.observation.raw_units if unit.alliance == 4])
+        enemy_hp = np.sum([
+            unit.health + unit.shield
+            for unit in timestep.observation.raw_units
+            if unit.alliance == 4])
+        enemy_last_hp = np.sum([
+            unit.health + unit.shield
+            for unit in last_timestep.observation.raw_units
+            if unit.alliance == 4])
         # health delta
         self_hp_delta = self_hp - self_last_hp
         enemy_hp_delta = enemy_hp - enemy_last_hp
@@ -116,9 +131,12 @@ class DefaultActionRewardAdapter(Adapter):
         :return:
         '''
         rewards = []
-        for timestep, last_timestep, action in zip(timesteps, last_timesteps, actions):
-            rewards.append(self.get_reward(timestep, action) + self.get_damage(timestep, last_timestep)
-                           + timestep.reward)
+        for timestep, last_timestep, action in zip(
+                timesteps, last_timesteps, actions):
+            rewards.append(
+                self.get_reward(timestep, action) +
+                self.get_damage(timestep, last_timestep) +
+                timestep.reward)
         return np.array(rewards)
 
     def reverse(self, *args, **kwargs):

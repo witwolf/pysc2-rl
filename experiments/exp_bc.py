@@ -4,6 +4,7 @@
 
 
 import sys
+import ast
 
 sys.path.append('.')
 
@@ -60,6 +61,7 @@ class BCExperiment(DistributedExperiment):
         parser.add_argument("--logdir", type=str, default='log/bc')
         parser.add_argument("--v_coef", type=float, default=0.0)
         parser.add_argument("--lr", type=float, default=1e-3)
+        parser.add_argument("--visualize", type=ast.literal_eval, default=False)
 
         args, _ = parser.parse_known_args()
         self._local_args = args
@@ -70,7 +72,9 @@ class BCExperiment(DistributedExperiment):
         script_agents = ParallelAgent(
             agent_num=local_args.env_num,
             agent_makers=script_agent_maker(local_args.map_name))
-        env_arg = {'map_name': local_args.map_name}
+        env_args = [{'map_name': local_args.map_name}
+                    for _ in range(local_args.env_num)]
+        env_args[0]['visualize'] = local_args.visualize
         with tf.device(self.tf_device(global_args)):
             agent = BehaviorClone(
                 network_creator=network_creator(config),
@@ -79,9 +83,9 @@ class BCExperiment(DistributedExperiment):
         with agent.create_session(**self.tf_sess_opts(global_args)):
             env = ParallelEnvs(
                 env_num=local_args.env_num,
-                env_args=env_arg) if global_args.train else None
+                env_args=env_args) if global_args.train else None
             test_env = ParallelEnvs(
-                env_num=1, env_args=env_arg
+                env_num=1, env_args=env_args[:1]
             ) if global_args.task_index == 0 else None
             obs_adapter = ObservationAdapter(config)
             act_adapter = ActionAdapter(config)
