@@ -18,6 +18,7 @@ class EnvRunner(object):
                  epoch_n=None,
                  batch_n=None,
                  step_n=16,
+                 memory_step_n=8,
                  test_after_epoch=True,
                  train=True,
                  logdir=None):
@@ -30,8 +31,10 @@ class EnvRunner(object):
         self._epoch_n = epoch_n
         self._batch_n = batch_n
         self._step_n = step_n
+        self._memory_step_n = memory_step_n
         self._test_after_epoch = test_after_epoch
         self._obs = None
+        self._memory_step_obs = None
         self._train = train
         self._summary_writer = None
         self._logdir = logdir
@@ -40,6 +43,10 @@ class EnvRunner(object):
     def run(self, *args, **kwargs):
         if self._train:
             self._obs = self._env.reset()
+            # init last obs
+            self._memory_step_obs = []
+            for i in range(self._memory_step_n):
+                self._memory_step_obs.append([None] * len(self._obs))
         for epoch in range(self._epoch_n):
             if self._train:
                 for batch in range(self._batch_n):
@@ -53,7 +60,8 @@ class EnvRunner(object):
         states, actions, next_states = [], [], []
         dones, rewards, timestamps = [], [], []
         ss, *_ = self._obs_adapter.transform(self._obs)
-        for _ in range(self._step_n):
+        step_obs = []
+        for step_i in range(self._step_n):
             states.append(ss)
             timestamps.extend(self._obs)
             acts = self._agent.step(state=ss, obs=self._obs)
@@ -62,13 +70,20 @@ class EnvRunner(object):
             for c, e in zip(actions, acts):
                 c.append(e)
             func_calls = self._act_adapter.reverse(acts)
+            # record step obs
+            step_obs.append(self._obs)
             self._obs = self._env.step([(f,) for f in func_calls])
             ss, rs, ds, _ = self._obs_adapter.transform(self._obs)
             if self._reward_adapter:
-                rs = self._reward_adapter.transform(self._obs, func_calls)
+                if step_i < self._memory_step_n:
+                    rs = self._reward_adapter.transform(self._obs, self._memory_step_obs[step_i], func_calls)
+                else:
+                    rs = self._reward_adapter.transform(self._obs, step_obs[step_i - self._memory_step_n], func_calls)
             next_states.append(ss)
             rewards.append(rs)
             dones.append(ds)
+        # update last obs
+        self._memory_step_obs = step_obs[-self._memory_step_n:]
         states = self._flatten_state(states)
         next_states = self._flatten_state(next_states)
         batch = (states, [np.concatenate(c, axis=0) for c in actions],
@@ -90,16 +105,23 @@ class EnvRunner(object):
         obs = self._test_env.reset()
         sparse_reward = 0
         dense_reward = 0
+        step_obs = []
         while not obs[0].last():
             state, *_ = self._obs_adapter.transform(obs)
             action = self._agent.step(state=state, evaluate=True)
             function_calls = self._act_adapter.reverse(action)
-            rewards = self._reward_adapter.transform(obs, function_calls)
+            last_obs = None
+            # record old and pop old
+            if len(step_obs) >= self._memory_step_n:
+                last_obs = step_obs[0]
+                step_obs = step_obs[1:]
+            # push new
+            step_obs.append(obs)
             obs = self._test_env.step([(f,) for f in function_calls])
             if self._reward_adapter:
                 dense_reward += self._reward_adapter.transform(
-                    obs, function_calls)[0]
-            sparse_reward += rewards[0]
+                    obs, last_obs, function_calls)[0]
+            sparse_reward += obs[0].reward
         records = {
             'reward': sparse_reward,
             'dense_reward': dense_reward}

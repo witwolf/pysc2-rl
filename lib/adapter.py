@@ -95,15 +95,29 @@ class DefaultActionRewardAdapter(Adapter):
         # other function return 0
         return 0
 
-    def transform(self, timesteps, actions):
+    def get_damage(self, timestep, last_timestep):
+        if not last_timestep:
+            return 0
+        # self health
+        self_hp = np.sum([unit.health + unit.shield for unit in timestep.observation.raw_units if unit.alliance == 1])
+        self_last_hp = np.sum([unit.health + unit.shield for unit in last_timestep.observation.raw_units if unit.alliance == 1])
+        # enemy health
+        enemy_hp = np.sum([unit.health + unit.shield for unit in timestep.observation.raw_units if unit.alliance == 4])
+        enemy_last_hp = np.sum([unit.health + unit.shield for unit in last_timestep.observation.raw_units if unit.alliance == 4])
+        # health delta
+        self_hp_delta = self_hp - self_last_hp
+        enemy_hp_delta = enemy_hp - enemy_last_hp
+        return np.clip(self_hp_delta - enemy_hp_delta, -5, 5)
+
+    def transform(self, timesteps, last_timesteps, actions):
         '''
         :param timesteps:
         :param actions:
         :return:
         '''
         rewards = []
-        for timestep, action in zip(timesteps, actions):
-            rewards.append(self.get_reward(timestep, action)
+        for timestep, last_timestep, action in zip(timesteps, last_timesteps, actions):
+            rewards.append(self.get_reward(timestep, action) + self.get_damage(timestep, last_timestep)
                            + timestep.reward)
         return np.array(rewards)
 
