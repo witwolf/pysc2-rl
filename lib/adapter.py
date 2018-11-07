@@ -70,6 +70,28 @@ class DefaultActionRewardAdapter(Adapter):
             else:
                 return np.exp(-features[building.unit_type])
 
+        if action.id == PROTOSS_MACROS.Collect_Mineral or action.id == PROTOSS_MACROS.Callback_Idle_Workers:
+            full_harvesters = [unit.assigned_harvesters >= unit.ideal_harvesters
+                              for unit in timestep.observation.feature_units
+                              if unit.unit_type == units.Protoss.Nexus]
+            # not enough mineral harvester, positive reward
+            for full in full_harvesters:
+                if not full:
+                    return 1
+            # full mineral harvester, negative reward
+            return -1
+
+        if action.id == PROTOSS_MACROS.Collect_Gas:
+            full_harvesters = [unit.assigned_harvesters >= unit.ideal_harvesters
+                              for unit in timestep.observation.feature_units
+                              if unit.unit_type == units.Protoss.Assimilator]
+            # not enough mineral harvester, positive reward
+            for full in full_harvesters:
+                if not full:
+                    return 1
+            # full mineral harvester, negative reward
+            return -1
+
         # other function return 0
         return 0
 
