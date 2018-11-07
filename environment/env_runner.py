@@ -45,7 +45,7 @@ class EnvRunner(object):
                 for batch in range(self._batch_n):
                     logging.info("epoch:%d,batch:%d" % (epoch, batch))
                     self._batch()
-            if self._test_after_epoch:
+            if self._test_after_epoch and self._test_env:
                 self._test(epoch)
 
     def _batch(self):

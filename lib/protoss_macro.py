@@ -126,7 +126,8 @@ class U(object):
 
         if len(valid_vespenes) == 0:
             return 1, 1
-        return valid_vespenes[randint(0, len(valid_vespenes))]
+        x, y = valid_vespenes[randint(0, len(valid_vespenes))]
+        return U._valid_screen_x_y(x, y, obs)
 
     @staticmethod
     def new_cyberneticscore_location(obs):
@@ -141,7 +142,8 @@ class U(object):
         # if no mineral, go to center
         if len(minerals) == 0:
             return 1, 1
-        return minerals[randint(0, len(minerals))]
+        x, y = minerals[randint(0, len(minerals))]
+        return U._valid_screen_x_y(x, y, obs)
 
     @staticmethod
     def gas_location(obs):

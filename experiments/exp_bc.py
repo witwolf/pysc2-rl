@@ -18,7 +18,6 @@ from environment.env_runner import EnvRunner
 from lib.config import Config
 from lib.adapter import DefaultActionAdapter as ActionAdapter
 from lib.adapter import DefaultObservationAdapter as ObservationAdapter
-from lib.adapter import DefaultActionRewardAdapter as RewardAdapter
 from experiments.fcn import FCNNetwork
 
 from lib.base import Network
@@ -28,7 +27,8 @@ from algorithm.script.parallel_agent import script_agent_maker
 def network_creator(config):
     def network_creator():
         def _network_creator():
-            value, policies, actions, states = FCNNetwork.build_fcn(config)
+            with tf.variable_scope('network'):
+                value, policies, actions, states = FCNNetwork.build_fcn(config)
             inputs = {
                 'state': states,
                 'reward': tf.placeholder(tf.float32, [None]),
@@ -81,15 +81,14 @@ class BCExperiment(DistributedExperiment):
                 env_num=local_args.env_num,
                 env_args=env_arg) if global_args.train else None
             test_env = ParallelEnvs(
-                env_num=1, env_args=env_arg)
+                env_num=1, env_args=env_arg
+            ) if global_args.task_index == 0 else None
             obs_adapter = ObservationAdapter(config)
             act_adapter = ActionAdapter(config)
-            rwd_adapter = RewardAdapter(config)
             env_runner = EnvRunner(
                 agent=agent, env=env, test_env=test_env,
                 train=global_args.train,
                 observation_adapter=obs_adapter, action_adapter=act_adapter,
-                reward_adapter=rwd_adapter,
                 epoch_n=local_args.epoch, batch_n=local_args.batch,
                 step_n=local_args.td_step, test_after_epoch=True,
                 logdir=local_args.logdir)
