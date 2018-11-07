@@ -46,9 +46,7 @@ class EnvRunner(object):
                     logging.info("epoch:%d,batch:%d" % (epoch, batch))
                     self._batch()
             if self._test_after_epoch:
-                total_reward = self._test()
-                logging.info("epoch:%d,reward:%d" % (epoch, total_reward))
-                self._record(step=epoch, reward=total_reward)
+                self._test(epoch)
 
     def _batch(self):
         # train batch
@@ -88,17 +86,36 @@ class EnvRunner(object):
         rets = [np.concatenate(c, axis=0) for c in rets]
         return rets
 
-    def _test(self):
+    def _test(self, epoch):
         obs = self._test_env.reset()
-        total_reward = 0
+        sparse_reward = 0
+        dense_reward = 0
         while not obs[0].last():
             state, *_ = self._obs_adapter.transform(obs)
             action = self._agent.step(state=state, evaluate=True)
             function_calls = self._act_adapter.reverse(action)
             rewards = self._reward_adapter.transform(obs, function_calls)
             obs = self._test_env.step([(f,) for f in function_calls])
-            total_reward += rewards[0]
-        return total_reward
+            if self._reward_adapter:
+                dense_reward += self._reward_adapter.transform(
+                    obs, function_calls)[0]
+            sparse_reward += rewards[0]
+        records = {
+            'reward': sparse_reward,
+            'dense_reward': dense_reward}
+        record_fields = [
+            'score',
+            'total_value_units',
+            'total_value_structures',
+            'killed_value_units',
+            'killed_value_structures',
+            'collected_minerals',
+            'collected_vespene',
+            'spent_minerals',
+            'spent_vespene']
+        for f in record_fields:
+            records[f] = obs[0].observation.score_cumulative[f]
+        self._record(step=epoch, **records)
 
     def _record(self, step=None, summary=None, **kwargs):
         if not self._train or not self._summary_writer:
