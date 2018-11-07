@@ -65,16 +65,7 @@ class EnvRunner(object):
             self._obs = self._env.step([(f,) for f in func_calls])
             ss, rs, ds, _ = self._obs_adapter.transform(self._obs)
             if self._reward_adapter:
-<<<<<<< HEAD
                 rs = self._reward_adapter.transform(self._obs, func_calls)
-=======
-                if step_i < self._memory_step_n:
-                    rs = self._reward_adapter.transform(
-                        self._obs, self._memory_step_obs[step_i], func_calls)
-                else:
-                    rs = self._reward_adapter.transform(
-                        self._obs, step_obs[step_i - self._memory_step_n], func_calls)
->>>>>>> 981f46d650c6e278d50ecb52424908482abd20d8
             next_states.append(ss)
             rewards.append(rs)
             dones.append(ds)
