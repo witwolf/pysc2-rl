@@ -7,6 +7,7 @@ import sys
 sys.path.append('.')
 
 import argparse
+import ast
 import tensorflow as tf
 from experiments.experiment import Experiment
 from experiments.experiment import DistributedExperiment
@@ -39,14 +40,16 @@ class A2CExperiment(DistributedExperiment):
         parser.add_argument("--v_coef", type=float, default=0.25)
         parser.add_argument("--ent_coef", type=float, default=1e-3)
         parser.add_argument("--lr", type=float, default=7e-4)
+        parser.add_argument("--visualize", type=ast.literal_eval, default=False)
         args, _ = parser.parse_known_args()
         self._local_args = args
 
     def run(self, global_args):
         local_args = self._local_args
         config = Config()
-        env_args = {'map_name': local_args.map_name}
-
+        env_args = [{'map_name': local_args.map_name}
+                    for _ in range(local_args.env_num)]
+        env_args[0]['visualize'] = local_args.visualize
         with tf.device(self.tf_device(global_args)):
             agent = A2C(
                 network_creator=network_creator(config),
@@ -57,7 +60,7 @@ class A2CExperiment(DistributedExperiment):
                 env_num=local_args.env_num,
                 env_args=env_args) if global_args.train else None
             test_env = ParallelEnvs(
-                env_num=1, env_args=env_args
+                env_num=1, env_args=env_args[:1]
             ) if global_args.task_index == 0 else None
             obs_adapter = ObservationAdapter(config)
             act_adapter = ActionAdapter(config)
@@ -83,7 +86,9 @@ class A2CProtossExperiment(A2CExperiment):
         config = Config(
             available_actions=PROTOSS_MACROS._macro_list,
             non_spatial_features=['player'])
-        env_args = {'map_name': "Simple64"}
+        env_args = [{'map_name': "Simple64"}
+                    for _ in range(local_args.env_num)]
+        env_args[0]['visualize'] = local_args.visualize
         with tf.device(self.tf_device(global_args)):
             agent = A2C(
                 network_creator=network_creator(config),
@@ -96,7 +101,7 @@ class A2CProtossExperiment(A2CExperiment):
                 env_args=env_args) if global_args.train else None
             test_env = ParallelEnvs(
                 env_makers=default_macro_env_maker,
-                env_num=1, env_args=env_args
+                env_num=1, env_args=env_args[:1]
             ) if global_args.task_index == 0 else None
             obs_adapter = ObservationAdapter(config)
             act_adapter = MacroAdapter(config)
