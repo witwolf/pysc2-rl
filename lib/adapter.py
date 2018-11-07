@@ -21,8 +21,10 @@ class Adapter(object):
 
 
 class DefaultActionRewardAdapter(Adapter):
-    def __init__(self, config):
+    def __init__(self, config, memory_step_n = 8):
         self._config = config
+        self._memory_step_n = memory_step_n
+        self._memory_step_obs = [None] * memory_step_n
 
     def get_feature_vector(self, timestep):
         features = {}
@@ -109,16 +111,32 @@ class DefaultActionRewardAdapter(Adapter):
         enemy_hp_delta = enemy_hp - enemy_last_hp
         return np.clip(self_hp_delta - enemy_hp_delta, -5, 5)
 
-    def transform(self, timesteps, last_timesteps, actions):
+    def transform(self, timesteps, actions):
         '''
         :param timesteps:
         :param actions:
         :return:
         '''
+        step_i = 0
         rewards = []
-        for timestep, last_timestep, action in zip(timesteps, last_timesteps, actions):
-            rewards.append(self.get_reward(timestep, action) + self.get_damage(timestep, last_timestep)
-                           + timestep.reward)
+        game_end = False
+        for timestep, action in zip(timesteps, actions):
+            if timestep.last():
+                game_end = True
+            last_timestep = None
+            if step_i < self._memory_step_n:
+                last_timestep = self._memory_step_obs[step_i]
+            else:
+                last_timestep = timesteps[step_i - self._memory_step_n]
+            rewards.append(self.get_reward(timestep, action) +
+                           self.get_damage(timestep, last_timestep) +
+                            timestep.reward)
+            step_i += 1
+
+        if not game_end:
+            self._memory_step_obs = timesteps[-self._memory_step_n:]
+        else:
+            self._memory_step_obs = [None] * self._memory_step_n
         return np.array(rewards)
 
     def reverse(self, *args, **kwargs):

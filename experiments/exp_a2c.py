@@ -100,7 +100,7 @@ class A2CProtossExperiment(A2CExperiment):
             ) if global_args.task_index == 0 else None
             obs_adapter = ObservationAdapter(config)
             act_adapter = MacroAdapter(config)
-            rwd_adapter = RewardAdapter(config)
+            rwd_adapter = RewardAdapter(config, 8)
             env_runner = EnvRunner(
                 agent=agent, env=env, test_env=test_env,
                 train=global_args.train,
