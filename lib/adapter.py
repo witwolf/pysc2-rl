@@ -40,7 +40,9 @@ class DefaultActionRewardAdapter(Adapter):
                 timestep.observation.player.food_cap -
                 timestep.observation.player.food_used)
 
-    def get_reward(self, timestep, action):
+    def get_reward(self, timestep, success, action):
+        if not success:
+            return 0
         features, minerals, gas, food = self.get_feature_vector(timestep)
         # check unit requirements
         if action.id in _PROTOSS_UNITS_MACROS:
@@ -126,7 +128,7 @@ class DefaultActionRewardAdapter(Adapter):
         enemy_hp_delta = enemy_hp - enemy_last_hp
         return np.clip(self_hp_delta - enemy_hp_delta, -5, 5)
 
-    def transform(self, timesteps, actions):
+    def transform(self, timesteps, successes, actions):
         '''
         :param timesteps:
         :param actions:
@@ -135,15 +137,16 @@ class DefaultActionRewardAdapter(Adapter):
         step_i = 0
         rewards = []
         game_end = False
-        for timestep, action in zip(timesteps, actions):
+        for timestep, success, action in zip(timesteps, successes, actions):
             if timestep.last():
                 game_end = True
             last_timestep = None
-            if step_i < self._memory_step_n:
-                last_timestep = self._memory_step_obs[step_i]
-            else:
-                last_timestep = timesteps[step_i - self._memory_step_n]
-            rewards.append(self.get_reward(timestep, action) +
+            if success:
+                if step_i < self._memory_step_n:
+                    last_timestep = self._memory_step_obs[step_i]
+                else:
+                    last_timestep = timesteps[step_i - self._memory_step_n]
+            rewards.append(self.get_reward(timestep, success, action) +
                            self.get_damage(timestep, last_timestep) +
                             timestep.reward)
             step_i += 1

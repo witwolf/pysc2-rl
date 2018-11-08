@@ -92,10 +92,16 @@ class MacroEnv(sc2_env.SC2Env):
     def step(self, macros, update_observation=None):
         for act_func, arg_func in macros[0]:
             obs = self._last_obs[0]
+            # action not available
             if not act_func.id in \
                    obs.observation.available_actions:
-                return self._last_obs
+                return self._last_obs, False
             args = arg_func(obs)
             act = (act_func(*args),)
             self._last_obs = super().step(act, update_observation)
-        return self._last_obs
+            # action execute failed
+            last_actions = obs.observation.last_actions
+            if len(last_actions) == 0 or last_actions[0] != act_func.id:
+                return self._last_obs, False
+        # macro success
+        return self._last_obs, True
