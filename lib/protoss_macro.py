@@ -91,17 +91,15 @@ class U(object):
             (unit.x, unit.y) for unit in _feature_units if
             unit.unit_type == assimilator_type and unit.assigned_harvesters >= 3]
         if len(overload_geysers) > 0:
-            geyser_location = overload_geysers[0]
-            min_dist = 10000
-            min_location = (1, 1)
-            for unit in _feature_units:
-                if unit.unit_type == units.Protoss.Probe:
-                    dist = abs(unit.x - geyser_location[0]) + \
-                           abs(unit.y - geyser_location[1])
-                    if dist < min_dist:
-                        min_dist = dist
-                        min_location = (unit.x, unit.y)
-            return min_location
+            geyser_x, geyser_y = overload_geysers[0]
+            probes = U.locations_by_type(
+                units.Protoss.Probe)
+            dists = np.ndarray(shape=[len(probes)], dtype=np.float32)
+            for i, (x, y) in zip(range(len(probes)), probes):
+                dists[i] = abs(x - geyser_x) + abs(y - geyser_y)
+            pos = np.argmin(dists)
+            x, y = probes[pos]
+            return U._valid_screen_x_y(x, y, obs)
         return 1, 1
 
     @staticmethod
@@ -154,7 +152,8 @@ class U(object):
             unit.unit_type == assimilator_type]
         for assimilator in assimilators:
             if assimilator.assigned_harvesters < 3:
-                return (assimilator.x, assimilator.y)
+                return U._valid_screen_x_y(
+                    assimilator.x, assimilator.y, obs)
         # if no mineral, go to center
         return 1, 1
 

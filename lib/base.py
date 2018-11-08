@@ -58,7 +58,6 @@ class NetworkUpdater(object):
 class BaseDeepAgent(object):
     def __init__(self, **kwargs):
         self._sess = None
-        self._global_step = tf.train.get_or_create_global_step()
         self._network = self.init_network(**kwargs)
         self._updater = self.init_updater(**kwargs)
 
@@ -69,13 +68,14 @@ class BaseDeepAgent(object):
         raise NotImplementedError()
 
     def create_session(self, config=None,
-                       master='', worker_index=0,
+                       master='', task_index=0,
                        save_dir=None,
                        save_step=128,
                        restore=False,
                        restore_var_list=None):
         sess = MonitoredTrainingSession(
-            master, is_chief=(worker_index == 0),
+            master,
+            is_chief=(task_index == 0),
             checkpoint_dir=save_dir,
             save_checkpoint_steps=save_step,
             restore=restore,
@@ -88,8 +88,7 @@ class BaseDeepAgent(object):
         raise NotImplementedError()
 
     def update(self, *args, **kwargs):
-        step = self._sess.run(self._global_step)
-        logging.info("Step:%d", step)
+        pass
 
     def reset(self):
         pass
@@ -110,43 +109,23 @@ def MonitoredTrainingSession(
         master='',
         is_chief=True,
         checkpoint_dir=None,
-        scaffold=None,
         restore=False,
         restore_var_list=None,
         save_checkpoint_steps=None,
-        config=None, stop_grace_period_secs=120):
-    scaffold = scaffold or tf.train.Scaffold()
-
+        config=None):
     if checkpoint_dir:
         if not os.path.isdir(checkpoint_dir):
             os.makedirs(checkpoint_dir)
-
-    if not is_chief:
-        logging.warning("create worker session")
-        session_creator = tf.train.WorkerSessionCreator(
-            scaffold=scaffold, master=master, config=config)
-        return tf.train.MonitoredSession(
-            session_creator=session_creator, hooks=[],
-            stop_grace_period_secs=stop_grace_period_secs)
-
-    logging.warning("create cheif session")
-    if restore:
-        logging.warning("checkpoint dir:%s", checkpoint_dir)
-
-    session_creator = tf.train.ChiefSessionCreator(
-        scaffold=scaffold,
-        checkpoint_dir=checkpoint_dir if restore else None,
+    hooks = [
+        tf.train.StopAtStepHook(last_step=1e8)]
+    if is_chief and save_checkpoint_steps and save_checkpoint_steps > 0:
+        hooks.append(tf.train.CheckpointSaverHook(
+            checkpoint_dir, save_steps=save_checkpoint_steps))
+    sess = tf.train.MonitoredTrainingSession(
         master=master,
-        config=config)
-    all_hooks = []
-
-    if save_checkpoint_steps and save_checkpoint_steps > 0:
-        all_hooks.append(tf.train.CheckpointSaverHook(
-            checkpoint_dir, save_steps=save_checkpoint_steps,
-            scaffold=scaffold))
-
-    sess = tf.train.MonitoredSession(
-        session_creator=session_creator, hooks=all_hooks,
-        stop_grace_period_secs=stop_grace_period_secs)
+        is_chief=is_chief,
+        checkpoint_dir=checkpoint_dir if is_chief and restore else None,
+        config=config,
+        hooks=hooks)
     logging.warning("session created")
     return sess

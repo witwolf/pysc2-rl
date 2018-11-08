@@ -107,10 +107,9 @@ class DistributedExperiment(Experiment):
                 server = tf.train.Server(
                     cluster_spec,
                     job_name=args.job_name,
-                    task_index=args.task_index,
-                    config=config)
+                    task_index=args.task_index)
                 session_options.update({
-                    'master': server.target, 'worker_index': args.task_index})
+                    'master': server.target, 'task_index': args.task_index})
         return session_options
 
     def tf_device(self, args):
@@ -118,9 +117,10 @@ class DistributedExperiment(Experiment):
         if args.ps_hosts and args.worker_hosts:
             cluster = self.get_cluster_info(args.ps_hosts, args.worker_hosts)
             if len(cluster['worker']) > 1:
+                cluster_spec = tf.train.ClusterSpec(cluster)
                 device = tf.train.replica_device_setter(
                     worker_device="/job:worker/task:{}".format(args.task_index),
-                    cluster=cluster)
+                    cluster=cluster_spec)
         return device
 
     def get_cluster_info(self, ps_hosts, worker_hosts):
