@@ -3,6 +3,8 @@
 #
 
 from pysc2.env import sc2_env
+import collections
+import enum
 
 
 def default_macro_env_maker(kwargs):
@@ -90,18 +92,47 @@ class MacroEnv(sc2_env.SC2Env):
         return obs
 
     def step(self, macros, update_observation=None):
+        """Returned with every call to `step` and `reset` on an environment.
+
+        A `TimeStepWrapper` contains the data emitted by an environment at each step of
+        interaction. A `TimeStepWrapper` holds a `step_type`, an `observation`, and an
+        associated `reward` and `discount, and a 'success'`.
+
+        The first `TimeStepWrapper` in a sequence will have `StepType.FIRST`. The final
+        `TimeStep` will have `StepType.LAST`. All other `TimeStepWrapper`s in a sequence will
+        have `StepType.MID.
+
+        Attributes:
+            step_type: A `StepType` enum value.
+            reward: A scalar, or 0 if `step_type` is `StepType.FIRST`, i.e. at the
+            start of a sequence.
+            discount: A discount value in the range `[0, 1]`, or 0 if `step_type`
+            is `StepType.FIRST`, i.e. at the start of a sequence.
+            observation: A NumPy array, or a dict, list or tuple of arrays.
+            macro_success: A bool, tell whether last macro action succeed
+        """
+        class TimestepWrapper:
+            def __init__(self, timestep, success):
+                self._timestep = timestep
+                self.macro_success = success
+
+            def __getattr__(self, item):
+                if item == 'macro_success':
+                    return self.macro_success
+                return getattr(self._timestep, item)
+
         for act_func, arg_func in macros[0]:
             obs = self._last_obs[0]
             # action not available
             if not act_func.id in \
                    obs.observation.available_actions:
-                return self._last_obs, False
+                return [TimestepWrapper(obs, False)]
             args = arg_func(obs)
             act = (act_func(*args),)
             self._last_obs = super().step(act, update_observation)
             # action execute failed
             last_actions = obs.observation.last_actions
             if len(last_actions) == 0 or last_actions[0] != act_func.id:
-                return self._last_obs, False
+                return [TimestepWrapper(self._last_obs[0], False)]
         # macro success
-        return self._last_obs, True
+        return [TimestepWrapper(self._last_obs[0], True)]

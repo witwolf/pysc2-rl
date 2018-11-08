@@ -62,11 +62,11 @@ class EnvRunner(object):
             for c, e in zip(actions, acts):
                 c.append(e)
             func_calls = self._act_adapter.reverse(acts)
-            self._obs, successes = self._env.step([(f,) for f in func_calls])
+            self._obs = self._env.step([(f,) for f in func_calls])
             ss, rs, ds, _ = self._obs_adapter.transform(self._obs)
             # only success macro can pass reward
             if self._reward_adapter:
-                rs = self._reward_adapter.transform(self._obs, successes, func_calls)
+                rs = self._reward_adapter.transform(self._obs, func_calls)
             next_states.append(ss)
             rewards.append(rs)
             dones.append(ds)
@@ -95,10 +95,10 @@ class EnvRunner(object):
             state, *_ = self._obs_adapter.transform(obs)
             action = self._agent.step(state=state, evaluate=True)
             function_calls = self._act_adapter.reverse(action)
-            obs, successes = self._test_env.step([(f,) for f in function_calls])
+            obs = self._test_env.step([(f,) for f in function_calls])
             if self._reward_adapter:
                 dense_reward += self._reward_adapter.transform(
-                    obs, successes, function_calls)[0]
+                    obs, function_calls)[0]
             sparse_reward += obs[0].reward
         records = {
             'reward': sparse_reward,

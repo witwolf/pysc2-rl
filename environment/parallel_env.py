@@ -65,7 +65,7 @@ class ParallelEnvs(object):
     def step(self, actions):
         obs = self._parallel.run(
             (env.step, acts) for env, acts in zip(self._envs, actions))
-        return [o[0][0] for o in obs], [o[1] for o in obs]
+        return [o[0] for o in obs]
 
     def reset(self):
         obs = self._parallel.run(env.reset for env in self._envs)
