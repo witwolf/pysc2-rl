@@ -583,17 +583,17 @@ _PROTOSS_MACROS = [
     ProtossMacro.ability(5, "Train_Zealot", training_a_zealot, 5),
     ProtossMacro.ability(6, "Train_Stalker", training_a_stalker, 6),
     ProtossMacro.ability(7, "Callback_Idle_Workers", callback_idle_workers, 7),
-    ProtossMacro.ability(8, "Collect_Mineral", collect_minerals, 8),
-    ProtossMacro.ability(9, "Collect_Gas", collect_gas, 9),
-    ProtossMacro.ability(10, "Move_TopLeft", move_screen_topleft, 10),
-    ProtossMacro.ability(11, "Move_Top", move_screen_top, 11),
-    ProtossMacro.ability(12, "Move_TopRight", move_screen_topright, 12),
-    ProtossMacro.ability(13, "Move_Right", move_screen_right, 13),
-    ProtossMacro.ability(14, "Move_BottomRight", move_screen_bottomright, 14),
-    ProtossMacro.ability(15, "Move_Bottom", move_screen_bottom, 15),
-    ProtossMacro.ability(16, "Move_BottomLeft", move_screen_bottomleft, 16),
-    ProtossMacro.ability(17, "Move_Left", move_screen_left, 17),
-    ProtossMacro.ability(18, "Attack_Enemy", attack_enemy, 18)
+    ProtossMacro.ability(8, "Collect_Gas", collect_gas, 8),
+    ProtossMacro.ability(9, "Move_TopLeft", move_screen_topleft, 9),
+    ProtossMacro.ability(10, "Move_Top", move_screen_top, 10),
+    ProtossMacro.ability(11, "Move_TopRight", move_screen_topright, 11),
+    ProtossMacro.ability(12, "Move_Right", move_screen_right, 12),
+    ProtossMacro.ability(13, "Move_BottomRight", move_screen_bottomright, 13),
+    ProtossMacro.ability(14, "Move_Bottom", move_screen_bottom, 14),
+    ProtossMacro.ability(15, "Move_BottomLeft", move_screen_bottomleft, 15),
+    ProtossMacro.ability(16, "Move_Left", move_screen_left, 16),
+    ProtossMacro.ability(17, "Attack_Enemy", attack_enemy, 17)
+    # ProtossMacro.ability(8, "Collect_Mineral", collect_minerals, 8),
 ]
 
 

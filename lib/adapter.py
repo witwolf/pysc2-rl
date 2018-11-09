@@ -75,8 +75,7 @@ class DefaultActionRewardAdapter(Adapter):
             else:
                 return np.exp(-features[building.unit_type])
 
-        if (action.id == PROTOSS_MACROS.Collect_Mineral) or (
-                action.id == PROTOSS_MACROS.Callback_Idle_Workers):
+        if action.id == PROTOSS_MACROS.Callback_Idle_Workers:
             full_harvesters = [
                 unit.assigned_harvesters >= unit.ideal_harvesters
                 for unit in timestep.observation.feature_units
