@@ -3,11 +3,12 @@
 #
 
 import tensorflow as tf
+import numpy as np
 
 
 class Utils(object):
     @staticmethod
-    def td_value(rewards, dones, last_value, discount):
+    def tf_td_value(rewards, dones, last_value, discount):
         batch_size = tf.shape(rewards)[0]
         parallel_num = tf.shape(last_value)[0]
         td_step = tf.div(batch_size, parallel_num)
@@ -28,6 +29,22 @@ class Utils(object):
         value = last_value
         _, value, _ = tf.while_loop(cond, body, [td_step - 1, value, last_value])
         return value[:-parallel_num]
+
+    @staticmethod
+    def td_value(rewards, dones, last_value, discount):
+        parallel_num = len(last_value)
+        td_step = len(rewards) // parallel_num
+
+        values = [None] * (td_step + 1)
+        values[-1] = last_value
+        for i in reversed(range(td_step)):
+            s = i * parallel_num
+            e = s + parallel_num
+            values[i] = rewards[s:e] + (
+                    discount * (1 - dones[s:e]) * values[i + 1])
+
+        values = values[:-1]
+        return np.concatenate(values, axis=0)
 
     @staticmethod
     def clip_log(input, min=0.0, max=1.0):

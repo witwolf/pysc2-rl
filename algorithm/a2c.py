@@ -48,7 +48,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
 
     def init_updater(self, **kwargs):
         # advantage
-        target_value = Utils.td_value(
+        target_value = Utils.tf_td_value(
             self._reward_input, self._done_input,
             self._value_input, self._discount)
         target_value = tf.stop_gradient(target_value)

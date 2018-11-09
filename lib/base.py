@@ -113,19 +113,31 @@ def MonitoredTrainingSession(
         restore_var_list=None,
         save_checkpoint_steps=None,
         config=None):
+    if not is_chief:
+        session_creator = tf.train.WorkerSessionCreator(
+            master=master, config=config)
+        return tf.train.MonitoredSession(
+            session_creator=session_creator)
+
+    scaffold = tf.train.Scaffold()
     if checkpoint_dir:
         if not os.path.isdir(checkpoint_dir):
             os.makedirs(checkpoint_dir)
     hooks = [
         tf.train.StopAtStepHook(last_step=1e8)]
+
     if is_chief and save_checkpoint_steps and save_checkpoint_steps > 0:
         hooks.append(tf.train.CheckpointSaverHook(
-            checkpoint_dir, save_steps=save_checkpoint_steps))
-    sess = tf.train.MonitoredTrainingSession(
+            checkpoint_dir, scaffold=scaffold,
+            save_steps=save_checkpoint_steps))
+
+    session_creator = tf.train.ChiefSessionCreator(
+        checkpoint_dir=checkpoint_dir if restore else None,
+        scaffold=scaffold,
         master=master,
-        is_chief=is_chief,
-        checkpoint_dir=checkpoint_dir if is_chief and restore else None,
-        config=config,
-        hooks=hooks)
+        config=config)
+
+    sess = tf.train.MonitoredSession(
+        session_creator=session_creator, hooks=hooks)
     logging.warning("session created")
     return sess

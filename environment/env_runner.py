@@ -43,7 +43,7 @@ class EnvRunner(object):
         for epoch in range(self._epoch_n):
             if self._train:
                 for batch in range(self._batch_n):
-                    logging.info("epoch:%d,batch:%d" % (epoch, batch))
+                    logging.warning("epoch:%d,batch:%d" % (epoch, batch))
                     self._batch()
             if self._test_after_epoch and self._test_env:
                 self._test(epoch)
@@ -88,6 +88,7 @@ class EnvRunner(object):
         return rets
 
     def _test(self, epoch):
+        logging.warning("testing...")
         obs = self._test_env.reset()
         sparse_reward = 0
         dense_reward = 0

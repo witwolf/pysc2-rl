@@ -23,8 +23,8 @@ class TestNetworkUtils(utils.TestCase):
         dones_ph = tf.placeholder(dtype=tf.int32, shape=[None])
 
         discount_ph = tf.placeholder(dtype=tf.float32, shape=())
-        td_value = Utils.td_value(rewards_ph, dones_ph,
-                                  value, discount_ph)
+        td_value = Utils.tf_td_value(rewards_ph, dones_ph,
+                                     value, discount_ph)
 
         sess = tf.Session()
         sess.run(tf.global_variables_initializer())
@@ -49,16 +49,7 @@ class TestNetworkUtils(utils.TestCase):
 
             # cal td value manually
             last_value = value_[-parallel_num:]
-            td_value__ = [last_value]
-            for i in reversed(range(td_step)):
-                begin = i * parallel_num
-                end = begin + parallel_num
-                rs = rewards[begin:end]
-                ds = dones[begin:end]
-                td_value__.append(rs + (1 - ds) * discount * td_value__[-1])
-            td_value__ = td_value__[1:]
-            td_value__.reverse()
-            td_value__ = np.concatenate(td_value__)
+            td_value__ = Utils.td_value(rewards, dones, last_value, discount)
 
             np.testing.assert_almost_equal(td_value_, td_value__, decimal=4)
 
