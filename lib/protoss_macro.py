@@ -8,11 +8,10 @@ import numpy as np
 import logging
 
 from numpy.random import randint
-from pysc2.lib import units
 from pysc2.lib import features
-from pysc2.lib.actions import FUNCTIONS
 
 from lib.protoss_unit import *
+from pysc2.lib.actions import FUNCTIONS
 
 
 class U(object):
@@ -733,6 +732,12 @@ _PROTOSS_UNITS_MACROS = {
     PROTOSS_MACROS.Train_Stalker.id: Stalker
 }
 
+_PROTOSS_UNITS_FUNCTIONS = {
+    FUNCTIONS.Train_Probe_quick.id: Probe,
+    FUNCTIONS.Train_Zealot_quick.id: Zealot,
+    FUNCTIONS.Train_Stalker_quick.id: Stalker
+}
+
 _PROTOSS_BUILDINGS = [
     Nexus, Pylon, Assimilator, Gateway,
     WarpGate, Forge, CyberneticsCore,
@@ -746,4 +751,11 @@ _PROTOSS_BUILDINGS_MACROS = {
     PROTOSS_MACROS.Build_Gateway.id: Gateway,
     PROTOSS_MACROS.Build_Assimilator.id: Assimilator,
     PROTOSS_MACROS.Build_CyberneticsCore.id: CyberneticsCore
+}
+
+_PROTOSS_BUILDINGS_FUNCTIONS = {
+    FUNCTIONS.Build_Pylon_screen.id: Pylon,
+    FUNCTIONS.Build_Gateway_screen.id: Gateway,
+    FUNCTIONS.Build_Assimilator_screen.id: Assimilator,
+    FUNCTIONS.Build_CyberneticsCore_screen.id: CyberneticsCore
 }
