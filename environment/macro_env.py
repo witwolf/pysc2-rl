@@ -2,9 +2,9 @@
 # Created by yingxiang.hong@horizon.ai on 2018/11/1.
 #
 
+
+import logging
 from pysc2.env import sc2_env
-import collections
-import enum
 
 
 def default_macro_env_maker(kwargs):
@@ -63,6 +63,7 @@ class MacroEnv(sc2_env.SC2Env):
                  score_multiplier=None,
                  random_seed=None,
                  disable_fog=False,
+                 debug=False,
                  ensure_available_actions=True):
         super().__init__(
             _only_use_kwargs,
@@ -84,6 +85,7 @@ class MacroEnv(sc2_env.SC2Env):
             disable_fog,
             ensure_available_actions)
 
+        self._debug = debug
         self._last_obs = None
 
     def reset(self):
@@ -111,28 +113,38 @@ class MacroEnv(sc2_env.SC2Env):
             observation: A NumPy array, or a dict, list or tuple of arrays.
             macro_success: A bool, tell whether last macro action succeed
         """
+
         class TimestepWrapper:
             def __init__(self, timestep, success):
                 self._timestep = timestep
                 self.macro_success = success
 
             def __getattr__(self, item):
-                if item == 'macro_success':
-                    return self.macro_success
                 return getattr(self._timestep, item)
 
-        for act_func, arg_func in macros[0]:
+        macro = macros[0]
+        for act_func, arg_func in macro:
             obs = self._last_obs[0]
             # action not available
-            if not act_func.id in \
-                   obs.observation.available_actions:
-                return [TimestepWrapper(obs, False)]
+            if not act_func.id in obs.observation.available_actions:
+                if self._debug:
+                    logging.warning("%s not available,  macro: %s",
+                                    act_func.id, macro)
+                    return [TimestepWrapper(obs, False)]
             args = arg_func(obs)
             act = (act_func(*args),)
             self._last_obs = super().step(act, update_observation)
-            # action execute failed
-            last_actions = obs.observation.last_actions
-            if len(last_actions) == 0 or last_actions[0] != act_func.id:
-                return [TimestepWrapper(self._last_obs[0], False)]
-        # macro success
+
+            #  TODO remove this check temporary
+
+            # last_actions = obs.observation.last_actions
+            # if len(last_actions) == 0 or last_actions[0] != act_func.id:
+            #     if self._debug:
+            #         logging.warning(
+            #             "%s execute failed, last_action:%s, macro: %s", act_func.id,
+            #             last_actions[0] if len(last_actions) else 'None', macro)
+            #     return [TimestepWrapper(self._last_obs[0], False)]
+
+        if self._debug:
+            logging.warning("%s execute success", macro)
         return [TimestepWrapper(self._last_obs[0], True)]

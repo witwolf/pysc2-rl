@@ -3,12 +3,14 @@
 #
 
 
+import sys
+sys.path.append('.')
 import numpy as np
 from pysc2.lib.actions import FUNCTIONS, FunctionCall
 from .config import SPATIAL_ARG_TYPES
-from lib.protoss_unit import *
-from lib.protoss_unit import _PROTOSS_UNITS_MACROS, _PROTOSS_UNITS_FUNCTIONS
-from lib.protoss_unit import _PROTOSS_BUILDINGS_MACROS, _PROTOSS_BUILDINGS_FUNCTIONS
+from lib.protoss_macro import PROTOSS_MACROS
+from lib.protoss_macro import _PROTOSS_UNITS_MACROS, _PROTOSS_BUILDINGS_MACROS
+from lib.protoss_macro import _PROTOSS_UNITS_FUNCTIONS, _PROTOSS_BUILDINGS_FUNCTIONS
 from pysc2.lib import units
 
 
@@ -18,7 +20,6 @@ class Adapter(object):
 
     def reverse(self, *args, **kwargs):
         raise NotImplementedError()
-
 
 class DefaultActionRewardAdapter(Adapter):
     def __init__(self, config, memory_step_n=8):
@@ -176,7 +177,7 @@ class DefaultObservationAdapter(Adapter):
             self._config._minimap_feature_indexes
         nonspatial_features = \
             self._config._non_spatial_features
-        action_indexes = self._config._action_indexes
+
         screens, minimaps = [], []
         nonspatials = [[] for _ in range(len(nonspatial_features))]
         for timestep in timesteps:
@@ -194,9 +195,7 @@ class DefaultObservationAdapter(Adapter):
             for i, field in enumerate(nonspatial_features):
                 feature = observation[field]
                 if field == 'available_actions':
-                    feature = np.zeros(len(FUNCTIONS))
-                    feature[observation[field]] = 1
-                    feature = feature[action_indexes]
+                    feature = self._available_actions(timestep)
                 nonspatials[i].append(feature)
 
         screen = np.array(screens).transpose((0, 2, 3, 1))
@@ -204,6 +203,13 @@ class DefaultObservationAdapter(Adapter):
         nonspatial = [np.array(e) for e in nonspatials]
         states = [screen, minimap] + nonspatial
         return (states, np.array(rewards), np.array(dones), timesteps)
+
+    def _available_actions(self, timestep):
+        action_indexes = self._config._action_indexes
+        observation = timestep.observation
+        feature = np.zeros(len(FUNCTIONS))
+        feature[observation['available_actions']] = 1
+        return feature[action_indexes]
 
     def reverse(self, *args, **kwargs):
         raise NotImplementedError()
@@ -387,29 +393,3 @@ class DefaultActionAdapter(Adapter):
             function_call = FunctionCall(act_id, act_args)
             function_calls.append(function_call)
         return function_calls
-
-
-class DefaultProtossMacroAdapter(Adapter):
-    def __init__(self, config):
-        self._config = config
-
-    def transform(self, macros):
-        values = []
-
-        action_index_table = \
-            self._config._action_index_table
-
-        length = len(macros)
-        for dim, _ in self._config.policy_dims:
-            values.append(np.zeros(shape=(length), dtype=np.int32))
-        for i, macro in enumerate(macros):
-            macro_id = action_index_table[macro.id]
-            values[0][i] = macro_id
-
-    def reverse(self, actions):
-        action_indexes = self._config._action_indexes
-        macros = []
-        for action in actions[0]:
-            macro_id = action_indexes[action]
-            macros.append(PROTOSS_MACROS[macro_id]())
-        return macros

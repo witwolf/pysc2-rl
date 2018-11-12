@@ -55,8 +55,7 @@ class BCExperiment(DistributedExperiment):
         parser = argparse.ArgumentParser()
         parser.add_argument("--map_name", type=str, default="MoveToBeacon")
         parser.add_argument("--env_num", type=int, default=32)
-        parser.add_argument("--epoch", type=int, default=1024),
-        parser.add_argument("--batch", type=int, default=256),
+        parser.add_argument("--epoch", type=int, default=8096),
         parser.add_argument("--td_step", type=int, default=16)
         parser.add_argument("--logdir", type=str, default='log/bc')
         parser.add_argument("--v_coef", type=float, default=0.0)
@@ -84,17 +83,15 @@ class BCExperiment(DistributedExperiment):
             env = ParallelEnvs(
                 env_num=local_args.env_num,
                 env_args=env_args) if global_args.train else None
-            test_env = ParallelEnvs(
-                env_num=1, env_args=env_args[:1]
-            ) if global_args.task_index == 0 else None
             obs_adapter = ObservationAdapter(config)
             act_adapter = ActionAdapter(config)
             env_runner = EnvRunner(
-                agent=agent, env=env, test_env=test_env,
+                agent=agent, env=env,
                 train=global_args.train,
-                observation_adapter=obs_adapter, action_adapter=act_adapter,
-                epoch_n=local_args.epoch, batch_n=local_args.batch,
-                step_n=local_args.td_step, test_after_epoch=True,
+                observation_adapter=obs_adapter,
+                action_adapter=act_adapter,
+                epoch_n=local_args.epoch,
+                step_n=local_args.td_step,
                 logdir=local_args.logdir)
             env_runner.run()
 
