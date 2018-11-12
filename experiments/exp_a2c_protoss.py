@@ -18,9 +18,9 @@ from environment.parallel_env import ParallelEnvs
 from environment.macro_env import default_macro_env_maker
 from environment.env_runner import EnvRunner
 from algorithm.a2c import A2C
-from experiments.exp_macro.adapter import ProtossObservationAdaptr as ObservationAdapter
-from experiments.exp_macro.adapter import ProtossMacroAdapter as MacroAdapter
-from experiments.exp_macro.adapter import DefaultActionRewardAdapter as RewardAdapter
+from lib.protoss_adapter import ProtossObservationAdapter as ObservationAdapter
+from lib.protoss_adapter import ProtossMacroAdapter as MacroAdapter
+from lib.protoss_adapter import ProtossRewardAdapter as RewardAdapter
 
 
 class A2CProtossExperiment(DistributedExperiment):

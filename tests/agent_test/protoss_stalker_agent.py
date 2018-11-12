@@ -3,15 +3,17 @@
 #
 
 import sys
+
 sys.path.append('.')
 from pysc2.lib import units
 from pysc2.lib.actions import FUNCTIONS
 from lib.protoss_macro import PROTOSS_MACROS
 from tests.agent_test.protoss_base_agent import ProtossBaseAgent
-from lib.adapter import DefaultActionRewardAdapter as RewardAdapter
-from lib.adapter import DefaultInformationAdapter as InformationAdapter
+from lib.protoss_adapter import ProtossRewardAdapter as RewardAdapter
+from lib.protoss_adapter import ProtossInformationAdapter as InformationAdapter
 from lib.config import Config
 import time
+
 
 class ProtossStalkerAgent(ProtossBaseAgent):
     def __init__(self):
@@ -77,8 +79,8 @@ class ProtossStalkerAgent(ProtossBaseAgent):
                 print(PROTOSS_MACROS.Train_Probe, adapter.transform([TimestepWrapper(obs, True)],
                                                                     [PROTOSS_MACROS.Train_Probe]))
                 self.actions = PROTOSS_MACROS.Train_Probe()
-            elif mineral > 125 and gas > 50 and food > 2\
-                    and len(self.get_all_complete_units_by_type(obs, units.Protoss.Gateway))\
+            elif mineral > 125 and gas > 50 and food > 2 \
+                    and len(self.get_all_complete_units_by_type(obs, units.Protoss.Gateway)) \
                     and len(self.get_all_complete_units_by_type(obs, units.Protoss.CyberneticsCore)) > 0:
                 print(PROTOSS_MACROS.Train_Stalker, adapter.transform([TimestepWrapper(obs, True)],
                                                                       [PROTOSS_MACROS.Train_Stalker]))
@@ -93,19 +95,20 @@ class ProtossStalkerAgent(ProtossBaseAgent):
                                                                         [PROTOSS_MACROS.Build_Pylon]))
                     self.actions = PROTOSS_MACROS.Build_Pylon()
                     self.last_build_frame = self.frame
-                elif self.get_unit_counts(obs, units.Protoss.Probe) > 16 and mineral > 75\
-                    and len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) < 1:
+                elif self.get_unit_counts(obs, units.Protoss.Probe) > 16 and mineral > 75 \
+                        and len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) < 1:
                     print(PROTOSS_MACROS.Build_Assimilator, adapter.transform([TimestepWrapper(obs, True)],
                                                                               [PROTOSS_MACROS.Build_Assimilator]))
                     self.actions = PROTOSS_MACROS.Build_Assimilator()
                     self.last_build_frame = self.frame
                 elif len(self.get_all_complete_units_by_type(obs, units.Protoss.Gateway)) > 0 and mineral > 150:
                     print(PROTOSS_MACROS.Build_CyberneticsCore, adapter.transform([TimestepWrapper(obs, True)],
-                                                                                  [PROTOSS_MACROS.Build_CyberneticsCore]))
+                                                                                  [
+                                                                                      PROTOSS_MACROS.Build_CyberneticsCore]))
                     self.actions = PROTOSS_MACROS.Build_CyberneticsCore()
                     self.last_build_frame = self.frame
-                elif self.get_unit_counts(obs, units.Protoss.Probe) > 16 and mineral > 75\
-                    and len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) < 2:
+                elif self.get_unit_counts(obs, units.Protoss.Probe) > 16 and mineral > 75 \
+                        and len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) < 2:
                     print(PROTOSS_MACROS.Build_Assimilator, adapter.transform([TimestepWrapper(obs, True)],
                                                                               [PROTOSS_MACROS.Build_Assimilator]))
                 elif mineral > 150 and self.get_unit_counts(obs, units.Protoss.Gateway) < 1:
@@ -123,4 +126,3 @@ class ProtossStalkerAgent(ProtossBaseAgent):
             return action(*action_args)
 
         return FUNCTIONS.no_op()
-
