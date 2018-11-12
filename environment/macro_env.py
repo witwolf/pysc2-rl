@@ -2,9 +2,9 @@
 # Created by yingxiang.hong@horizon.ai on 2018/11/1.
 #
 
+
+import logging
 from pysc2.env import sc2_env
-import collections
-import enum
 
 
 def default_macro_env_maker(kwargs):
@@ -63,6 +63,7 @@ class MacroEnv(sc2_env.SC2Env):
                  score_multiplier=None,
                  random_seed=None,
                  disable_fog=False,
+                 debug=False,
                  ensure_available_actions=True):
         super().__init__(
             _only_use_kwargs,
@@ -84,6 +85,7 @@ class MacroEnv(sc2_env.SC2Env):
             disable_fog,
             ensure_available_actions)
 
+        self._debug = debug
         self._last_obs = None
 
     def reset(self):
@@ -111,6 +113,9 @@ class MacroEnv(sc2_env.SC2Env):
             observation: A NumPy array, or a dict, list or tuple of arrays.
             macro_success: A bool, tell whether last macro action succeed
         """
+        if self._debug:
+            logging.warning("Macro: %s", macros[0])
+
         class TimestepWrapper:
             def __init__(self, timestep, success):
                 self._timestep = timestep

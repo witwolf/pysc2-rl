@@ -613,6 +613,9 @@ class MacroCall(object):
     def __len__(self):
         return len(self.func)
 
+    def __str__(self):
+        return str(self.id)
+
 
 class ProtossMacros(object):
     def __init__(self, macros):

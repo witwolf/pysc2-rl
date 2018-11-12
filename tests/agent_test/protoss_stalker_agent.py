@@ -10,8 +10,7 @@ from lib.protoss_macro import PROTOSS_MACROS
 from tests.agent_test.protoss_base_agent import ProtossBaseAgent
 from lib.adapter import DefaultActionRewardAdapter as RewardAdapter
 from lib.config import Config
-import enum
-import collections
+
 
 class ProtossStalkerAgent(ProtossBaseAgent):
 
