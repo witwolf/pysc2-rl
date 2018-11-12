@@ -1,3 +1,9 @@
 __pycache__
 .idea
+log
+logs
+checkpoint
+*.pbtxt
+*.index
+*.meta
 
