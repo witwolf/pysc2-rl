@@ -276,21 +276,21 @@ class U(object):
         # check requirements
         for building in Gateway.requirement_types:
             if len([unit for unit in obs.observation.raw_units
-                    if unit.unit_type == building and       # correct type
+                    if unit.unit_type == building and  # correct type
                        int(unit.build_progress) == 100 and  # completed buliding
-                       unit.alliance == 1]) == 0:           # self building
+                       unit.alliance == 1]) == 0:  # self building
                 return False
         return obs.observation.player.minerals >= Gateway.minerals
 
     @staticmethod
     def _can_build_assimilator(obs):
         nexus_num = len([unit for unit in obs.observation.raw_units
-                         if unit.unit_type == units.Protoss.Nexus and   # correct type
-                         int(unit.build_progress) == 100 and            # completed buliding
-                            unit.alliance == 1])                        # self building
+                         if unit.unit_type == units.Protoss.Nexus and  # correct type
+                         int(unit.build_progress) == 100 and  # completed buliding
+                         unit.alliance == 1])  # self building
         assimilator_num = len([unit for unit in obs.observation.raw_units
-                               if unit.unit_type == units.Protoss.Assimilator and   # correct type
-                               unit.alliance == 1])                                 # self building
+                               if unit.unit_type == units.Protoss.Assimilator and  # correct type
+                               unit.alliance == 1])  # self building
         return assimilator_num < nexus_num * 2 and \
                obs.observation.player.minerals >= Assimilator.minerals  # enough minerals
 
@@ -299,9 +299,9 @@ class U(object):
         # check requirements
         for building in CyberneticsCore.requirement_types:
             if len([unit for unit in obs.observation.raw_units
-                    if unit.unit_type == building and       # correct type
+                    if unit.unit_type == building and  # correct type
                        int(unit.build_progress) == 100 and  # completed buliding
-                       unit.alliance == 1]) == 0:           # self building
+                       unit.alliance == 1]) == 0:  # self building
                 return False
         return obs.observation.player.minerals >= CyberneticsCore.minerals
 
@@ -309,9 +309,9 @@ class U(object):
     def _can_training_probe(obs):
         # check build unit
         if len([unit for unit in obs.observation.raw_units
-                if unit.unit_type == Probe.build_type and   # correct type
-                   int(unit.build_progress) == 100 and      # completed buliding
-                   unit.alliance == 1]) == 0:               # self building
+                if unit.unit_type == Probe.build_type and  # correct type
+                   int(unit.build_progress) == 100 and  # completed buliding
+                   unit.alliance == 1]) == 0:  # self building
             return False
         return obs.observation.player.mineral >= Probe.minerals and \
                obs.observation.player.food_cap - obs.observation.player.food_used >= Probe.food
@@ -320,9 +320,9 @@ class U(object):
     def _can_train_zealot(obs):
         # check build unit
         if len([unit for unit in obs.observation.raw_units
-                if unit.unit_type == Zealot.build_type and   # correct type
-                   int(unit.build_progress) == 100 and      # completed buliding
-                   unit.alliance == 1]) == 0:               # self building
+                if unit.unit_type == Zealot.build_type and  # correct type
+                   int(unit.build_progress) == 100 and  # completed buliding
+                   unit.alliance == 1]) == 0:  # self building
             return False
         return obs.observation.player.mineral >= Zealot.minerals and \
                obs.observation.player.food_cap - obs.observation.player.food_used >= Zealot.food
@@ -331,9 +331,9 @@ class U(object):
     def _can_train_stalker(obs):
         # check build unit
         if len([unit for unit in obs.observation.raw_units
-                if unit.unit_type == Stalker.build_type and   # correct type
-                   int(unit.build_progress) == 100 and      # completed buliding
-                   unit.alliance == 1]) == 0:               # self building
+                if unit.unit_type == Stalker.build_type and  # correct type
+                   int(unit.build_progress) == 100 and  # completed buliding
+                   unit.alliance == 1]) == 0:  # self building
             return False
         return obs.observation.player.mineral >= Stalker.minerals and \
                obs.observation.player.vespene >= Stalker.gas and \
