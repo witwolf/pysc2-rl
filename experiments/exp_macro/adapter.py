@@ -5,9 +5,10 @@
 from pysc2.lib import units
 import numpy as np
 from lib.adapter import Adapter
+from lib.adapter import DefaultObservationAdapter
 from lib.protoss_macro import PROTOSS_MACROS
-from lib.protoss_unit import _PROTOSS_UNITS_MACROS
-from lib.protoss_unit import _PROTOSS_BUILDINGS_MACROS
+from lib.protoss_macro import _PROTOSS_UNITS_MACROS
+from lib.protoss_macro import _PROTOSS_BUILDINGS_MACROS
 
 
 class DefaultActionRewardAdapter(Adapter):
@@ -150,7 +151,19 @@ class DefaultActionRewardAdapter(Adapter):
         raise NotImplementedError()
 
 
-class DefaultProtossMacroAdapter(Adapter):
+class ProtossObservationAdaptr(DefaultObservationAdapter):
+
+    def _available_actions(self, timestep):
+        action_indexes = self._config._action_indexes
+        feature = np.zeros(len(PROTOSS_MACROS))
+        for i in range(len(PROTOSS_MACROS)):
+            cond = PROTOSS_MACROS[i].cond
+            if cond(timestep):
+                feature[i] = 1
+        return feature[action_indexes]
+
+
+class ProtossMacroAdapter(Adapter):
     def __init__(self, config):
         self._config = config
 

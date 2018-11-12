@@ -120,8 +120,6 @@ class MacroEnv(sc2_env.SC2Env):
                 self.macro_success = success
 
             def __getattr__(self, item):
-                if item == 'macro_success':
-                    return self.macro_success
                 return getattr(self._timestep, item)
 
         macro = macros[0]

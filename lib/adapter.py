@@ -32,7 +32,7 @@ class DefaultObservationAdapter(Adapter):
             self._config._minimap_feature_indexes
         nonspatial_features = \
             self._config._non_spatial_features
-        action_indexes = self._config._action_indexes
+
         screens, minimaps = [], []
         nonspatials = [[] for _ in range(len(nonspatial_features))]
         for timestep in timesteps:
@@ -50,9 +50,7 @@ class DefaultObservationAdapter(Adapter):
             for i, field in enumerate(nonspatial_features):
                 feature = observation[field]
                 if field == 'available_actions':
-                    feature = np.zeros(len(FUNCTIONS))
-                    feature[observation[field]] = 1
-                    feature = feature[action_indexes]
+                    feature = self._available_actions(timestep)
                 nonspatials[i].append(feature)
 
         screen = np.array(screens).transpose((0, 2, 3, 1))
@@ -60,6 +58,13 @@ class DefaultObservationAdapter(Adapter):
         nonspatial = [np.array(e) for e in nonspatials]
         states = [screen, minimap] + nonspatial
         return (states, np.array(rewards), np.array(dones), timesteps)
+
+    def _available_actions(self, timestep):
+        action_indexes = self._config._action_indexes
+        observation = timestep.observation
+        feature = np.zeros(len(FUNCTIONS))
+        feature[observation['available_actions']] = 1
+        return feature[action_indexes]
 
     def reverse(self, *args, **kwargs):
         raise NotImplementedError()

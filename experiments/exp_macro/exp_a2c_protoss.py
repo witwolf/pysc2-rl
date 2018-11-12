@@ -14,12 +14,12 @@ from experiments.experiment import Experiment
 from experiments.exp_bc import network_creator
 from lib.config import Config
 from lib.protoss_macro import PROTOSS_MACROS
-from lib.adapter import DefaultObservationAdapter as ObservationAdapter
 from environment.parallel_env import ParallelEnvs
 from environment.macro_env import default_macro_env_maker
 from environment.env_runner import EnvRunner
 from algorithm.a2c import A2C
-from experiments.exp_macro.adapter import DefaultProtossMacroAdapter as MacroAdapter
+from experiments.exp_macro.adapter import ProtossObservationAdaptr as ObservationAdapter
+from experiments.exp_macro.adapter import ProtossMacroAdapter as MacroAdapter
 from experiments.exp_macro.adapter import DefaultActionRewardAdapter as RewardAdapter
 
 
@@ -44,7 +44,9 @@ class A2CProtossExperiment(DistributedExperiment):
         local_args = self._local_args
         config = Config(
             available_actions=PROTOSS_MACROS._macro_list,
-            non_spatial_features=['player'])
+            non_spatial_feature_dims=dict(
+                player=(11,),
+                available_actions=(len(PROTOSS_MACROS),)))
         env_args = [{'map_name': "Simple64"}
                     for _ in range(local_args.env_num)]
         env_args[0]['visualize'] = local_args.visualize

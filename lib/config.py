@@ -6,7 +6,7 @@
 from pysc2.lib import features
 from pysc2.lib.actions import FUNCTIONS, TYPES
 
-NON_SPATIAL_FEATURES = dict(
+NON_SPATIAL_FEATURE_DIMS = dict(
     player=(11,),
     game_loop=(1,),
     score_cumulative=(13,),
@@ -32,6 +32,7 @@ class Config:
             screen_features=features.SCREEN_FEATURES._fields,
             minimap_features=features.MINIMAP_FEATURES._fields,
             non_spatial_features=DEFAULT_NON_SPATIAL_FEATURES,
+            non_spatial_feature_dims=NON_SPATIAL_FEATURE_DIMS,
             available_actions=FUNCTIONS._func_list):
         assert screen_size == minimap_size
         self._size = screen_size
@@ -52,8 +53,9 @@ class Config:
 
         # non spatial feature
         self._non_spatial_features = non_spatial_features
+        self._non_spatial_feature_dims = non_spatial_feature_dims
         self._non_spatial_dims = [
-            NON_SPATIAL_FEATURES[f] for f in self._non_spatial_features]
+            self._non_spatial_feature_dims[f] for f in self._non_spatial_features]
         self._non_spatial_index_table = self._index_table(non_spatial_features)
 
         # available actions

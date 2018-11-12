@@ -1,6 +1,4 @@
 from pysc2.lib import units
-from lib.protoss_macro import PROTOSS_MACROS
-
 
 class Unit:
     def __init__(self, build_type,
@@ -158,19 +156,6 @@ Mothership = Unit(
     requirement_types=[units.Protoss.FleetBeacon],
     minerals=400, gas=400, time=114, food=8)
 
-_PROTOSS_UNITS = [
-    Zealot, Stalker, Sentry, Adept,
-    HighTemplar, DarkTemplar, Archon, Observer,
-    WarpPrism, Immortal,
-    Colossus, Disruptor, Phoenix, VoidRay, Oracle,
-    Tempest, Carrier, Interceptor, Mothership]
-
-_PROTOSS_UNITS_MACROS = {
-    PROTOSS_MACROS.Train_Probe.id: Probe,
-    PROTOSS_MACROS.Train_Zealot.id: Zealot,
-    PROTOSS_MACROS.Train_Stalker.id: Stalker
-}
-
 # protoss buildings
 Nexus = Building(
     build_type=units.Protoss.Probe,
@@ -275,17 +260,4 @@ StasisTrap = Building(
     requirement_types=[],
     minerals=0, gas=0, time=4)
 
-_PROTOSS_BUILDINGS = [
-    Nexus, Pylon, Assimilator, Gateway,
-    WarpGate, Forge, CyberneticsCore,
-    PhotonCannon, ShieldBattery,
-    RoboticsFacility, Stargate, TwilightCouncil,
-    RoboticsBay, FleetBeacon, TemplarArchive, DarkShrine,
-    StasisTrap]
 
-_PROTOSS_BUILDINGS_MACROS = {
-    PROTOSS_MACROS.Build_Pylon.id: Pylon,
-    PROTOSS_MACROS.Build_Gateway.id: Gateway,
-    PROTOSS_MACROS.Build_Assimilator.id: Assimilator,
-    PROTOSS_MACROS.Build_CyberneticsCore.id: CyberneticsCore
-}
