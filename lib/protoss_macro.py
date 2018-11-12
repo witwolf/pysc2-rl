@@ -761,11 +761,34 @@ _ProtossMacros = enum.IntEnum(
 PROTOSS_MACROS = ProtossMacros(_PROTOSS_MACROS)
 
 _PROTOSS_UNITS = [
-    Zealot, Stalker, Sentry, Adept,
+    Probe, Zealot, Stalker, Sentry, Adept,
     HighTemplar, DarkTemplar, Archon, Observer,
     WarpPrism, Immortal,
     Colossus, Disruptor, Phoenix, VoidRay, Oracle,
     Tempest, Carrier, Interceptor, Mothership]
+
+_PROTOSS_UNITS_DICT = {
+    units.Protoss.Probe: Probe,
+    units.Protoss.Zealot: Zealot,
+    units.Protoss.Stalker: Stalker,
+    units.Protoss.Sentry: Sentry,
+    units.Protoss.Adept: Adept,
+    units.Protoss.HighTemplar: HighTemplar,
+    units.Protoss.DarkTemplar: DarkTemplar,
+    units.Protoss.Archon: Archon,
+    units.Protoss.Observer: Observer,
+    units.Protoss.WarpPrism: WarpPrism,
+    units.Protoss.Immortal: Immortal,
+    units.Protoss.Colossus: Colossus,
+    units.Protoss.Disruptor: Disruptor,
+    units.Protoss.Phoenix: Phoenix,
+    units.Protoss.VoidRay: VoidRay,
+    units.Protoss.Oracle: Oracle,
+    units.Protoss.Tempest: Tempest,
+    units.Protoss.Carrier: Carrier,
+    units.Protoss.Interceptor: Interceptor,
+    units.Protoss.Mothership: Mothership
+}
 
 _PROTOSS_UNITS_MACROS = {
     PROTOSS_MACROS.Train_Probe.id: Probe,
@@ -786,6 +809,26 @@ _PROTOSS_BUILDINGS = [
     RoboticsFacility, Stargate, TwilightCouncil,
     RoboticsBay, FleetBeacon, TemplarArchive, DarkShrine,
     StasisTrap]
+
+_PROTOSS_BUILDINGS_DICT = {
+    units.Protoss.Nexus: Nexus,
+    units.Protoss.Pylon: Pylon,
+    units.Protoss.Assimilator: Assimilator,
+    units.Protoss.Gateway: Gateway,
+    units.Protoss.WarpGate: WarpGate,
+    units.Protoss.Forge: Forge,
+    units.Protoss.CyberneticsCore: CyberneticsCore,
+    units.Protoss.PhotonCannon: PhotonCannon,
+    units.Protoss.ShieldBattery: ShieldBattery,
+    units.Protoss.RoboticsFacility: RoboticsFacility,
+    units.Protoss.Stargate: Stargate,
+    units.Protoss.TwilightCouncil: TwilightCouncil,
+    units.Protoss.RoboticsBay: RoboticsBay,
+    units.Protoss.FleetBeacon: FleetBeacon,
+    units.Protoss.TemplarArchive: TemplarArchive,
+    units.Protoss.DarkShrine: DarkShrine,
+    units.Protoss.StasisTrap: StasisTrap
+}
 
 _PROTOSS_BUILDINGS_MACROS = {
     PROTOSS_MACROS.Build_Pylon.id: Pylon,
