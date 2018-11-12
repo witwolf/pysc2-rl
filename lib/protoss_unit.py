@@ -1,5 +1,6 @@
 from pysc2.lib import units
 from lib.protoss_macro import PROTOSS_MACROS
+from pysc2.lib.actions import FUNCTIONS
 
 
 class Unit:
@@ -34,21 +35,21 @@ Probe = Unit(
     build_type=units.Protoss.Nexus,
     unit_type=units.Protoss.Probe,
     requirement_types=[], minerals=50, gas=0,
-    time=12, food=1)
+    time=68, food=1)
 
 Zealot = Unit(
     build_type=units.Protoss.Gateway,
     unit_type=units.Protoss.Zealot,
     requirement_types=[],
     minerals=100,
-    gas=0, time=27, food=2)
+    gas=0, time=152, food=2)
 
 Stalker = Unit(
     build_type=units.Protoss.Gateway,
     unit_type=units.Protoss.Stalker,
     requirement_types=[units.Protoss.CyberneticsCore],
     minerals=125, gas=50,
-    time=30, food=2)
+    time=168, food=2)
 
 Sentry = Unit(
     build_type=units.Protoss.Gateway,
@@ -171,6 +172,12 @@ _PROTOSS_UNITS_MACROS = {
     PROTOSS_MACROS.Train_Stalker.id: Stalker
 }
 
+_PROTOSS_UNITS_FUNCTIONS = {
+    FUNCTIONS.Train_Probe_quick.id: Probe,
+    FUNCTIONS.Train_Zealot_quick.id: Zealot,
+    FUNCTIONS.Train_Stalker_quick.id: Stalker
+}
+
 # protoss buildings
 Nexus = Building(
     build_type=units.Protoss.Probe,
@@ -182,19 +189,19 @@ Pylon = Building(
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.Pylon,
     requirement_types=[], minerals=100,
-    gas=0, time=18)
+    gas=0, time=100)
 
 Assimilator = Building(
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.Assimilator,
     requirement_types=[],
-    minerals=75, gas=0, time=21)
+    minerals=75, gas=0, time=120)
 
 Gateway = Building(
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.Gateway,
     requirement_types=[units.Protoss.Nexus, units.Protoss.Pylon],
-    minerals=150, gas=0, time=46)
+    minerals=150, gas=0, time=260)
 
 WarpGate = Building(
     build_type=units.Protoss.Probe,
@@ -212,7 +219,7 @@ CyberneticsCore = Building(
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.CyberneticsCore,
     requirement_types=[units.Protoss.Gateway],
-    minerals=150, gas=0, time=36)
+    minerals=150, gas=0, time=200)
 
 PhotonCannon = Building(
     build_type=units.Protoss.Probe,
@@ -288,4 +295,11 @@ _PROTOSS_BUILDINGS_MACROS = {
     PROTOSS_MACROS.Build_Gateway.id: Gateway,
     PROTOSS_MACROS.Build_Assimilator.id: Assimilator,
     PROTOSS_MACROS.Build_CyberneticsCore.id: CyberneticsCore
+}
+
+_PROTOSS_BUILDINGS_FUNCTIONS = {
+    FUNCTIONS.Build_Pylon_screen.id: Pylon,
+    FUNCTIONS.Build_Gateway_screen.id: Gateway,
+    FUNCTIONS.Build_Assimilator_screen.id: Assimilator,
+    FUNCTIONS.Build_CyberneticsCore_screen.id: CyberneticsCore
 }
