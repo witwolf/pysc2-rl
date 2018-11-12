@@ -268,76 +268,70 @@ class U(object):
         return _x, _y
 
     @staticmethod
+    def _all_units(obs, unit_type):
+        raw_units = obs.observation.raw_units
+        return [unit for unit in raw_units
+                if unit.unit_type == unit_type and
+                int(unit.build_progress) == 100 and
+                unit.alliance == 1]
+
+    @staticmethod
+    def _resources(obs):
+        minerals = obs.observation.player.minerals
+        vespene = obs.observation.player.vespene
+        food_cap = obs.observation.player.food_cap
+        food_used = obs.observation.player.food_used
+        food = food_cap - food_used
+        return minerals, vespene, food
+
+    @staticmethod
     def _can_build_pylon(obs):
         return obs.observation.player.minerals >= Pylon.minerals
 
     @staticmethod
     def _can_build_gateway(obs):
-        # check requirements
-        for building in Gateway.requirement_types:
-            if len([unit for unit in obs.observation.raw_units
-                    if unit.unit_type == building and  # correct type
-                       int(unit.build_progress) == 100 and  # completed buliding
-                       unit.alliance == 1]) == 0:  # self building
+        for building_type in Gateway.requirement_types:
+            if len(U._all_units(obs, building_type)) == 0:
                 return False
         return obs.observation.player.minerals >= Gateway.minerals
 
     @staticmethod
     def _can_build_assimilator(obs):
-        nexus_num = len([unit for unit in obs.observation.raw_units
-                         if unit.unit_type == units.Protoss.Nexus and  # correct type
-                         int(unit.build_progress) == 100 and  # completed buliding
-                         unit.alliance == 1])  # self building
-        assimilator_num = len([unit for unit in obs.observation.raw_units
-                               if unit.unit_type == units.Protoss.Assimilator and  # correct type
-                               unit.alliance == 1])  # self building
-        return assimilator_num < nexus_num * 2 and \
-               obs.observation.player.minerals >= Assimilator.minerals  # enough minerals
+        nexus_num = len(U._all_units(obs, units.Protoss.Nexus))
+        assimilator_num = len(U._all_units(obs, units.Protoss.Assimilator))
+        return (assimilator_num < nexus_num * 2) and (
+                obs.observation.player.minerals >= Assimilator.minerals)
 
     @staticmethod
     def _can_build_cyberneticscore(obs):
-        # check requirements
         for building in CyberneticsCore.requirement_types:
-            if len([unit for unit in obs.observation.raw_units
-                    if unit.unit_type == building and  # correct type
-                       int(unit.build_progress) == 100 and  # completed buliding
-                       unit.alliance == 1]) == 0:  # self building
+            if len(U._all_units(obs, building)) == 0:
                 return False
         return obs.observation.player.minerals >= CyberneticsCore.minerals
 
     @staticmethod
     def _can_training_probe(obs):
-        # check build unit
-        if len([unit for unit in obs.observation.raw_units
-                if unit.unit_type == Probe.build_type and  # correct type
-                   int(unit.build_progress) == 100 and  # completed buliding
-                   unit.alliance == 1]) == 0:  # self building
+        if len(U._all_units(obs, Probe.build_type)) == 0:
             return False
-        return obs.observation.player.mineral >= Probe.minerals and \
-               obs.observation.player.food_cap - obs.observation.player.food_used >= Probe.food
+        minerals, vespene, food = U._resources(obs)
+        return minerals >= Probe.minerals and food >= Probe.food
 
     @staticmethod
     def _can_train_zealot(obs):
-        # check build unit
-        if len([unit for unit in obs.observation.raw_units
-                if unit.unit_type == Zealot.build_type and  # correct type
-                   int(unit.build_progress) == 100 and  # completed buliding
-                   unit.alliance == 1]) == 0:  # self building
+        if len(U._all_units(obs, Zealot.build_type)) == 0:
             return False
-        return obs.observation.player.mineral >= Zealot.minerals and \
-               obs.observation.player.food_cap - obs.observation.player.food_used >= Zealot.food
+        minerals, _, food = U._resources(obs)
+        return minerals >= Zealot.minerals and food >= Zealot.food
 
     @staticmethod
     def _can_train_stalker(obs):
         # check build unit
-        if len([unit for unit in obs.observation.raw_units
-                if unit.unit_type == Stalker.build_type and  # correct type
-                   int(unit.build_progress) == 100 and  # completed buliding
-                   unit.alliance == 1]) == 0:  # self building
+        if len(U._all_units(obs, Stalker.build_type)) == 0:
             return False
-        return obs.observation.player.mineral >= Stalker.minerals and \
-               obs.observation.player.vespene >= Stalker.gas and \
-               obs.observation.player.food_cap - obs.observation.player.food_used >= Stalker.food
+        minerals, vespene, food = U._resources(obs)
+        return minerals >= Stalker.minerals and \
+               vespene >= Stalker.gas and \
+               food >= Stalker.food
 
     @staticmethod
     def _can_select_army(obs):
