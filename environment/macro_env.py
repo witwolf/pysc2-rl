@@ -113,8 +113,6 @@ class MacroEnv(sc2_env.SC2Env):
             observation: A NumPy array, or a dict, list or tuple of arrays.
             macro_success: A bool, tell whether last macro action succeed
         """
-        if self._debug:
-            logging.warning("Macro: %s", macros[0])
 
         class TimestepWrapper:
             def __init__(self, timestep, success):
@@ -138,6 +136,10 @@ class MacroEnv(sc2_env.SC2Env):
             # action execute failed
             last_actions = obs.observation.last_actions
             if len(last_actions) == 0 or last_actions[0] != act_func.id:
+                if self._debug:
+                    logging.warning("Macro: %s execute failed", macros[0])
                 return [TimestepWrapper(self._last_obs[0], False)]
         # macro success
+        if self._debug:
+            logging.warning("Macro: %s execute success", macros[0])
         return [TimestepWrapper(self._last_obs[0], True)]
