@@ -87,8 +87,13 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
             tf.summary.scalar('a2c/value_loss', value_loss),
             tf.summary.scalar('a2c/loss', loss)])
         step = tf.train.get_or_create_global_step()
-        train_op = tf.train.AdagradOptimizer(self._lr).minimize(
-            loss=loss, global_step=step)
+        opt = tf.train.RMSPropOptimizer(
+            learning_rate=self._lr,
+            decay=0.99, epsilon=1e-5)
+        train_op = layers.optimize_loss(
+            loss=loss, optimizer=opt,
+            learning_rate=None, global_step=step,
+            clip_gradients=1.0)
         self._train_op, self._step, self._summary = (
             train_op, step, summary)
         return None

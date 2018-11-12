@@ -4,8 +4,10 @@
 
 import logging
 import argparse
+import os
 import tensorflow as tf
 import ast
+import sys
 
 
 class Experiment(object):
@@ -45,8 +47,11 @@ class Experiment(object):
         parser.add_argument("--logdir", type=str, default='.')
         parser.add_argument("--save_step", type=int, default=4096)
         parser.add_argument("--restore", type=ast.literal_eval, default=False)
+        parser.add_argument("--loglevel", type=int, default=logging.INFO)
 
         args, _ = parser.parse_known_args()
+        logging_config = {'stream': sys.stdout, 'level': args.loglevel}
+        logging.basicConfig(**logging_config)
         if args.job_name == 'ps':
             Experiment.start_ps(args)
         if args.operation == "list":
