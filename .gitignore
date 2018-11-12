@@ -6,4 +6,4 @@ checkpoint
 *.pbtxt
 *.index
 *.meta
-
+*.swp

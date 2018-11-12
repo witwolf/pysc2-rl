@@ -1,5 +1,15 @@
 from pysc2.lib import units
+import enum
 
+class UnitSize(enum.IntEnum):
+    '''units' radius'''
+    Nexus=10
+    Pylon=4
+    Assimilator=6
+    Gateway=7
+    CyberneticsCore=7
+    PylonPower=23
+    Stalker=2
 
 class Unit:
     def __init__(self, id,

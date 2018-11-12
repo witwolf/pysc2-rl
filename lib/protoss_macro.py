@@ -1,18 +1,29 @@
 # Copyright (c) 2018 horizon robotics. All rights reserved.
 
-
+import sys,os
+import math
 import enum
 import collections
 import numbers
 import numpy as np
 import logging
+import random
 
 from numpy.random import randint
 from pysc2.lib import features
-
 from lib.protoss_unit import *
 from pysc2.lib.actions import FUNCTIONS
+from pysc2.lib import actions, features, units
 
+class UnitSize(enum.IntEnum):
+    '''units' radius'''
+    Nexus=10
+    Pylon=4
+    Assimilator=6
+    Gateway=7
+    CyberneticsCore=7
+    PylonPower=23
+    Stalker=2
 
 class U(object):
     @staticmethod
@@ -104,18 +115,90 @@ class U(object):
         return 1, 1
 
     @staticmethod
+    def getDistance(pot1,pot2):
+        pot1=np.array(pot1);pot2=np.array(pot2)
+        if len(pot1)==1 and len(pot2)==1:
+            tmp=np.linalg.norm(pot1-pot2)
+        elif (len(pot1)==1 and len(pot2)>1) or (len(pot1)>1 and len(pot2)==1):
+            tmp=np.sqrt(np.sum(np.asarray(pot1 - pot2)**2, axis=1))
+        return tmp
+
+    ''' will be completed'''
+    @staticmethod
+    def near_away(pot,n_a_pot):
+        nearPot=n_a_pot[0];awayPot=n_a_pot[1]
+        p_n=U.getDistance(pot,nearPot)
+        p_a=U.getDistance(pot,awayPot)
+        n_a=U.getDistance(nearPot,awayPot)
+        return True
+
+    @staticmethod
+    def pylon_location_judge(obs,pot):
+        #_c_l:centerLoaction,_m_l:mineralsLocation,_g_l:gasLocation,_py_l:pylonLocation
+        _c_L=U.locations_by_type(obs, units.Protoss.Nexus)
+        _m_L=U.locations_by_type(obs, units.Neutral.MineralField)
+        _g_L=U.locations_by_type(obs, units.Neutral.VespeneGeyser)
+        _py_L=[list(pot)]
+        if len(_c_L)==0 or len(_g_L)==0 or len(_m_L)==0:
+            return True
+        if U.getDistance(_c_L,_py_L)>(UnitSize.PylonPower.value-UnitSize.Nexus.value) \
+                and U.getDistance(_c_L,_py_L)<U.getDistance(_g_L,_py_L).min() \
+                and U.getDistance(_c_L,_py_L)<U.getDistance(_m_L,_py_L).min() \
+                and U.getDistance(_c_L,_py_L)<(UnitSize.PylonPower.value+UnitSize.Nexus.value):
+                    return True
+        else:
+            return False
+
+    @staticmethod
+    def gateway_location_judge(obs,pot):
+        #_g_l:gatewayLoaction,_g_l:gasLocation,_py_l:pylonLocation
+        _c_L=U.locations_by_type(obs, units.Protoss.Nexus)
+        _gas_L=U.locations_by_type(obs, units.Neutral.VespeneGeyser)
+        _m_L=U.locations_by_type(obs, units.Neutral.MineralField)
+        _gate_L=[list(opt)]
+        pass
+
+    @staticmethod
     def new_pylon_location(obs):
         screen_w, screen_h = U.screen_size(obs)
+        _c_L=U.locations_by_type(obs, units.Protoss.Nexus)
+        wholeDis=UnitSize.PylonPower.value+UnitSize.Nexus.value
+        if len(_c_L)==1:
+            x_Low= 0 if _c_L[0][0]-wholeDis<=0 else _c_L[0][0]-wholeDis
+            y_Low= 0 if _c_L[0][1]-wholeDis<=0 else _c_L[0][1]-wholeDis
+            x_High= screen_w if _c_L[0][0]+wholeDis>=screen_w else _c_L[0][0]+wholeDis
+            y_High= screen_h if _c_L[0][1]+wholeDis>=screen_h else _c_L[0][1]+wholeDis
+        else:
+            x_Low=y_Low=0;x_High=screen_w;y_High=screen_h
+        '''
         x = randint(0, screen_w)
         y = randint(0, screen_h)
         return x, y
+        '''
+        while True:
+            x = randint(x_Low, x_High)
+            y = randint(y_Low, y_High)
+            if U.pylon_location_judge(obs,(x,y)):
+                return x, y
 
+    ''' will be completed'''
     @staticmethod
     def new_gateway_location(obs):
         screen_w, screen_h = U.screen_size(obs)
+        '''
+        _POWER_TYPE=features.SCREEN_FEATURES.power.index
+        power_feature = obs.observation['feature_screen'][_UNIT_TYPE]
+        ys,xs=(power_feature == 1).nonzero();powerMap=list(zip(list(xs),list(ys)))
+        '''
         x = randint(0, screen_w)
         y = randint(0, screen_h)
         return x, y
+        '''
+        while True:
+            x,y=powerMap[randint(0,len(powerMap))]
+            if U.gateway_location_judge(obs,(x,y)):
+                return x, y
+        '''
 
     @staticmethod
     def new_assimilator_location(obs):

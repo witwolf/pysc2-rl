@@ -3,9 +3,10 @@
 #
 
 import sys
-
+import math
+import numpy as np
 sys.path.append('.')
-from pysc2.lib import units
+from pysc2.lib import actions, features, units
 from pysc2.lib.actions import FUNCTIONS
 from lib.protoss_macro import PROTOSS_MACROS
 from tests.agent_test.protoss_base_agent import ProtossBaseAgent
@@ -14,6 +15,16 @@ from lib.protoss_adapter import ProtossInformationAdapter as InformationAdapter
 from lib.config import Config
 import time
 
+_PRO=units.Protoss
+_UNIT_TYPE = features.SCREEN_FEATURES.unit_type.index
+_POWER_TYPE=features.SCREEN_FEATURES.power.index
+_WORKER=_PRO.Probe
+_CENTER=_PRO.Nexus
+_GATE=_PRO.Gateway
+_PYLON=_PRO.Pylon
+_POWER="PylonPower"
+_ASSIM=_PRO.Assimilator
+_TMP_BUILDS=[_CENTER,_GATE,_ASSIM,_PYLON]
 
 class ProtossStalkerAgent(ProtossBaseAgent):
     def __init__(self):
@@ -22,6 +33,28 @@ class ProtossStalkerAgent(ProtossBaseAgent):
         self.time = time.time()
         self.probe_count = 12
         self.probe_frame = 0
+        self.allunits={}
+        self._ALL_UNIT=[i for i in _PRO]
+        self._ALL_UNIT.append(_POWER)
+    
+    def getTypespots(self,obs,unitType):
+        unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
+        power_type=obs.observation['feature_screen'][_POWER_TYPE]
+        if unitType!=_POWER:
+            ys,xs=(unit_type == unitType).nonzero()
+        else:
+            ys,xs=(power_type == 1).nonzero()
+        if len(list(ys))>0 and (unitType not in self.allunits.keys()):
+            self.allunits[unitType]=[(list(xs),list(ys)),self._getPoint((xs,ys))]
+            buildTmp=self.allunits[unitType]
+            distances=np.array([np.linalg.norm(np.array(i)-np.array(buildTmp[1])) 
+                for i in zip(list(xs),list(ys))])
+            self.allunits[unitType].append(math.ceil(distances.max()))
+        return list(ys),list(xs)
+    def _getPoint(self,points):
+        x=(points[0].max()+points[0].min())/2
+        y=(points[1].max()+points[1].min())/2
+        return (x,y)
 
     def step(self, obs):
 
@@ -38,7 +71,11 @@ class ProtossStalkerAgent(ProtossBaseAgent):
         super(ProtossStalkerAgent, self).step(obs)
 
         self.information.update([obs])
-        print(self.information.transform([obs]))
+        #print(self.information.transform([obs]))
+
+        for tmpUnit in self._ALL_UNIT:
+            self.getTypespots(obs,tmpUnit)
+
         # print(obs.observation.last_actions)
         # pylon_progress = [unit.build_progress for unit in obs.observation.raw_units
         #                   if unit.unit_type == units.Protoss.Stalker]
@@ -55,6 +92,9 @@ class ProtossStalkerAgent(ProtossBaseAgent):
             return FUNCTIONS.no_op()
         # find macro to execute
         if len(self.actions) == 0:
+            if len(self.allunits)>0:
+                for tmp in self.allunits.keys():
+                    print(tmp," Center:",self.allunits[tmp][1]," Radius:",self.allunits[tmp][2])
             config = Config()
             adapter = RewardAdapter(config, 1)
 
@@ -70,10 +110,15 @@ class ProtossStalkerAgent(ProtossBaseAgent):
             # if enough food, train probe
             mineral = obs.observation.player.minerals
             gas = obs.observation.player.vespene
+            armyCount=obs.observation.player.army_count
             food = self.future_food(obs) - obs.observation.player.food_used
             idle_workers = obs.observation.player.idle_worker_count
             # if can build a building
-            if idle_workers > 0:
+            if armyCount>5:
+                self.actions=PROTOSS_MACROS.Attack_Enemy()
+                print(PROTOSS_MACROS.Attack_Enemy, adapter.transform([TimestepWrapper(obs, True)],
+                                                                    [PROTOSS_MACROS.Attack_Enemy]))
+            elif idle_workers > 0:
                 self.actions = PROTOSS_MACROS.Callback_Idle_Workers()
             elif mineral > 50 and food > 1 and self.get_unit_counts(obs, units.Protoss.Probe) < 16:
                 print(PROTOSS_MACROS.Train_Probe, adapter.transform([TimestepWrapper(obs, True)],
