@@ -15,6 +15,10 @@ from lib.protoss_unit import *
 from pysc2.lib.actions import FUNCTIONS
 from pysc2.lib import actions, features, units
 
+_PRO=units.Protoss
+_UNIT_TYPE = features.SCREEN_FEATURES.unit_type.index
+_POWER_TYPE = features.SCREEN_FEATURES.power.index
+
 class UnitSize(enum.IntEnum):
     '''units' radius'''
     Nexus=10
@@ -150,13 +154,42 @@ class U(object):
             return False
 
     @staticmethod
+    def isConquered(obs,pot,unitSize_type):
+        screen_w, screen_h = U.screen_size(obs)
+        unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
+        typeMap=unit_type.nonzero()
+        (ys,xs)=typeMap;potMap=list(zip(xs,ys))
+        x_Low=0 if pot[0]-unitSize_type.value<=0 else pot[0]-unitSize_type.value
+        x_High=screen_w if pot[0]+unitSize_type.value>=screen_w else pot[0]+unitSize_type.value
+        y_Low=0 if pot[1]-unitSize_type.value<=0 else pot[1]-unitSize_type.value
+        y_High=screen_h if pot[1]+unitSize_type.value>=screen_h else pot[1]+unitSize_type.value
+        if (x_High-x_Low)*(y_High-y_Low)>len(potMap):
+            dists=U.getDistance([list(pot)],potMap)
+            if dists.min()>unitSize_type.value:
+                return False
+            else:
+                return True
+        else:
+            for i in range(x_Low,x_High+1):
+                for j in range(y_Low,y_High+1):
+                    if (i,j) in potMap:
+                        if U.getDistance([list((i,j))],[list(pot)])<unitSize_type.value:
+                            return True
+            return False
+
+    @staticmethod
     def gateway_location_judge(obs,pot):
         #_g_l:gatewayLoaction,_g_l:gasLocation,_py_l:pylonLocation
+        '''
         _c_L=U.locations_by_type(obs, units.Protoss.Nexus)
         _gas_L=U.locations_by_type(obs, units.Neutral.VespeneGeyser)
         _m_L=U.locations_by_type(obs, units.Neutral.MineralField)
         _gate_L=[list(opt)]
-        pass
+        '''
+        if U.isConquered(obs,pot,UnitSize.Gateway):
+            return False
+        else:
+            return True
 
     @staticmethod
     def new_pylon_location(obs):
@@ -181,13 +214,10 @@ class U(object):
             if U.pylon_location_judge(obs,(x,y)):
                 return x, y
 
-    ''' will be completed'''
     @staticmethod
     def new_gateway_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        '''
-        _POWER_TYPE=features.SCREEN_FEATURES.power.index
-        power_feature = obs.observation['feature_screen'][_UNIT_TYPE]
+        power_feature = obs.observation['feature_screen'][_POWER_TYPE]
         ys,xs=(power_feature == 1).nonzero();powerMap=list(zip(list(xs),list(ys)))
         '''
         x = randint(0, screen_w)
@@ -198,7 +228,6 @@ class U(object):
             x,y=powerMap[randint(0,len(powerMap))]
             if U.gateway_location_judge(obs,(x,y)):
                 return x, y
-        '''
 
     @staticmethod
     def new_assimilator_location(obs):

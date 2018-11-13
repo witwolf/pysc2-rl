@@ -39,6 +39,7 @@ class ProtossStalkerAgent(ProtossBaseAgent):
     
     def getTypespots(self,obs,unitType):
         unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
+
         power_type=obs.observation['feature_screen'][_POWER_TYPE]
         if unitType!=_POWER:
             ys,xs=(unit_type == unitType).nonzero()
@@ -113,6 +114,8 @@ class ProtossStalkerAgent(ProtossBaseAgent):
             armyCount=obs.observation.player.army_count
             food = self.future_food(obs) - obs.observation.player.food_used
             idle_workers = obs.observation.player.idle_worker_count
+            power_type=obs.observation['feature_screen'][_POWER_TYPE]
+            power_map=(power_type == 1).nonzero()
             # if can build a building
             if armyCount>5:
                 self.actions=PROTOSS_MACROS.Attack_Enemy()
@@ -156,7 +159,8 @@ class ProtossStalkerAgent(ProtossBaseAgent):
                         and len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) < 2:
                     print(PROTOSS_MACROS.Build_Assimilator, adapter.transform([TimestepWrapper(obs, True)],
                                                                               [PROTOSS_MACROS.Build_Assimilator]))
-                elif mineral > 150 and self.get_unit_counts(obs, units.Protoss.Gateway) < 1:
+                elif mineral > 150 and self.get_unit_counts(obs, units.Protoss.Gateway) < 1 \
+                        and len(power_map)>0:
                     print(PROTOSS_MACROS.Build_Gateway, adapter.transform([TimestepWrapper(obs, True)],
                                                                           [PROTOSS_MACROS.Build_Gateway]))
                     self.actions = PROTOSS_MACROS.Build_Gateway()
