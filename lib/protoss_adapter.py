@@ -55,9 +55,9 @@ class ProtossRewardAdapter(Adapter):
                                     for unit in timestep.observation.raw_units
                                     if unit.unit_type == units.Protoss.Nexus]
                 lack_harvesters = sum(lack_harvesters) if len(lack_harvesters) > 0 else 0
-                nexus_num = timestep.information._self_units[_PROTOSS_BUILDINGS_DICT[units.Protoss.Nexus].id]
+                nexus_num = timestep.self_units[_PROTOSS_BUILDINGS_DICT[units.Protoss.Nexus].id]
                 probe_in_queue =\
-                    len(timestep.information._training_queues[_PROTOSS_UNITS_DICT[units.Protoss.Probe].id])
+                    len(timestep.training_queues[_PROTOSS_UNITS_DICT[units.Protoss.Probe].id])
                 return (lack_harvesters - probe_in_queue) / nexus_num
             return float(unit.minerals + unit.gas + unit.gas) / 1000.0
 
@@ -91,7 +91,7 @@ class ProtossRewardAdapter(Adapter):
                 return -1
 
         if action.id == PROTOSS_MACROS.Collect_Gas:
-            if timestep.information._self_units[_PROTOSS_BUILDINGS_DICT[units.Protoss.Assimilator].id] == 0:
+            if timestep.self_units[_PROTOSS_BUILDINGS_DICT[units.Protoss.Assimilator].id] == 0:
                 return -1
             return 1
 

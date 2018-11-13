@@ -7,7 +7,7 @@ import logging
 from pysc2.env import sc2_env
 import sys
 sys.path.append('.')
-from lib.protoss_adapter import ProtossInformationAdapter
+from lib.protoss_wrapper import ProtossInformationWrapper
 
 
 def default_macro_env_maker(kwargs):
@@ -90,44 +90,13 @@ class MacroEnv(sc2_env.SC2Env):
 
         self._debug = debug
         self._last_obs = None
-        self._information = ProtossInformationAdapter(None)
 
     def reset(self):
         obs = super().reset()
-        self._last_obs = obs
-        self._information = ProtossInformationAdapter(None)
-        return obs
+        self._last_obs = [ProtossInformationWrapper(obs[0], True, self._step_mul)]
+        return self._last_obs
 
     def step(self, macros, update_observation=None):
-        """Returned with every call to `step` and `reset` on an environment.
-
-        A `TimeStepWrapper` contains the data emitted by an environment at each step of
-        interaction. A `TimeStepWrapper` holds a `step_type`, an `observation`, and an
-        associated `reward` and `discount, and a 'success'`.
-
-        The first `TimeStepWrapper` in a sequence will have `StepType.FIRST`. The final
-        `TimeStep` will have `StepType.LAST`. All other `TimeStepWrapper`s in a sequence will
-        have `StepType.MID.
-
-        Attributes:
-            step_type: A `StepType` enum value.
-            reward: A scalar, or 0 if `step_type` is `StepType.FIRST`, i.e. at the
-            start of a sequence.
-            discount: A discount value in the range `[0, 1]`, or 0 if `step_type`
-            is `StepType.FIRST`, i.e. at the start of a sequence.
-            observation: A NumPy array, or a dict, list or tuple of arrays.
-            macro_success: A bool, tell whether last macro action succeed
-        """
-
-        class TimestepWrapper:
-            def __init__(self, timestep, information, success):
-                self._timestep = timestep
-                self.information = information
-                self.macro_success = success
-
-            def __getattr__(self, item):
-                return getattr(self._timestep, item)
-
         macro = macros[0]
         for act_func, arg_func in macro:
             obs = self._last_obs[0]
@@ -136,17 +105,21 @@ class MacroEnv(sc2_env.SC2Env):
                 if self._debug:
                     logging.warning("%s not available,  macro: %s",
                                     act_func.id, macro)
-                    return [TimestepWrapper(obs, self._information, False)]
+                    obs.macro_success = False
+                    return self._last_obs
             args = arg_func(obs)
             # if args is None
             if not args:
-                return [TimestepWrapper(obs, self._information, False)]
+                obs.macro_success = False
+                return self._last_obs
             for arg in args:
                 if not arg:
-                    return [TimestepWrapper(obs, self._information, False)]
+                    obs.macro_success = False
+                    return self._last_obs
             act = (act_func(*args),)
-            self._last_obs = super().step(act, update_observation)
-            self._information.update(obs, self._step_mul)
+            _last_obs = super().step(act, update_observation)
+            # update information wrapper
+            self._last_obs[0].update(_last_obs[0])
 
             #  TODO remove this check temporary
 
@@ -160,4 +133,5 @@ class MacroEnv(sc2_env.SC2Env):
 
         if self._debug:
             logging.warning("%s execute success", macro)
-        return [TimestepWrapper(self._last_obs[0], self._information, True)]
+        self._last_obs[0].macro_success = True
+        return self._last_obs
