@@ -85,6 +85,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
             tf.summary.scalar('a2c/entropy', entropy),
             tf.summary.scalar('a2c/entropy_loss', entropy_loss),
             tf.summary.scalar('a2c/value_loss', value_loss),
+            tf.summary.scalar('a2c/reward', tf.reduce_mean(self._reward_input)),
             tf.summary.scalar('a2c/loss', loss)])
         step = tf.train.get_or_create_global_step()
         opt = tf.train.RMSPropOptimizer(

@@ -6,7 +6,7 @@ from pysc2.lib import units
 from lib.protoss_macro import PROTOSS_MACROS
 from lib.protoss_macro import _PROTOSS_UNITS_DICT
 from lib.protoss_macro import _PROTOSS_BUILDINGS_DICT
-from lib.protoss_wrapper import ProtossInformationWrapper as InformationWrapper
+from lib.protoss_timestep import ProtossTimeStepFactory as InformationWrapper
 
 class ProtossBaseAgent(base_agent.BaseAgent):
     def __init__(self):

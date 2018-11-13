@@ -6,8 +6,9 @@
 import logging
 from pysc2.env import sc2_env
 import sys
+
 sys.path.append('.')
-from lib.protoss_wrapper import ProtossInformationWrapper
+from lib.protoss_timestep import ProtossTimeStepFactory
 
 
 def default_macro_env_maker(kwargs):
@@ -89,38 +90,43 @@ class MacroEnv(sc2_env.SC2Env):
             ensure_available_actions)
 
         self._debug = debug
-        self._last_obs = None
+        self._timestep_factory = ProtossTimeStepFactory(None, None, self._step_mul)
 
     def reset(self):
         obs = super().reset()
-        self._last_obs = [ProtossInformationWrapper(obs[0], True, self._step_mul)]
+        self._timestep_factory.reset()
+        self._last_obs = (self._timestep_factory.process(obs[0]),)
         return self._last_obs
 
     def step(self, macros, update_observation=None):
         macro = macros[0]
+        success = True
+        err_msg = None
         for act_func, arg_func in macro:
             obs = self._last_obs[0]
             # action not available
             if not act_func.id in obs.observation.available_actions:
-                if self._debug:
-                    logging.warning("%s not available,  macro: %s",
-                                    act_func.id, macro)
-                    obs.macro_success = False
-                    return self._last_obs
+                success = False
+                err_msg = "%s not available" % act_func.id
+                break
+
             args = arg_func(obs)
-            # if args is None
             if not args:
-                obs.macro_success = False
-                return self._last_obs
+                err_msg = 'args none'
+                success = False
+                break
+
             for arg in args:
                 if not arg:
-                    obs.macro_success = False
-                    return self._last_obs
-            act = (act_func(*args),)
-            _last_obs = super().step(act, update_observation)
-            # update information wrapper
-            self._last_obs[0].update(_last_obs[0])
+                    err_msg = 'args none'
+                    success = False
 
+            if not success:
+                break
+
+            act = (act_func(*args),)
+            obs = super().step(act, update_observation)
+            self._last_obs = (self._timestep_factory.process(obs[0]),)
             #  TODO remove this check temporary
 
             # last_actions = obs.observation.last_actions
@@ -132,6 +138,9 @@ class MacroEnv(sc2_env.SC2Env):
             #     return [TimestepWrapper(self._last_obs[0], False)]
 
         if self._debug:
-            logging.warning("%s execute success", macro)
-        self._last_obs[0].macro_success = True
+            if err_msg:
+                logging.warning("%s execute failed, err:%s", macro, err_msg)
+            else:
+                logging.warning("%s execute success", macro)
+        self._last_obs[0].macro_success = success
         return self._last_obs

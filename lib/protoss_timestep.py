@@ -2,6 +2,7 @@
 # Created by yingxiang.hong@horizon.ai on 2018/11/12.
 #
 
+import copy
 from pysc2.lib.actions import FUNCTIONS
 from lib.protoss_macro import _PROTOSS_BUILDINGS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS_FUNCTIONS
@@ -9,9 +10,52 @@ from lib.protoss_macro import _PROTOSS_UNITS
 from lib.protoss_macro import _PROTOSS_BUILDINGS
 from lib.protoss_macro import _PROTOSS_UNITS_DICT
 from lib.protoss_macro import _PROTOSS_BUILDINGS_DICT
+from lib.protoss_macro import U
 
 
-class ProtossInformationWrapper():
+class ProtossTimeStep(object):
+    def __init__(self, timestep):
+        self.macro_success = False
+        self._feature_units = {}
+        self._feature_unit_counts = {}
+        self._raw_units = {}
+        self._minimap_units = {}
+        self._unit_counts = {}
+        self._timestep = timestep
+        self._fill()
+
+    def _fill(self):
+        feature_units = self._timestep.observation.feature_units
+        for unit in feature_units:
+            unit_type = unit.unit_type
+            if unit_type not in self._feature_units:
+                self._feature_units[unit_type] = []
+                self._feature_unit_counts[unit_type] = 0
+            self._feature_units[unit_type].append(unit)
+            self._feature_unit_counts[unit_type] += 1
+
+        raw_units = self._timestep.observation.raw_units
+        for unit in raw_units:
+            if unit.alliance == 4 or unit.alliance == 0:
+                continue
+            if unit.alliance == 1 and int(unit.build_progress) != 100:
+                continue
+            unit_type = unit.unit_type
+            if not unit_type in self._raw_units:
+                self._raw_units[unit_type] = []
+                self._minimap_units[unit_type] = []
+                self._unit_counts[unit_type] = 0
+            self._raw_units[unit_type].append(unit)
+            minimap_unit = copy.deepcopy(unit)
+            minimap_unit.x, minimap_unit.y = U._world_tl_to_minimap_px(unit)
+            self._minimap_units[unit_type].append(minimap_unit)
+            self._unit_counts[unit_type] += 1
+
+    def __getattr__(self, item):
+        return getattr(self._timestep, item)
+
+
+class ProtossTimeStepFactory():
     def __init__(self, timestep, macro_success, step_mul):
         self._timestep = timestep
         self._step_mul = step_mul
@@ -41,7 +85,7 @@ class ProtossInformationWrapper():
         if action_id == FUNCTIONS.Research_ProtossGroundWeaponsLevel1_quick.id:
             return "ground weapon 1"
         return None
-    
+
     def __getattr__(self, item):
         return getattr(self._timestep, item)
 
@@ -114,3 +158,11 @@ class ProtossInformationWrapper():
                enemy_units + self.self_buildings + self_upgrades + self.training_queues + \
                self.building_queues
 
+    def process(self, timestep):
+
+        # TODO 1 , update infomation
+        # TODO 2 , mixin timestep
+        return ProtossTimeStep(timestep)
+
+    def reset(self):
+        pass
