@@ -75,6 +75,9 @@ class ProtossRewardAdapter(Adapter):
                 # if food urgent, give a big reward
                 if food < 2:
                     return 10
+                # if enough food, give no reward
+                elif food > 8:
+                    return 0
                 else:
                     return 1
             else:
