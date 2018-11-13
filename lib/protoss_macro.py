@@ -460,7 +460,7 @@ class U(object):
 
     @staticmethod
     def can_select_army(obs):
-        return obs.observation.player.army_count > 0
+        return FUNCTIONS.select_army.id in obs.observation.available_actions
 
 
 def build_a_pylon():
@@ -583,7 +583,7 @@ def training_a_stalker():
 
 
 def callback_idle_workers():
-    cond = lambda obs: obs.observation.player.idle_worker_count > 0
+    cond = lambda obs: FUNCTIONS.select_idle_worker in obs.observation.available_actions
     funcs = [
         # select idle workers
         FUNCTIONS.select_idle_worker,
