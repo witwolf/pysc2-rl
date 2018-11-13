@@ -11,7 +11,6 @@ from pysc2.lib.actions import FUNCTIONS
 from lib.protoss_macro import PROTOSS_MACROS
 from tests.agent_test.protoss_base_agent import ProtossBaseAgent
 from lib.protoss_adapter import ProtossRewardAdapter as RewardAdapter
-from lib.protoss_adapter import ProtossInformationAdapter as InformationAdapter
 from lib.config import Config
 import time
 
@@ -29,7 +28,6 @@ _TMP_BUILDS=[_CENTER,_GATE,_ASSIM,_PYLON]
 class ProtossStalkerAgent(ProtossBaseAgent):
     def __init__(self):
         super(ProtossStalkerAgent, self).__init__()
-        self.information = InformationAdapter(Config())
         self.time = time.time()
         self.probe_count = 12
         self.probe_frame = 0
@@ -58,25 +56,19 @@ class ProtossStalkerAgent(ProtossBaseAgent):
         return (x,y)
 
     def step(self, obs):
-
-        class TimestepWrapper:
-            def __init__(self, timestep, success):
-                self._timestep = timestep
-                self.macro_success = success
-
-            def __getattr__(self, item):
-                if item == 'macro_success':
-                    return self.macro_success
-                return getattr(self._timestep, item)
-
         super(ProtossStalkerAgent, self).step(obs)
 
+<<<<<<< HEAD
         self.information.update([obs])
         #print(self.information.transform([obs]))
 
         for tmpUnit in self._ALL_UNIT:
             self.getTypespots(obs,tmpUnit)
 
+=======
+        self._last_obs.update(obs)
+        print(self._last_obs.to_feature())
+>>>>>>> macro-action
         # print(obs.observation.last_actions)
         # pylon_progress = [unit.build_progress for unit in obs.observation.raw_units
         #                   if unit.unit_type == units.Protoss.Stalker]
@@ -124,44 +116,48 @@ class ProtossStalkerAgent(ProtossBaseAgent):
             elif idle_workers > 0:
                 self.actions = PROTOSS_MACROS.Callback_Idle_Workers()
             elif mineral > 50 and food > 1 and self.get_unit_counts(obs, units.Protoss.Probe) < 16:
-                print(PROTOSS_MACROS.Train_Probe, adapter.transform([TimestepWrapper(obs, True)],
+                print(PROTOSS_MACROS.Train_Probe, adapter.transform([self._last_obs],
                                                                     [PROTOSS_MACROS.Train_Probe]))
                 self.actions = PROTOSS_MACROS.Train_Probe()
             elif mineral > 125 and gas > 50 and food > 2 \
                     and len(self.get_all_complete_units_by_type(obs, units.Protoss.Gateway)) \
                     and len(self.get_all_complete_units_by_type(obs, units.Protoss.CyberneticsCore)) > 0:
-                print(PROTOSS_MACROS.Train_Stalker, adapter.transform([TimestepWrapper(obs, True)],
+                print(PROTOSS_MACROS.Train_Stalker, adapter.transform([self._last_obs],
                                                                       [PROTOSS_MACROS.Train_Stalker]))
-                self.actions = PROTOSS_MACROS.Train_Zealot()
+                self.actions = PROTOSS_MACROS.Train_Stalker()
             elif len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) > 0 and not gasHarvestersFull:
-                print(PROTOSS_MACROS.Collect_Gas, adapter.transform([TimestepWrapper(obs, True)],
+                print(PROTOSS_MACROS.Collect_Gas, adapter.transform([self._last_obs],
                                                                     [PROTOSS_MACROS.Collect_Gas]))
                 self.actions = PROTOSS_MACROS.Collect_Gas()
             elif self.can_build():
                 if food < 4 and mineral > 100:
-                    print(PROTOSS_MACROS.Build_Pylon, adapter.transform([TimestepWrapper(obs, True)],
+                    print(PROTOSS_MACROS.Build_Pylon, adapter.transform([self._last_obs],
                                                                         [PROTOSS_MACROS.Build_Pylon]))
                     self.actions = PROTOSS_MACROS.Build_Pylon()
                     self.last_build_frame = self.frame
                 elif self.get_unit_counts(obs, units.Protoss.Probe) > 16 and mineral > 75 \
                         and len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) < 1:
-                    print(PROTOSS_MACROS.Build_Assimilator, adapter.transform([TimestepWrapper(obs, True)],
+                    print(PROTOSS_MACROS.Build_Assimilator, adapter.transform([self._last_obs],
                                                                               [PROTOSS_MACROS.Build_Assimilator]))
                     self.actions = PROTOSS_MACROS.Build_Assimilator()
                     self.last_build_frame = self.frame
                 elif len(self.get_all_complete_units_by_type(obs, units.Protoss.Gateway)) > 0 and mineral > 150:
-                    print(PROTOSS_MACROS.Build_CyberneticsCore, adapter.transform([TimestepWrapper(obs, True)],
-                                                                                  [
-                                                                                      PROTOSS_MACROS.Build_CyberneticsCore]))
+                    print(PROTOSS_MACROS.Build_CyberneticsCore, adapter.transform([self._last_obs],
+                                                                                  [PROTOSS_MACROS.Build_CyberneticsCore]))
                     self.actions = PROTOSS_MACROS.Build_CyberneticsCore()
                     self.last_build_frame = self.frame
                 elif self.get_unit_counts(obs, units.Protoss.Probe) > 16 and mineral > 75 \
                         and len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) < 2:
-                    print(PROTOSS_MACROS.Build_Assimilator, adapter.transform([TimestepWrapper(obs, True)],
+                    print(PROTOSS_MACROS.Build_Assimilator, adapter.transform([self._last_obs],
                                                                               [PROTOSS_MACROS.Build_Assimilator]))
+<<<<<<< HEAD
                 elif mineral > 150 and self.get_unit_counts(obs, units.Protoss.Gateway) < 1 \
                         and len(power_map)>0:
                     print(PROTOSS_MACROS.Build_Gateway, adapter.transform([TimestepWrapper(obs, True)],
+=======
+                elif mineral > 150 and self.get_unit_counts(obs, units.Protoss.Gateway) < 1:
+                    print(PROTOSS_MACROS.Build_Gateway, adapter.transform([self._last_obs],
+>>>>>>> macro-action
                                                                           [PROTOSS_MACROS.Build_Gateway]))
                     self.actions = PROTOSS_MACROS.Build_Gateway()
                     self.last_build_frame = self.frame
