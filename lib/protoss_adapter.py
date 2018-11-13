@@ -64,10 +64,13 @@ class ProtossRewardAdapter(Adapter):
             # if need food
             elif building.unit_type == units.Protoss.Pylon:
                 # if food urgent, give a big reward
-                if food < 2:
+                if food <= 2:
                     return 10
+                # if too much food, give a neg reward
+                if food >= 16:
+                    return -1
                 # if enough food, give no reward
-                elif food > 8:
+                elif food >= 8:
                     return 0
                 else:
                     return 1
@@ -81,7 +84,7 @@ class ProtossRewardAdapter(Adapter):
                 return -1
 
         if action.id == PROTOSS_MACROS.Collect_Gas:
-            if timestep._unit_counts.get(_PROTOSS_BUILDINGS_DICT[units.Protoss.Assimilator].id, 0) == 0:
+            if timestep._feature_unit_completed_counts[units.Protoss.Assimilator] == 0:
                 return -1
             return 1
 

@@ -214,7 +214,10 @@ class U(object):
     def new_gateway_location(obs):
         screen_w, screen_h = U.screen_size(obs)
         power_feature = obs.observation['feature_screen'][_POWER_TYPE]
-        ys,xs=(power_feature == 1).nonzero();powerMap=list(zip(list(xs),list(ys)))
+        ys,xs=(power_feature == 1).nonzero()
+        powerMap=list(zip(list(xs),list(ys)))
+        if len(powerMap) == 0:
+            return None
         try_time = 0
         while try_time < 100:
             x,y=powerMap[randint(0,len(powerMap))]
@@ -238,7 +241,10 @@ class U(object):
     def new_cyberneticscore_location(obs):
         screen_w, screen_h = U.screen_size(obs)
         power_feature = obs.observation['feature_screen'][_POWER_TYPE]
-        ys,xs=(power_feature == 1).nonzero();powerMap=list(zip(list(xs),list(ys)))
+        ys,xs=(power_feature == 1).nonzero()
+        powerMap=list(zip(list(xs),list(ys)))
+        if len(powerMap) == 0:
+            return None
         try_time = 0
         while try_time < 100:
             x,y=powerMap[randint(0,len(powerMap))]
@@ -260,7 +266,7 @@ class U(object):
     def gas_location(obs):
         _feature_units = obs.observation.feature_units
         assimilator_type = units.Protoss.Assimilator
-        assimilators = obs._feature_units.get(assimilator_type, [])
+        assimilators = obs._feature_units_completed.get(assimilator_type, [])
         for assimilator in assimilators:
             if assimilator.assigned_harvesters < 3:
                 return U._valid_screen_x_y(
