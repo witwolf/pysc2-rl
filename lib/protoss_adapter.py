@@ -51,9 +51,10 @@ class ProtossRewardAdapter(Adapter):
                     return -1
             # if worker
             if unit.unit_type == units.Protoss.Probe:
-                lack_harvesters = sum([unit.ideal_harvesters - unit.assigned_harvesters
-                                       for unit in timestep.observation.raw_units
-                                       if unit.unit_type == units.Protoss.Nexus])
+                lack_harvesters = [unit.ideal_harvesters - unit.assigned_harvesters
+                                    for unit in timestep.observation.raw_units
+                                    if unit.unit_type == units.Protoss.Nexus]
+                lack_harvesters = sum(lack_harvesters) if len(lack_harvesters) > 0 else 0
                 nexus_num = timestep.information._self_units[_PROTOSS_BUILDINGS_DICT[units.Protoss.Nexus].id]
                 probe_in_queue =\
                     len(timestep.information._training_queues[_PROTOSS_UNITS_DICT[units.Protoss.Probe].id])
@@ -163,14 +164,12 @@ class ProtossInformationAdapter(Adapter):
         self._self_bases = {}  # (location, worker assigned)
         self._enemy_bases = {}  # (location, worker assigned)
         self._neutral_bases = {}  # (location, true/false)
-        self._self_units = [0] * len(_PROTOSS_UNITS)  # (type, count)
+        self._self_units = [0 for _ in range(len(_PROTOSS_UNITS))]  # (type, count)
         self._enemy_units = {}  # (tag, type)
-        self._self_buildings = [0] * len(_PROTOSS_BUILDINGS)  # (type, count)
+        self._self_buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, count)
         self._self_upgrades = {}  # (type, true/false)
-        self._training_queues = []
-        for _ in range(len(_PROTOSS_UNITS)):
-            self._training_queues.append([]) # (type, [frames])
-        self._building_queues = [0] * len(_PROTOSS_BUILDINGS)  # (type, queued_count)
+        self._training_queues = [[] for _ in range(len(_PROTOSS_UNITS))]
+        self._building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, queued_count)
 
     def is_unit(self, unit_type):
         return unit_type in _PROTOSS_UNITS_DICT

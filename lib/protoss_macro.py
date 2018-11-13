@@ -122,7 +122,7 @@ class U(object):
             pos = np.argmin(dists)
             x, y = probes[pos]
             return U._valid_screen_x_y(x, y, obs)
-        return 1, 1
+        return None
 
     @staticmethod
     def getDistance(pot1, pot2):
@@ -204,7 +204,7 @@ class U(object):
         valid_vespenes = list(set(vesps) - set(assimilators))
 
         if len(valid_vespenes) == 0:
-            return 1, 1
+            return None
         x, y = valid_vespenes[randint(0, len(valid_vespenes))]
         return U._valid_screen_x_y(x, y, obs)
 
@@ -220,7 +220,7 @@ class U(object):
         minerals = U.locations_by_type(obs, units.Neutral.MineralField)
         # if no mineral, go to center
         if len(minerals) == 0:
-            return 1, 1
+            return None
         x, y = minerals[randint(0, len(minerals))]
         return U._valid_screen_x_y(x, y, obs)
 
@@ -236,7 +236,7 @@ class U(object):
                 return U._valid_screen_x_y(
                     assimilator.x, assimilator.y, obs)
         # if no mineral, go to center
-        return 1, 1
+        return None
 
     @staticmethod
     def screen_top(obs):
@@ -577,7 +577,7 @@ def collect_minerals():
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("select", U.bad_worker_location(obs)),
-        lambda obs: ("now", U.gas_location(obs))]
+        lambda obs: ("now", U.mineral_location(obs))]
     cond = lambda obs: True
     return cond, funcs, funcs_args
 

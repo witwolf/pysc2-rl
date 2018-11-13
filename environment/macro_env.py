@@ -138,6 +138,12 @@ class MacroEnv(sc2_env.SC2Env):
                                     act_func.id, macro)
                     return [TimestepWrapper(obs, self._information, False)]
             args = arg_func(obs)
+            # if args is None
+            if not args:
+                return [TimestepWrapper(obs, self._information, False)]
+            for arg in args:
+                if not arg:
+                    return [TimestepWrapper(obs, self._information, False)]
             act = (act_func(*args),)
             self._last_obs = super().step(act, update_observation)
             self._information.update(obs, self._step_mul)
