@@ -25,6 +25,9 @@ class ProtossTimeStep(object):
         self._raw_units = {}
         self._minimap_units = {}
         self._unit_counts = {}
+        self._raw_units_completed = {}
+        self._minimap_units_completed = {}
+        self._unit_completed_counts = {}
         self.self_units = [0 for _ in range(len(_PROTOSS_UNITS))]  # (type, count)
         self.self_upgrades = {}  # (type, true/false)
         self._fill()
@@ -38,6 +41,9 @@ class ProtossTimeStep(object):
         self._raw_units = {}
         self._minimap_units = {}
         self._unit_counts = {}
+        self._raw_units_completed = {}
+        self._minimap_units_completed = {}
+        self._unit_completed_counts = {}
         self.self_units = [0 for _ in range(len(_PROTOSS_UNITS))]  # (type, count)
         self.self_upgrades = {}  # (type, true/false)
 
@@ -57,6 +63,7 @@ class ProtossTimeStep(object):
         return None
 
     def _fill(self):
+        # update feature units count info
         feature_units = self._timestep.observation.feature_units
         for unit in feature_units:
             unit_type = unit.unit_type
@@ -65,6 +72,7 @@ class ProtossTimeStep(object):
                 self._feature_unit_counts[unit_type] = 0
             self._feature_units[unit_type].append(unit)
             self._feature_unit_counts[unit_type] += 1
+            # completed units
             if int(unit.build_progress) == 100:
                 if unit_type not in self._feature_units_completed:
                     self._feature_units_completed[unit_type] = []
@@ -72,40 +80,48 @@ class ProtossTimeStep(object):
                 self._feature_units_completed[unit_type].append(unit)
                 self._feature_unit_completed_counts[unit_type] += 1
 
+        # update raw units count info
         raw_units = self._timestep.observation.raw_units
         for unit in raw_units:
-            if unit.alliance == 4 or unit.alliance == 0:
-                continue
-            if unit.alliance == 1 and int(unit.build_progress) != 100:
-                continue
-            unit_type = unit.unit_type
-            if not unit_type in self._raw_units:
-                self._raw_units[unit_type] = []
-                self._minimap_units[unit_type] = []
-                self._unit_counts[unit_type] = 0
-            self._raw_units[unit_type].append(unit)
-            minimap_unit = copy.deepcopy(unit)
-            minimap_unit.x, minimap_unit.y = U._world_tl_to_minimap_px(unit)
-            self._minimap_units[unit_type].append(minimap_unit)
-            self._unit_counts[unit_type] += 1
+            if unit.alliance == 1:
+                unit_type = unit.unit_type
+                if not unit_type in self._raw_units:
+                    self._raw_units[unit_type] = []
+                    self._minimap_units[unit_type] = []
+                    self._unit_counts[unit_type] = 0
+                self._raw_units[unit_type].append(unit)
+                minimap_unit = copy.deepcopy(unit)
+                minimap_unit.x, minimap_unit.y = U._world_tl_to_minimap_px(unit)
+                self._minimap_units[unit_type].append(minimap_unit)
+                self._unit_counts[unit_type] += 1
+                # completed units
+                if int(unit.build_progress) == 100:
+                    if not unit_type in self._raw_units_completed:
+                        self._raw_units_completed[unit_type] = []
+                        self._minimap_units_completed[unit_type] = []
+                        self._unit_completed_counts[unit_type] = 0
+                    self._raw_units_completed[unit_type].append(unit)
+                    self._minimap_units_completed[unit_type].append(minimap_unit)
+                    self._unit_completed_counts[unit_type] += 1
+
 
         self.self_bases.clear()
         self.enemy_bases.clear()
         self.neutral_bases.clear()
 
-        # check building queue
+        building_queues = self._factory.building_queues
         for bid in range(len(_PROTOSS_BUILDINGS)):
+            if building_queues[bid] == 0:
+                continue
+            # last build count
             last_build_count = self._factory.self_buildings[bid]
             # current build count
-            build_count = len([unit for unit in self._timestep.observation.raw_units
-                               if unit.unit_type == _PROTOSS_BUILDINGS[bid].unit_type and
-                               unit.alliance == 1])
-            building_queues = self._factory.building_queues
+            build_count = self._unit_counts.get(_PROTOSS_BUILDINGS[bid].unit_type, 0)
             if build_count > last_build_count:
                 building_queues[bid] -= (build_count - last_build_count)
             if building_queues[bid] < 0:
                 building_queues[bid] = 0
-            self._factory.self_buildings[bid] = 0
+            self._factory.self_buildings[bid] = build_count
 
         # update training queue
         for uid in range(len(_PROTOSS_UNITS)):
@@ -117,7 +133,7 @@ class ProtossTimeStep(object):
                     del training_queue[index]
                 else:
                     index += 1
-            self.self_units[uid] = 0
+            self.self_units[uid] = self._unit_counts.get(_PROTOSS_UNITS[uid].unit_type, 0)
 
         last_actions = self._timestep.observation.last_actions
         for last_action in last_actions:
@@ -134,16 +150,6 @@ class ProtossTimeStep(object):
             upgrade = self.is_upgrade(last_action)
             if upgrade:
                 self.self_upgrades[upgrade] = True
-
-        # update unit/building count
-        for unit in self._timestep.observation.raw_units:
-            if unit.alliance == 1:
-                # update unit count
-                if self.is_unit(unit.unit_type):
-                    self.self_units[_PROTOSS_UNITS_DICT[unit.unit_type].id] += 1
-                # update building count
-                elif self.is_building(unit.unit_type):
-                    self.self_buildings[_PROTOSS_BUILDINGS_DICT[unit.unit_type].id] += 1
 
     def to_feature(self):
         self_bases = [(key, self._factory.self_bases[key]) for key in sorted(self._factory.self_bases.keys())]
