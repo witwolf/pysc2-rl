@@ -14,17 +14,42 @@ from lib.protoss_macro import U
 
 
 class ProtossTimeStep(object):
-    def __init__(self, timestep):
+    def __init__(self, timestep, step_mul):
         self.macro_success = False
         self._feature_units = {}
         self._feature_unit_counts = {}
         self._raw_units = {}
         self._minimap_units = {}
         self._unit_counts = {}
+        self.frame_pass = 0  # second pass
+        self.self_bases = {}  # (location, worker assigned)
+        self.enemy_bases = {}  # (location, worker assigned)
+        self.neutral_bases = {}  # (location, true/false)
+        self.self_units = [0 for _ in range(len(_PROTOSS_UNITS))]  # (type, count)
+        self.enemy_units = {}  # (tag, type)
+        self.self_buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, count)
+        self.self_upgrades = {}  # (type, true/false)
+        self.training_queues = [[] for _ in range(len(_PROTOSS_UNITS))]
+        self.building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, queued_count)
         self._timestep = timestep
-        self._fill()
+        self._fill(step_mul)
 
-    def _fill(self):
+    def is_unit(self, unit_type):
+        return unit_type in _PROTOSS_UNITS_DICT
+
+    def is_building(self, unit_type):
+        return unit_type in _PROTOSS_BUILDINGS_DICT
+
+    def is_upgrade(self, action_id):
+        if action_id == FUNCTIONS.Research_Blink_quick.id:
+            return "blink"
+        if action_id == FUNCTIONS.Research_ProtossGroundArmorLevel1_quick.id:
+            return "ground armor 1"
+        if action_id == FUNCTIONS.Research_ProtossGroundWeaponsLevel1_quick.id:
+            return "ground weapon 1"
+        return None
+
+    def _fill(self, step_mul):
         feature_units = self._timestep.observation.feature_units
         for unit in feature_units:
             unit_type = unit.unit_type
@@ -51,47 +76,7 @@ class ProtossTimeStep(object):
             self._minimap_units[unit_type].append(minimap_unit)
             self._unit_counts[unit_type] += 1
 
-    def __getattr__(self, item):
-        return getattr(self._timestep, item)
-
-
-class ProtossTimeStepFactory():
-    def __init__(self, timestep, macro_success, step_mul):
-        self._timestep = timestep
-        self._step_mul = step_mul
-        self.macro_success = macro_success
-        self.frame_pass = 0  # second pass
-        self.self_bases = {}  # (location, worker assigned)
-        self.enemy_bases = {}  # (location, worker assigned)
-        self.neutral_bases = {}  # (location, true/false)
-        self.self_units = [0 for _ in range(len(_PROTOSS_UNITS))]  # (type, count)
-        self.enemy_units = {}  # (tag, type)
-        self.self_buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, count)
-        self.self_upgrades = {}  # (type, true/false)
-        self.training_queues = [[] for _ in range(len(_PROTOSS_UNITS))]
-        self.building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, queued_count)
-
-    def is_unit(self, unit_type):
-        return unit_type in _PROTOSS_UNITS_DICT
-
-    def is_building(self, unit_type):
-        return unit_type in _PROTOSS_BUILDINGS_DICT
-
-    def is_upgrade(self, action_id):
-        if action_id == FUNCTIONS.Research_Blink_quick.id:
-            return "blink"
-        if action_id == FUNCTIONS.Research_ProtossGroundArmorLevel1_quick.id:
-            return "ground armor 1"
-        if action_id == FUNCTIONS.Research_ProtossGroundWeaponsLevel1_quick.id:
-            return "ground weapon 1"
-        return None
-
-    def __getattr__(self, item):
-        return getattr(self._timestep, item)
-
-    def update(self, timestep):
-        self._timestep = timestep
-        self.frame_pass += self._step_mul
+        self.frame_pass += step_mul
         self.self_bases.clear()
         self.enemy_bases.clear()
         self.neutral_bases.clear()
@@ -158,11 +143,23 @@ class ProtossTimeStepFactory():
                enemy_units + self.self_buildings + self_upgrades + self.training_queues + \
                self.building_queues
 
-    def process(self, timestep):
+    def __getattr__(self, item):
+        return getattr(self._timestep, item)
 
+
+class ProtossTimeStepFactory():
+    def __init__(self, timestep, macro_success, step_mul):
+        self._timestep = timestep
+        self._step_mul = step_mul
+        self.macro_success = macro_success
+
+    def __getattr__(self, item):
+        return getattr(self._timestep, item)
+
+    def process(self, timestep):
         # TODO 1 , update infomation
         # TODO 2 , mixin timestep
-        return ProtossTimeStep(timestep)
+        return ProtossTimeStep(timestep, self._step_mul)
 
     def reset(self):
         pass
