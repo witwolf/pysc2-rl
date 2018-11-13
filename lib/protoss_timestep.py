@@ -8,8 +8,6 @@ from lib.protoss_macro import _PROTOSS_BUILDINGS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS
 from lib.protoss_macro import _PROTOSS_BUILDINGS
-from lib.protoss_macro import _PROTOSS_UNITS_DICT
-from lib.protoss_macro import _PROTOSS_BUILDINGS_DICT
 from lib.protoss_macro import U
 
 
@@ -31,27 +29,6 @@ class ProtossTimeStep(object):
         self.self_units = [0 for _ in range(len(_PROTOSS_UNITS))]  # (type, count)
         self.self_upgrades = {}  # (type, true/false)
         self._fill()
-
-    def reset(self):
-        self.macro_success = False
-        self._feature_units = {}
-        self._feature_units_completed = {}
-        self._feature_unit_counts = {}
-        self._feature_unit_completed_counts = {}
-        self._raw_units = {}
-        self._minimap_units = {}
-        self._unit_counts = {}
-        self._raw_units_completed = {}
-        self._minimap_units_completed = {}
-        self._unit_completed_counts = {}
-        self.self_units = [0 for _ in range(len(_PROTOSS_UNITS))]  # (type, count)
-        self.self_upgrades = {}  # (type, true/false)
-
-    def is_unit(self, unit_type):
-        return unit_type in _PROTOSS_UNITS_DICT
-
-    def is_building(self, unit_type):
-        return unit_type in _PROTOSS_BUILDINGS_DICT
 
     def is_upgrade(self, action_id):
         if action_id == FUNCTIONS.Research_Blink_quick.id:
@@ -103,7 +80,6 @@ class ProtossTimeStep(object):
                     self._raw_units_completed[unit_type].append(unit)
                     self._minimap_units_completed[unit_type].append(minimap_unit)
                     self._unit_completed_counts[unit_type] += 1
-
 
         self.self_bases.clear()
         self.enemy_bases.clear()

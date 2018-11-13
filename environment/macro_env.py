@@ -143,4 +143,6 @@ class MacroEnv(sc2_env.SC2Env):
             else:
                 logging.warning("%s execute success", macro)
         self._last_obs[0].macro_success = success
+        if self._last_obs[0].last():
+            self._timestep_factory.reset()
         return self._last_obs

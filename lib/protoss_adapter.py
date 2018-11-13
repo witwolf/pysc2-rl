@@ -84,7 +84,7 @@ class ProtossRewardAdapter(Adapter):
                 return -1
 
         if action.id == PROTOSS_MACROS.Collect_Gas:
-            if timestep._feature_unit_completed_counts[units.Protoss.Assimilator] == 0:
+            if timestep._feature_unit_completed_counts.get(units.Protoss.Assimilator, 0) == 0:
                 return -1
             return 1
 
