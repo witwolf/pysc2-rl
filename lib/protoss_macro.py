@@ -11,11 +11,8 @@ import random
 
 from numpy.random import randint
 from pysc2.lib import features
-<<<<<<< HEAD
-=======
 from pysc2.lib import transform
 from pysc2.lib import point
->>>>>>> macro-action
 from lib.protoss_unit import *
 from pysc2.lib.actions import FUNCTIONS
 from pysc2.lib import actions, features, units
@@ -33,17 +30,6 @@ class UnitSize(enum.IntEnum):
     CyberneticsCore=7
     PylonPower=23
     Stalker=2
-
-class UnitSize(enum.IntEnum):
-    '''units' radius'''
-    Nexus = 10
-    Pylon = 4
-    Assimilator = 6
-    Gateway = 7
-    CyberneticsCore = 7
-    PylonPower = 23
-    Stalker = 2
-
 
 class U(object):
     @staticmethod
@@ -134,8 +120,7 @@ class U(object):
 
     @staticmethod
     def _distance(pot1, pot2):
-        pot1 = np.array(pot1);
-        pot2 = np.array(pot2)
+        pot1 = np.array(pot1);pot2 = np.array(pot2)
         if len(pot1) == 1 and len(pot2) == 1:
             tmp = np.linalg.norm(pot1 - pot2)
         elif (len(pot1) == 1 and len(pot2) > 1) or (len(pot1) > 1 and len(pot2) == 1):
@@ -156,6 +141,30 @@ class U(object):
         return True
 
     @staticmethod
+    def isConquered(obs,pot,unitSize_type):
+        screen_w, screen_h = U.screen_size(obs)
+        unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
+        typeMap=unit_type.nonzero()
+        (ys,xs)=typeMap;potMap=list(zip(xs,ys))
+        x_Low=0 if pot[0]-unitSize_type.value<=0 else pot[0]-unitSize_type.value
+        x_High=screen_w if pot[0]+unitSize_type.value>=screen_w else pot[0]+unitSize_type.value
+        y_Low=0 if pot[1]-unitSize_type.value<=0 else pot[1]-unitSize_type.value
+        y_High=screen_h if pot[1]+unitSize_type.value>=screen_h else pot[1]+unitSize_type.value
+        if (x_High-x_Low)*(y_High-y_Low)>len(potMap):
+            dists=U._distance([list(pot)],potMap)
+            if dists.min()>unitSize_type.value:
+                return False
+            else:
+                return True
+        else:
+            for i in range(x_Low,x_High+1):
+                for j in range(y_Low,y_High+1):
+                    if (i,j) in potMap:
+                        if U._distance([list((i,j))],[list(pot)])<unitSize_type.value:
+                            return True
+            return False
+    
+    @staticmethod
     def pylon_location_judge(obs, pot):
         # c_l:centerLoaction,_m_l:mineralsLocation,_g_l:gasLocation,_py_l:pylonLocation
         _c_L = U.locations_by_type(obs, units.Protoss.Nexus)
@@ -168,88 +177,15 @@ class U(object):
         if distance > (UnitSize.PylonPower.value - UnitSize.Nexus.value) and \
                 distance < U._distance(_g_L, _py_L).min() and \
                 distance < U._distance(_m_L, _py_L).min() and \
-                distance < (UnitSize.PylonPower.value + UnitSize.Nexus.value):
+                distance < (UnitSize.PylonPower.value + UnitSize.Nexus.value) and \
+                not U.isConquered(obs,_py_L,UnitSize.Pylon.value):
             return True
         else:
             return False
-
-    @staticmethod
-    def getDistance(pot1,pot2):
-        pot1=np.array(pot1);pot2=np.array(pot2)
-        if len(pot1)==1 and len(pot2)==1:
-            tmp=np.linalg.norm(pot1-pot2)
-        elif (len(pot1)==1 and len(pot2)>1) or (len(pot1)>1 and len(pot2)==1):
-            tmp=np.sqrt(np.sum(np.asarray(pot1 - pot2)**2, axis=1))
-        return tmp
-
-    ''' will be completed'''
-    @staticmethod
-    def near_away(pot,n_a_pot):
-        nearPot=n_a_pot[0];awayPot=n_a_pot[1]
-        p_n=U.getDistance(pot,nearPot)
-        p_a=U.getDistance(pot,awayPot)
-        n_a=U.getDistance(nearPot,awayPot)
-        return True
-
-    @staticmethod
-    def pylon_location_judge(obs,pot):
-        #_c_l:centerLoaction,_m_l:mineralsLocation,_g_l:gasLocation,_py_l:pylonLocation
-        _c_L=U.locations_by_type(obs, units.Protoss.Nexus)
-        _m_L=U.locations_by_type(obs, units.Neutral.MineralField)
-        _g_L=U.locations_by_type(obs, units.Neutral.VespeneGeyser)
-        _py_L=[list(pot)]
-        if len(_c_L)==0 or len(_g_L)==0 or len(_m_L)==0:
-            return True
-        if U.getDistance(_c_L,_py_L)>(UnitSize.PylonPower.value-UnitSize.Nexus.value) \
-                and U.getDistance(_c_L,_py_L)<U.getDistance(_g_L,_py_L).min() \
-                and U.getDistance(_c_L,_py_L)<U.getDistance(_m_L,_py_L).min() \
-                and U.getDistance(_c_L,_py_L)<(UnitSize.PylonPower.value+UnitSize.Nexus.value):
-                    return True
-        else:
-            return False
-
-    @staticmethod
-    def isConquered(obs,pot,unitSize_type):
-        screen_w, screen_h = U.screen_size(obs)
-        unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
-        typeMap=unit_type.nonzero()
-        (ys,xs)=typeMap;potMap=list(zip(xs,ys))
-        x_Low=0 if pot[0]-unitSize_type.value<=0 else pot[0]-unitSize_type.value
-        x_High=screen_w if pot[0]+unitSize_type.value>=screen_w else pot[0]+unitSize_type.value
-        y_Low=0 if pot[1]-unitSize_type.value<=0 else pot[1]-unitSize_type.value
-        y_High=screen_h if pot[1]+unitSize_type.value>=screen_h else pot[1]+unitSize_type.value
-        if (x_High-x_Low)*(y_High-y_Low)>len(potMap):
-            dists=U.getDistance([list(pot)],potMap)
-            if dists.min()>unitSize_type.value:
-                return False
-            else:
-                return True
-        else:
-            for i in range(x_Low,x_High+1):
-                for j in range(y_Low,y_High+1):
-                    if (i,j) in potMap:
-                        if U.getDistance([list((i,j))],[list(pot)])<unitSize_type.value:
-                            return True
-            return False
-
-    @staticmethod
-    def gateway_location_judge(obs,pot):
-        #_g_l:gatewayLoaction,_g_l:gasLocation,_py_l:pylonLocation
-        '''
-        _c_L=U.locations_by_type(obs, units.Protoss.Nexus)
-        _gas_L=U.locations_by_type(obs, units.Neutral.VespeneGeyser)
-        _m_L=U.locations_by_type(obs, units.Neutral.MineralField)
-        _gate_L=[list(opt)]
-        '''
-        if U.isConquered(obs,pot,UnitSize.Gateway):
-            return False
-        else:
-            return True
 
     @staticmethod
     def new_pylon_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-<<<<<<< HEAD
         _c_L=U.locations_by_type(obs, units.Protoss.Nexus)
         wholeDis=UnitSize.PylonPower.value+UnitSize.Nexus.value
         if len(_c_L)==1:
@@ -259,59 +195,24 @@ class U(object):
             y_High= screen_h if _c_L[0][1]+wholeDis>=screen_h else _c_L[0][1]+wholeDis
         else:
             x_Low=y_Low=0;x_High=screen_w;y_High=screen_h
-        '''
-        x = randint(0, screen_w)
-        y = randint(0, screen_h)
-        return x, y
-        '''
         while True:
             x = randint(x_Low, x_High)
             y = randint(y_Low, y_High)
             if U.pylon_location_judge(obs,(x,y)):
-=======
-        raw_units = obs._raw_units.get(units.Protoss.Pylon, [])
-        if len(raw_units) > 5:
-            x = randint(0, screen_w)
-            y = randint(0, screen_h)
-            return x, y
-
-        _c_L = U.locations_by_type(obs, units.Protoss.Nexus)
-        wholeDis = UnitSize.PylonPower + UnitSize.Nexus.value
-        if len(_c_L) == 1:
-            x_Low = 0 if _c_L[0][0] - wholeDis <= 0 else _c_L[0][0] - wholeDis
-            y_Low = 0 if _c_L[0][1] - wholeDis <= 0 else _c_L[0][1] - wholeDis
-            x_High = screen_w if _c_L[0][0] + wholeDis >= screen_w else _c_L[0][0] + wholeDis
-            y_High = screen_h if _c_L[0][1] + wholeDis >= screen_h else _c_L[0][1] + wholeDis
-        else:
-            x_Low = y_Low = 0
-            x_High = screen_w
-            y_High = screen_h
-        while True:
-            x = randint(x_Low, x_High)
-            y = randint(y_Low, y_High)
-            if U.pylon_location_judge(obs, (x, y)):
->>>>>>> macro-action
                 return x, y
 
     @staticmethod
     def new_gateway_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-<<<<<<< HEAD
         power_feature = obs.observation['feature_screen'][_POWER_TYPE]
         ys,xs=(power_feature == 1).nonzero();powerMap=list(zip(list(xs),list(ys)))
-        '''
-        x = randint(0, screen_w)
-        y = randint(0, screen_h)
-=======
-        x = randint(screen_w / 4, 3 * screen_w / 4)
-        y = randint(screen_w / 4, 3 * screen_w / 4)
->>>>>>> macro-action
-        return x, y
-        '''
-        while True:
-            x,y=powerMap[randint(0,len(powerMap))]
-            if U.gateway_location_judge(obs,(x,y)):
-                return x, y
+        if len(powerMap)==0:
+            return None
+        else:
+            while True:
+                x,y=powerMap[randint(0,len(powerMap))]
+                if not U.isConquered(obs,(x,y),UnitSize.Gateway):
+                    return x, y
 
     @staticmethod
     def new_assimilator_location(obs):

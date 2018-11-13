@@ -56,19 +56,18 @@ class ProtossStalkerAgent(ProtossBaseAgent):
         return (x,y)
 
     def step(self, obs):
+
         super(ProtossStalkerAgent, self).step(obs)
 
-<<<<<<< HEAD
-        self.information.update([obs])
+        #self.information.update([obs])
         #print(self.information.transform([obs]))
+
+        self._last_obs.update(obs)
+        print(self._last_obs.to_feature())
 
         for tmpUnit in self._ALL_UNIT:
             self.getTypespots(obs,tmpUnit)
 
-=======
-        self._last_obs.update(obs)
-        print(self._last_obs.to_feature())
->>>>>>> macro-action
         # print(obs.observation.last_actions)
         # pylon_progress = [unit.build_progress for unit in obs.observation.raw_units
         #                   if unit.unit_type == units.Protoss.Stalker]
@@ -150,15 +149,9 @@ class ProtossStalkerAgent(ProtossBaseAgent):
                         and len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) < 2:
                     print(PROTOSS_MACROS.Build_Assimilator, adapter.transform([self._last_obs],
                                                                               [PROTOSS_MACROS.Build_Assimilator]))
-<<<<<<< HEAD
                 elif mineral > 150 and self.get_unit_counts(obs, units.Protoss.Gateway) < 1 \
                         and len(power_map)>0:
-                    print(PROTOSS_MACROS.Build_Gateway, adapter.transform([TimestepWrapper(obs, True)],
-=======
-                elif mineral > 150 and self.get_unit_counts(obs, units.Protoss.Gateway) < 1:
-                    print(PROTOSS_MACROS.Build_Gateway, adapter.transform([self._last_obs],
->>>>>>> macro-action
-                                                                          [PROTOSS_MACROS.Build_Gateway]))
+                    print(PROTOSS_MACROS.Build_Gateway, adapter.transform([self._last_obs],[PROTOSS_MACROS.Build_Gateway]))
                     self.actions = PROTOSS_MACROS.Build_Gateway()
                     self.last_build_frame = self.frame
 
