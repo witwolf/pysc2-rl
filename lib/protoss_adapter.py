@@ -45,21 +45,24 @@ class ProtossRewardAdapter(Adapter):
         # check unit requirements
         if action.id in _PROTOSS_UNITS_MACROS:
             unit = _PROTOSS_UNITS_MACROS[action.id]
-            # if resource not enough
-            if minerals < unit.minerals or gas < unit.gas or food < unit.food:
-                return -1
             for requirement in unit.requirement_types:
                 # if requirements miss
                 if requirement not in features:
                     return -1
+            # if worker
+            if unit.unit_type == units.Protoss.Probe:
+                lack_harvesters = sum([unit.ideal_harvesters - unit.assigned_harvesters
+                                       for unit in timestep.observation.raw_units
+                                       if unit.unit_type == units.Protoss.Nexus])
+                nexus_num = timestep.information._self_units[_PROTOSS_BUILDINGS_DICT[units.Protoss.Nexus].id]
+                probe_in_queue =\
+                    len(timestep.information._training_queues[_PROTOSS_UNITS_DICT[units.Protoss.Probe].id])
+                return (lack_harvesters - probe_in_queue) / nexus_num
             return float(unit.minerals + unit.gas + unit.gas) / 1000.0
 
         # check building requirements
         if action.id in _PROTOSS_BUILDINGS_MACROS:
             building = _PROTOSS_BUILDINGS_MACROS[action.id]
-            # if resource not enough
-            if minerals < building.minerals or gas < building.gas:
-                return -1
             for requirement in building.requirement_types:
                 # if requirements miss
                 if requirement not in features:
@@ -68,33 +71,25 @@ class ProtossRewardAdapter(Adapter):
             if building.unit_type not in features:
                 return 1
             # if need food
-            elif building.unit_type == units.Protoss.Pylon and food < 2:
-                return 1
+            elif building.unit_type == units.Protoss.Pylon:
+                # if food urgent, give a big reward
+                if food < 2:
+                    return 10
+                else:
+                    return 1
             else:
                 return np.exp(-features[building.unit_type])
 
         if action.id == PROTOSS_MACROS.Callback_Idle_Workers:
-            full_harvesters = [
-                unit.assigned_harvesters >= unit.ideal_harvesters
-                for unit in timestep.observation.feature_units
-                if unit.unit_type == units.Protoss.Nexus]
-            # not enough mineral harvester, positive reward
-            for full in full_harvesters:
-                if not full:
-                    return 1
-            # full mineral harvester, negative reward
-            return -1
+            if timestep.observation.player.idle_worker_count == 0:
+                return 1
+            else:
+                return -1
 
         if action.id == PROTOSS_MACROS.Collect_Gas:
-            full_harvesters = [unit.assigned_harvesters >= unit.ideal_harvesters
-                               for unit in timestep.observation.feature_units
-                               if unit.unit_type == units.Protoss.Assimilator]
-            # not enough mineral harvester, positive reward
-            for full in full_harvesters:
-                if not full:
-                    return 1
-            # full mineral harvester, negative reward
-            return -1
+            if timestep.information._self_units[_PROTOSS_BUILDINGS_DICT[units.Protoss.Assimilator].id] == 0:
+                return -1
+            return 1
 
         # other function return 0
         return 0
@@ -159,116 +154,103 @@ class ProtossRewardAdapter(Adapter):
 
 
 class ProtossInformationAdapter(Adapter):
-    class DefaultInformation:
-        def __init__(self):
-            self._frame_pass = 0  # second pass
-            self._self_bases = {}  # (location, worker assigned)
-            self._enemy_bases = {}  # (location, worker assigned)
-            self._neutral_bases = {}  # (location, true/false)
-            self._self_units = [0] * len(_PROTOSS_UNITS)  # (type, count)
-            self._enemy_units = {}  # (tag, type)
-            self._self_buildings = [0] * len(_PROTOSS_BUILDINGS)  # (type, count)
-            self._self_upgrades = {}  # (type, true/false)
-            self._training_queues = []
-            for _ in range(len(_PROTOSS_UNITS)):
-                self._training_queues.append([]) # (type, [frames])
-            self._building_queues = [0] * len(_PROTOSS_BUILDINGS)  # (type, queued_count)
-
-        def is_unit(self, unit_type):
-            return unit_type in _PROTOSS_UNITS_DICT
-
-        def is_building(self, unit_type):
-            return unit_type in _PROTOSS_BUILDINGS_DICT
-
-        def is_upgrade(self, action_id):
-            if action_id == FUNCTIONS.Research_Blink_quick.id:
-                return "blink"
-            if action_id == FUNCTIONS.Research_ProtossGroundArmorLevel1_quick.id:
-                return "ground armor 1"
-            if action_id == FUNCTIONS.Research_ProtossGroundWeaponsLevel1_quick.id:
-                return "ground weapon 1"
-            return None
-
-        def update(self, timestep):
-            self._frame_pass += 1
-            self._self_bases.clear()
-            self._enemy_bases.clear()
-            self._neutral_bases.clear()
-
-            # check building queue
-            for bid in range(len(_PROTOSS_BUILDINGS)):
-                last_build_count = self._self_buildings[bid]
-                # current build count
-                build_count = len([unit for unit in timestep.observation.raw_units
-                                   if unit.unit_type == _PROTOSS_BUILDINGS[bid].unit_type and
-                                   unit.alliance == 1])
-                if build_count > last_build_count:
-                    self._building_queues[bid] -= (build_count - last_build_count)
-                if self._building_queues[bid] < 0:
-                    self._building_queues[bid] = 0
-                self._self_buildings[bid] = 0
-
-            # update training queue
-            for uid in range(len(_PROTOSS_UNITS)):
-                index = 0
-                training_queue = self._training_queues[uid]
-                while index < len(training_queue):
-                    training_queue[index] -= 1
-                    if training_queue[index] == 0:
-                        del training_queue[index]
-                    else:
-                        index += 1
-                self._self_units[uid] = 0
-
-            last_actions = timestep.observation.last_actions
-            for last_action in last_actions:
-                # update building queue
-                if last_action in _PROTOSS_BUILDINGS_FUNCTIONS:
-                    bid = _PROTOSS_BUILDINGS_FUNCTIONS[last_action].id
-                    self._building_queues[bid] += 1
-                # update training queue
-                elif last_action in _PROTOSS_UNITS_FUNCTIONS:
-                    uid = _PROTOSS_UNITS_FUNCTIONS[last_action].id
-                    time = _PROTOSS_UNITS_FUNCTIONS[last_action].time
-                    self._training_queues[uid].append(time)
-                # update upgrades
-                upgrade = self.is_upgrade(last_action)
-                if upgrade:
-                    self._self_upgrades[upgrade] = True
-
-            # update unit/building count
-            for unit in timestep.observation.raw_units:
-                if unit.alliance == 1:
-                    # update unit count
-                    if self.is_unit(unit.unit_type):
-                        self._self_units[_PROTOSS_UNITS_DICT[unit.unit_type].id] += 1
-                    # update building count
-                    elif self.is_building(unit.unit_type):
-                        self._self_buildings[_PROTOSS_BUILDINGS_DICT[unit.unit_type].id] += 1
-
-        def to_feature(self):
-            self_bases = [(key, self._self_bases[key]) for key in sorted(self._self_bases.keys())]
-            enemy_bases = [(key, self._enemy_bases[key]) for key in sorted(self._enemy_bases.keys())]
-            neutral_bases = [(key, self._neutral_bases[key]) for key in sorted(self._neutral_bases.keys())]
-            enemy_units = [(key, self._enemy_units[key]) for key in sorted(self._enemy_units.keys())
-                           if self._enemy_units[key] > 0]
-            self_upgrades = [(key, self._self_upgrades[key]) for key in sorted(self._self_upgrades.keys())]
-            return [self._frame_pass] + self_bases + enemy_bases + neutral_bases + self._self_units + \
-                   enemy_units + self._self_buildings + self_upgrades + self._training_queues + \
-                   self._building_queues
-
     def __init__(self, config):
         self._config = config
-        self._informations = []
-        for _ in range(8):
-            self._informations.append(self.DefaultInformation())
+        self._frame_pass = 0  # second pass
+        self._self_bases = {}  # (location, worker assigned)
+        self._enemy_bases = {}  # (location, worker assigned)
+        self._neutral_bases = {}  # (location, true/false)
+        self._self_units = [0] * len(_PROTOSS_UNITS)  # (type, count)
+        self._enemy_units = {}  # (tag, type)
+        self._self_buildings = [0] * len(_PROTOSS_BUILDINGS)  # (type, count)
+        self._self_upgrades = {}  # (type, true/false)
+        self._training_queues = []
+        for _ in range(len(_PROTOSS_UNITS)):
+            self._training_queues.append([]) # (type, [frames])
+        self._building_queues = [0] * len(_PROTOSS_BUILDINGS)  # (type, queued_count)
 
-    def update(self, timesteps):
-        for index, timestep in zip(range(len(timesteps)), timesteps):
-            self._informations[index].update(timestep)
+    def is_unit(self, unit_type):
+        return unit_type in _PROTOSS_UNITS_DICT
 
-    def transform(self, timesteps):
-        return [information.to_feature() for information in self._informations[:len(timesteps)]]
+    def is_building(self, unit_type):
+        return unit_type in _PROTOSS_BUILDINGS_DICT
+
+    def is_upgrade(self, action_id):
+        if action_id == FUNCTIONS.Research_Blink_quick.id:
+            return "blink"
+        if action_id == FUNCTIONS.Research_ProtossGroundArmorLevel1_quick.id:
+            return "ground armor 1"
+        if action_id == FUNCTIONS.Research_ProtossGroundWeaponsLevel1_quick.id:
+            return "ground weapon 1"
+        return None
+
+    def update(self, timestep, step_mul):
+        self._frame_pass += step_mul
+        self._self_bases.clear()
+        self._enemy_bases.clear()
+        self._neutral_bases.clear()
+
+        # check building queue
+        for bid in range(len(_PROTOSS_BUILDINGS)):
+            last_build_count = self._self_buildings[bid]
+            # current build count
+            build_count = len([unit for unit in timestep.observation.raw_units
+                               if unit.unit_type == _PROTOSS_BUILDINGS[bid].unit_type and
+                               unit.alliance == 1])
+            if build_count > last_build_count:
+                self._building_queues[bid] -= (build_count - last_build_count)
+            if self._building_queues[bid] < 0:
+                self._building_queues[bid] = 0
+            self._self_buildings[bid] = 0
+
+        # update training queue
+        for uid in range(len(_PROTOSS_UNITS)):
+            index = 0
+            training_queue = self._training_queues[uid]
+            while index < len(training_queue):
+                training_queue[index] -= 1
+                if training_queue[index] == 0:
+                    del training_queue[index]
+                else:
+                    index += 1
+            self._self_units[uid] = 0
+
+        last_actions = timestep.observation.last_actions
+        for last_action in last_actions:
+            # update building queue
+            if last_action in _PROTOSS_BUILDINGS_FUNCTIONS:
+                bid = _PROTOSS_BUILDINGS_FUNCTIONS[last_action].id
+                self._building_queues[bid] += 1
+            # update training queue
+            elif last_action in _PROTOSS_UNITS_FUNCTIONS:
+                uid = _PROTOSS_UNITS_FUNCTIONS[last_action].id
+                time = _PROTOSS_UNITS_FUNCTIONS[last_action].time
+                self._training_queues[uid].append(time)
+            # update upgrades
+            upgrade = self.is_upgrade(last_action)
+            if upgrade:
+                self._self_upgrades[upgrade] = True
+
+        # update unit/building count
+        for unit in timestep.observation.raw_units:
+            if unit.alliance == 1:
+                # update unit count
+                if self.is_unit(unit.unit_type):
+                    self._self_units[_PROTOSS_UNITS_DICT[unit.unit_type].id] += 1
+                # update building count
+                elif self.is_building(unit.unit_type):
+                    self._self_buildings[_PROTOSS_BUILDINGS_DICT[unit.unit_type].id] += 1
+
+    def transform(self):
+        self_bases = [(key, self._self_bases[key]) for key in sorted(self._self_bases.keys())]
+        enemy_bases = [(key, self._enemy_bases[key]) for key in sorted(self._enemy_bases.keys())]
+        neutral_bases = [(key, self._neutral_bases[key]) for key in sorted(self._neutral_bases.keys())]
+        enemy_units = [(key, self._enemy_units[key]) for key in sorted(self._enemy_units.keys())
+                       if self._enemy_units[key] > 0]
+        self_upgrades = [(key, self._self_upgrades[key]) for key in sorted(self._self_upgrades.keys())]
+        return [self._frame_pass] + self_bases + enemy_bases + neutral_bases + self._self_units + \
+               enemy_units + self._self_buildings + self_upgrades + self._training_queues + \
+               self._building_queues
 
     def reverse(self, *args, **kwargs):
         raise NotImplementedError()
