@@ -5,6 +5,9 @@
 
 import logging
 from pysc2.env import sc2_env
+import sys
+sys.path.append('.')
+from lib.protoss_adapter import ProtossInformationAdapter
 
 
 def default_macro_env_maker(kwargs):
@@ -87,10 +90,12 @@ class MacroEnv(sc2_env.SC2Env):
 
         self._debug = debug
         self._last_obs = None
+        self._information = ProtossInformationAdapter(None)
 
     def reset(self):
         obs = super().reset()
         self._last_obs = obs
+        self._information = ProtossInformationAdapter(None)
         return obs
 
     def step(self, macros, update_observation=None):
@@ -115,8 +120,9 @@ class MacroEnv(sc2_env.SC2Env):
         """
 
         class TimestepWrapper:
-            def __init__(self, timestep, success):
+            def __init__(self, timestep, information, success):
                 self._timestep = timestep
+                self.information = information
                 self.macro_success = success
 
             def __getattr__(self, item):
@@ -130,10 +136,11 @@ class MacroEnv(sc2_env.SC2Env):
                 if self._debug:
                     logging.warning("%s not available,  macro: %s",
                                     act_func.id, macro)
-                    return [TimestepWrapper(obs, False)]
+                    return [TimestepWrapper(obs, self._information, False)]
             args = arg_func(obs)
             act = (act_func(*args),)
             self._last_obs = super().step(act, update_observation)
+            self._information.update(obs, self._step_mul)
 
             #  TODO remove this check temporary
 
@@ -147,4 +154,4 @@ class MacroEnv(sc2_env.SC2Env):
 
         if self._debug:
             logging.warning("%s execute success", macro)
-        return [TimestepWrapper(self._last_obs[0], True)]
+        return [TimestepWrapper(self._last_obs[0], self._information, True)]

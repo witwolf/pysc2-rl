@@ -15,6 +15,17 @@ from lib.protoss_unit import *
 from pysc2.lib.actions import FUNCTIONS
 
 
+class UnitSize(enum.IntEnum):
+    '''units' radius'''
+    Nexus = 10
+    Pylon = 4
+    Assimilator = 6
+    Gateway = 7
+    CyberneticsCore = 7
+    PylonPower = 23
+    Stalker = 2
+
+
 class U(object):
     @staticmethod
     def screen_size(obs):
@@ -114,11 +125,70 @@ class U(object):
         return 1, 1
 
     @staticmethod
+    def getDistance(pot1, pot2):
+        pot1 = np.array(pot1);
+        pot2 = np.array(pot2)
+        if len(pot1) == 1 and len(pot2) == 1:
+            tmp = np.linalg.norm(pot1 - pot2)
+        elif (len(pot1) == 1 and len(pot2) > 1) or (len(pot1) > 1 and len(pot2) == 1):
+            tmp = np.sqrt(np.sum(np.asarray(pot1 - pot2) ** 2, axis=1))
+        return tmp
+
+    ''' will be completed'''
+
+    @staticmethod
+    def near_away(pot, n_a_pot):
+        nearPot = n_a_pot[0];
+        awayPot = n_a_pot[1]
+        p_n = U.getDistance(pot, nearPot)
+        p_a = U.getDistance(pot, awayPot)
+        n_a = U.getDistance(nearPot, awayPot)
+        return True
+
+    @staticmethod
+    def pylon_location_judge(obs, pot):
+        # c_l:centerLoaction,_m_l:mineralsLocation,_g_l:gasLocation,_py_l:pylonLocation
+        _c_L = U.locations_by_type(obs, units.Protoss.Nexus)
+        _m_L = U.locations_by_type(obs, units.Neutral.MineralField)
+        _g_L = U.locations_by_type(obs, units.Neutral.VespeneGeyser)
+        _py_L = [list(pot)]
+        if len(_c_L) == 0 or len(_g_L) == 0 or len(_m_L) == 0:
+            return True
+        distance = U.getDistance(_c_L, _py_L)
+        if distance > (UnitSize.PylonPower.value - UnitSize.Nexus.value) and \
+                distance < U.getDistance(_g_L, _py_L).min() and \
+                distance < U.getDistance(_m_L, _py_L).min() and \
+                distance < (UnitSize.PylonPower.value + UnitSize.Nexus.value):
+            return True
+        else:
+            return False
+
+    @staticmethod
     def new_pylon_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        x = randint(screen_w / 4, 3 * screen_w / 4)
-        y = randint(screen_w / 4, 3 * screen_w / 4)
-        return x, y
+
+        if len([unit for unit in obs.observation.raw_units
+                if unit.unit_type == units.Protoss.Pylon and unit.alliance == 1]) > 5:
+            x = randint(0, screen_w)
+            y = randint(0, screen_h)
+            return x, y
+
+        _c_L = U.locations_by_type(obs, units.Protoss.Nexus)
+        wholeDis = UnitSize.PylonPower + UnitSize.Nexus.value
+        if len(_c_L) == 1:
+            x_Low = 0 if _c_L[0][0] - wholeDis <= 0 else _c_L[0][0] - wholeDis
+            y_Low = 0 if _c_L[0][1] - wholeDis <= 0 else _c_L[0][1] - wholeDis
+            x_High = screen_w if _c_L[0][0] + wholeDis >= screen_w else _c_L[0][0] + wholeDis
+            y_High = screen_h if _c_L[0][1] + wholeDis >= screen_h else _c_L[0][1] + wholeDis
+        else:
+            x_Low = y_Low = 0
+            x_High = screen_w
+            y_High = screen_h
+        while True:
+            x = randint(x_Low, x_High)
+            y = randint(y_Low, y_High)
+            if U.pylon_location_judge(obs, (x, y)):
+                return x, y
 
     @staticmethod
     def new_gateway_location(obs):
