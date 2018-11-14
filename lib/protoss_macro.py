@@ -80,8 +80,10 @@ class U(object):
         return locations
 
     @staticmethod
-    def rand_unit_location(obs, unit_type):
+    def rand_unit_location(obs, unit_type, _filter=None):
         feature_units = obs._feature_units_completed.get(unit_type, [])
+        if _filter:
+            feature_units = list(filter(_filter, feature_units))
         if (len(feature_units)) == 0:
             logging.warning("No units, unit_type:%d" % unit_type)
             return 0, 0
@@ -90,11 +92,18 @@ class U(object):
         return U._valid_screen_x_y(x, y, obs)
 
     @staticmethod
-    def rand_minimap_unit_location(obs, unit_type):
+    def minimap_units(obs, unit_type, _filter=None):
         minimap_units = obs._minimap_units_completed.get(unit_type, [])
+        if _filter:
+            minimap_units = list(filter(_filter, minimap_units))
+        return minimap_units
+
+    @staticmethod
+    def rand_minimap_unit_location(obs, unit_type, _filter=None):
+        minimap_units = U.minimap_units(obs, unit_type, _filter)
         if len(minimap_units) == 0:
             logging.warning("No raw units, unit_type:%d", unit_type)
-            return U.base_minimap_location(obs)
+            return None
         minimap_unit = minimap_units[randint(0, len(minimap_units))]
         return minimap_unit.x, minimap_unit.y
 
@@ -117,7 +126,7 @@ class U(object):
         return None
 
     @staticmethod
-    def getDistance(pot1, pot2):
+    def get_distance(pot1, pot2):
         pot1 = np.array(pot1);
         pot2 = np.array(pot2)
         if len(pot1) == 1 and len(pot2) == 1:
@@ -132,9 +141,9 @@ class U(object):
     def near_away(pot, n_a_pot):
         nearPot = n_a_pot[0];
         awayPot = n_a_pot[1]
-        p_n = U.getDistance(pot, nearPot)
-        p_a = U.getDistance(pot, awayPot)
-        n_a = U.getDistance(nearPot, awayPot)
+        p_n = U.get_distance(pot, nearPot)
+        p_a = U.get_distance(pot, awayPot)
+        n_a = U.get_distance(nearPot, awayPot)
         return True
 
     @staticmethod
@@ -146,10 +155,10 @@ class U(object):
         _py_L = [list(pot)]
         if len(_c_L) == 0 or len(_g_L) == 0 or len(_m_L) == 0:
             return True
-        if U.getDistance(_c_L, _py_L) > (UnitSize.PylonPower.value - UnitSize.Nexus.value) \
-                and U.getDistance(_c_L, _py_L) < U.getDistance(_g_L, _py_L).min() \
-                and U.getDistance(_c_L, _py_L) < U.getDistance(_m_L, _py_L).min() \
-                and U.getDistance(_c_L, _py_L) < (UnitSize.PylonPower.value + UnitSize.Nexus.value):
+        if U.get_distance(_c_L, _py_L) > (UnitSize.PylonPower.value - UnitSize.Nexus.value) \
+                and U.get_distance(_c_L, _py_L) < U.get_distance(_g_L, _py_L).min() \
+                and U.get_distance(_c_L, _py_L) < U.get_distance(_m_L, _py_L).min() \
+                and U.get_distance(_c_L, _py_L) < (UnitSize.PylonPower.value + UnitSize.Nexus.value):
             return True
         else:
             return False
@@ -166,7 +175,7 @@ class U(object):
         y_Low = 0 if pot[1] - unitSize_type.value <= 0 else pot[1] - unitSize_type.value
         y_High = screen_h if pot[1] + unitSize_type.value >= screen_h else pot[1] + unitSize_type.value
         if (x_High - x_Low) * (y_High - y_Low) > len(potMap):
-            dists = U.getDistance([list(pot)], potMap)
+            dists = U.get_distance([list(pot)], potMap)
             if dists.min() > unitSize_type.value:
                 return False
             else:
@@ -175,7 +184,7 @@ class U(object):
             for i in range(x_Low, x_High + 1):
                 for j in range(y_Low, y_High + 1):
                     if (i, j) in potMap:
-                        if U.getDistance([list((i, j))], [list(pot)]) < unitSize_type.value:
+                        if U.get_distance([list((i, j))], [list(pot)]) < unitSize_type.value:
                             return True
             return False
 
@@ -433,6 +442,11 @@ class U(object):
                 obs.observation.player.minerals >= Assimilator.minerals)
 
     @staticmethod
+    def _max_order_filter(length):
+        l = lambda u: u.order_length < length
+        return l
+
+    @staticmethod
     def can_build_cyberneticscore(obs):
         for building in CyberneticsCore.requirement_types:
             if len(U._all_raw_units(obs, building)) == 0:
@@ -440,15 +454,17 @@ class U(object):
         return obs.observation.player.minerals >= CyberneticsCore.minerals
 
     @staticmethod
-    def can_training_probe(obs):
-        if len(U._all_raw_units(obs, Probe.build_type)) == 0:
+    def can_train_probe(obs):
+        f = U._max_order_filter(5)
+        if len(U.minimap_units(obs, Probe.build_type, _filter=f)) == 0:
             return False
         minerals, vespene, food = U._resources(obs)
         return minerals >= Probe.minerals and food >= Probe.food
 
     @staticmethod
     def can_train_zealot(obs):
-        if len(U._all_raw_units(obs, Zealot.build_type)) == 0:
+        if len(U.minimap_units(
+                obs, Zealot.build_type, U._max_order_filter(5))) == 0:
             return False
         minerals, _, food = U._resources(obs)
         return minerals >= Zealot.minerals and food >= Zealot.food
@@ -456,7 +472,8 @@ class U(object):
     @staticmethod
     def can_train_stalker(obs):
         # check build unit
-        if len(U._all_raw_units(obs, Stalker.build_type)) == 0:
+        if len(U.minimap_units(
+                obs, Stalker.build_type, U._max_order_filter(5))) == 0:
             return False
         minerals, vespene, food = U._resources(obs)
         return minerals >= Stalker.minerals and \
@@ -554,11 +571,12 @@ def training_a_probe():
         # train a zealot
         FUNCTIONS.Train_Probe_quick]
     funcs_args = [
-        lambda obs: (U.rand_minimap_unit_location(obs, units.Protoss.Nexus),),
+        lambda obs: (U.rand_minimap_unit_location(
+            obs, units.Protoss.Nexus, U._max_order_filter(5)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
-            obs, units.Protoss.Nexus)),
+            obs, units.Protoss.Nexus, U._max_order_filter(5))),
         lambda obs: ("now",)]
-    cond = U.can_training_probe
+    cond = U.can_train_probe
     return cond, funcs, funcs_args
 
 
@@ -571,9 +589,10 @@ def training_a_zealot():
         # train a zealot
         FUNCTIONS.Train_Zealot_quick]
     funcs_args = [
-        lambda obs: (U.rand_minimap_unit_location(obs, units.Protoss.Gateway),),
+        lambda obs: (U.rand_minimap_unit_location(
+            obs, units.Protoss.Gateway, U._max_order_filter(5)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
-            obs, units.Protoss.Gateway)),
+            obs, units.Protoss.Gateway, U._max_order_filter(5))),
         lambda obs: ("now",)]
     cond = U.can_train_zealot
     return cond, funcs, funcs_args
@@ -588,9 +607,10 @@ def training_a_stalker():
         # train a stalker
         FUNCTIONS.Train_Stalker_quick]
     funcs_args = [
-        lambda obs: (U.rand_minimap_unit_location(obs, units.Protoss.Gateway),),
+        lambda obs: (U.rand_minimap_unit_location(
+            obs, units.Protoss.Gateway, U._max_order_filter(5)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
-            obs, units.Protoss.Gateway)),
+            obs, units.Protoss.Gateway, U._max_order_filter(5))),
         lambda obs: ("now",)]
     cond = U.can_train_stalker
     return cond, funcs, funcs_args
