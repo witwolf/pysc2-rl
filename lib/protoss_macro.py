@@ -81,7 +81,7 @@ class U(object):
 
     @staticmethod
     def rand_unit_location(obs, unit_type):
-        feature_units = obs._feature_units.get(unit_type, [])
+        feature_units = obs._feature_units_completed.get(unit_type, [])
         if (len(feature_units)) == 0:
             logging.warning("No units, unit_type:%d" % unit_type)
             return 0, 0
@@ -91,7 +91,7 @@ class U(object):
 
     @staticmethod
     def rand_minimap_unit_location(obs, unit_type):
-        minimap_units = obs._minimap_units.get(unit_type, [])
+        minimap_units = obs._minimap_units_completed.get(unit_type, [])
         if len(minimap_units) == 0:
             logging.warning("No raw units, unit_type:%d", unit_type)
             return U.base_minimap_location(obs)
