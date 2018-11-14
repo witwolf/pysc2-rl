@@ -21,7 +21,7 @@ class Unit:
 class Building:
     def __init__(self, id,
                  build_type, unit_type, requirement_types,
-                 minerals, gas, time):
+                 minerals, gas, time, trainable):
         self.id = id
         self.build_type = build_type
         self.unit_type = unit_type
@@ -29,6 +29,7 @@ class Building:
         self.minerals = minerals
         self.gas = gas
         self.time = time
+        self.trainable = trainable
 
 
 # protoss units
@@ -187,116 +188,116 @@ Nexus = Building(
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.Nexus,
     requirement_types=[], minerals=400,
-    gas=0, time=71)
+    gas=0, time=71, trainable=True)
 
 Pylon = Building(
     id=1,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.Pylon,
     requirement_types=[], minerals=100,
-    gas=0, time=100)
+    gas=0, time=100, trainable=False)
 
 Assimilator = Building(
     id=2,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.Assimilator,
     requirement_types=[],
-    minerals=75, gas=0, time=120)
+    minerals=75, gas=0, time=120, trainable=False)
 
 Gateway = Building(
     id=3,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.Gateway,
     requirement_types=[units.Protoss.Nexus, units.Protoss.Pylon],
-    minerals=150, gas=0, time=260)
+    minerals=150, gas=0, time=260, trainable=True)
 
 WarpGate = Building(
     id=4,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.WarpGate,
     requirement_types=[units.Protoss.Gateway],
-    minerals=0, gas=0, time=7)
+    minerals=0, gas=0, time=7, trainable=True)
 
 Forge = Building(
     id=5,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.Forge,
     requirement_types=[units.Protoss.Nexus],
-    minerals=150, gas=0, time=32)
+    minerals=150, gas=0, time=32, trainable=False)
 
 CyberneticsCore = Building(
     id=6,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.CyberneticsCore,
     requirement_types=[units.Protoss.Gateway],
-    minerals=150, gas=0, time=200)
+    minerals=150, gas=0, time=200, trainable=False)
 
 PhotonCannon = Building(
     id=7,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.PhotonCannon,
     requirement_types=[units.Protoss.Forge],
-    minerals=150, gas=0, time=29)
+    minerals=150, gas=0, time=29, trainable=False)
 
 ShieldBattery = Building(
     id=8,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.ShieldBattery,
     requirement_types=[units.Protoss.CyberneticsCore],
-    minerals=100, gas=0, time=29)
+    minerals=100, gas=0, time=29, trainable=False)
 
 RoboticsFacility = Building(
     id=9,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.RoboticsFacility,
     requirement_types=[units.Protoss.CyberneticsCore],
-    minerals=200, gas=100, time=46)
+    minerals=200, gas=100, time=46, trainable=True)
 
 Stargate = Building(
     id=10,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.Stargate,
     requirement_types=[units.Protoss.CyberneticsCore],
-    minerals=150, gas=100, time=43)
+    minerals=150, gas=100, time=43, trainable=True)
 
 TwilightCouncil = Building(
     id=11,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.TwilightCouncil,
     requirement_types=[units.Protoss.CyberneticsCore],
-    minerals=150, gas=100, time=36)
+    minerals=150, gas=100, time=36, trainable=False)
 
 RoboticsBay = Building(
     id=12,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.RoboticsBay,
     requirement_types=[units.Protoss.RoboticsFacility],
-    minerals=200, gas=200, time=46)
+    minerals=200, gas=200, time=46, trainable=False)
 
 FleetBeacon = Building(
     id=13,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.FleetBeacon,
     requirement_types=[units.Protoss.Stargate],
-    minerals=300, gas=200, time=43)
+    minerals=300, gas=200, time=43, trainable=False)
 
 TemplarArchive = Building(
     id=14,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.TemplarArchive,
     requirement_types=[units.Protoss.TwilightCouncil],
-    minerals=150, gas=200, time=36)
+    minerals=150, gas=200, time=36, trainable=False)
 
 DarkShrine = Building(
     id=15,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.DarkShrine,
     requirement_types=[units.Protoss.TwilightCouncil],
-    minerals=150, gas=150, time=71)
+    minerals=150, gas=150, time=71, trainable=False)
 
 StasisTrap = Building(
     id=16,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.StasisTrap,
     requirement_types=[],
-    minerals=0, gas=0, time=4)
+    minerals=0, gas=0, time=4, trainable=False)
