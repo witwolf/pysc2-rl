@@ -52,7 +52,7 @@ class A2CExperiment(DistributedExperiment):
         with agent.create_session(**self.tf_sess_opts(global_args)):
             env = ParallelEnvs(
                 env_num=local_args.env_num,
-                env_args=env_args) if global_args.train else None
+                env_args=env_args)
             obs_adapter = ObservationAdapter(config)
             act_adapter = ActionAdapter(config)
             env_runner = EnvRunner(
