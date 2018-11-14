@@ -60,7 +60,7 @@ class A2CProtossExperiment(DistributedExperiment):
             env = ParallelEnvs(
                 env_makers=default_macro_env_maker,
                 env_num=local_args.env_num,
-                env_args=env_args) if global_args.train else None
+                env_args=env_args)
             obs_adapter = ObservationAdapter(config)
             act_adapter = MacroAdapter(config)
             rwd_adapter = RewardAdapter(config, 8)
