@@ -17,12 +17,13 @@ from lib.protoss_unit import *
 from pysc2.lib.actions import FUNCTIONS
 from pysc2.lib import actions, features, units
 
+
 _PRO=units.Protoss
 _UNIT_TYPE = features.SCREEN_FEATURES.unit_type.index
 _POWER_TYPE = features.SCREEN_FEATURES.power.index
 
-_UNIT_TYPE = features.SCREEN_FEATURES.unit_type.index
-_POWER_TYPE = features.SCREEN_FEATURES.power.index
+
+
 
 class UnitSize(enum.IntEnum):
     '''units' radius'''
@@ -85,8 +86,10 @@ class U(object):
         return locations
 
     @staticmethod
-    def rand_unit_location(obs, unit_type):
-        feature_units = obs._feature_units.get(unit_type, [])
+    def rand_unit_location(obs, unit_type, _filter=None):
+        feature_units = obs._feature_units_completed.get(unit_type, [])
+        if _filter:
+            feature_units = list(filter(_filter, feature_units))
         if (len(feature_units)) == 0:
             logging.warning("No units, unit_type:%d" % unit_type)
             return 0, 0
@@ -95,11 +98,18 @@ class U(object):
         return U._valid_screen_x_y(x, y, obs)
 
     @staticmethod
-    def rand_minimap_unit_location(obs, unit_type):
-        minimap_units = obs._minimap_units.get(unit_type, [])
+    def minimap_units(obs, unit_type, _filter=None):
+        minimap_units = obs._minimap_units_completed.get(unit_type, [])
+        if _filter:
+            minimap_units = list(filter(_filter, minimap_units))
+        return minimap_units
+
+    @staticmethod
+    def rand_minimap_unit_location(obs, unit_type, _filter=None):
+        minimap_units = U.minimap_units(obs, unit_type, _filter)
         if len(minimap_units) == 0:
             logging.warning("No raw units, unit_type:%d", unit_type)
-            return U.base_minimap_location(obs)
+            return None
         minimap_unit = minimap_units[randint(0, len(minimap_units))]
         return minimap_unit.x, minimap_unit.y
 
@@ -122,15 +132,17 @@ class U(object):
         return None
 
     @staticmethod
-    def get_distance(pot1,pot2):
-        pot1=np.array(pot1);pot2=np.array(pot2)
-        if len(pot1)==1 and len(pot2)==1:
-            tmp=np.linalg.norm(pot1-pot2)
-        elif (len(pot1)==1 and len(pot2)>1) or (len(pot1)>1 and len(pot2)==1):
-            tmp=np.sqrt(np.sum(np.asarray(pot1 - pot2)**2, axis=1))
+    def get_distance(pot1, pot2):
+        pot1 = np.array(pot1);
+        pot2 = np.array(pot2)
+        if len(pot1) == 1 and len(pot2) == 1:
+            tmp = np.linalg.norm(pot1 - pot2)
+        elif (len(pot1) == 1 and len(pot2) > 1) or (len(pot1) > 1 and len(pot2) == 1):
+            tmp = np.sqrt(np.sum(np.asarray(pot1 - pot2) ** 2, axis=1))
         return tmp
 
     ''' will be completed'''
+
     @staticmethod
     def near_away(pot,n_a_pot):
         nearPot=n_a_pot[0];awayPot=n_a_pot[1]
@@ -255,19 +267,16 @@ class U(object):
         (x,y)=U.get_pylon_location(obs)
         return x,y
 
-
     @staticmethod
     def new_gateway_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        power_feature = obs.observation['feature_screen'][_POWER_TYPE]
-        ys,xs=(power_feature == 1).nonzero()
-        powerMap=list(zip(list(xs),list(ys)))
-        if len(powerMap) == 0:
+        power_map = obs.observation.power_map
+        if len(power_map) == 0:
             return None
         try_time = 0
         while try_time < 100:
-            x,y=powerMap[randint(0,len(powerMap))]
-            if U.building_location_judge(obs,(x,y),UnitSize.Gateway):
+            x, y = power_map[randint(0, len(power_map))]
+            if U.building_location_judge(obs, (x, y), UnitSize.Gateway):
                 return x, y
             try_time += 1
         return randint(0, screen_w), randint(0, screen_h)
@@ -286,15 +295,13 @@ class U(object):
     @staticmethod
     def new_cyberneticscore_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        power_feature = obs.observation['feature_screen'][_POWER_TYPE]
-        ys,xs=(power_feature == 1).nonzero()
-        powerMap=list(zip(list(xs),list(ys)))
-        if len(powerMap) == 0:
+        power_map = obs.observation.power_map
+        if len(power_map) == 0:
             return None
         try_time = 0
         while try_time < 100:
-            x,y=powerMap[randint(0,len(powerMap))]
-            if U.building_location_judge(obs,(x,y),UnitSize.CyberneticsCore):
+            x, y = power_map[randint(0, len(power_map))]
+            if U.building_location_judge(obs, (x, y), UnitSize.CyberneticsCore):
                 return x, y
             try_time += 1
         return randint(0, screen_w), randint(0, screen_h)
@@ -310,7 +317,6 @@ class U(object):
 
     @staticmethod
     def gas_location(obs):
-        _feature_units = obs.observation.feature_units
         assimilator_type = units.Protoss.Assimilator
         assimilators = obs._feature_units_completed.get(assimilator_type, [])
         for assimilator in assimilators:
@@ -474,6 +480,11 @@ class U(object):
                 obs.observation.player.minerals >= Assimilator.minerals)
 
     @staticmethod
+    def _max_order_filter(length):
+        l = lambda u: u.order_length < length
+        return l
+
+    @staticmethod
     def can_build_cyberneticscore(obs):
         for building in CyberneticsCore.requirement_types:
             if len(U._all_raw_units(obs, building)) == 0:
@@ -481,15 +492,17 @@ class U(object):
         return obs.observation.player.minerals >= CyberneticsCore.minerals
 
     @staticmethod
-    def can_training_probe(obs):
-        if len(U._all_raw_units(obs, Probe.build_type)) == 0:
+    def can_train_probe(obs):
+        f = U._max_order_filter(5)
+        if len(U.minimap_units(obs, Probe.build_type, _filter=f)) == 0:
             return False
         minerals, vespene, food = U._resources(obs)
         return minerals >= Probe.minerals and food >= Probe.food
 
     @staticmethod
     def can_train_zealot(obs):
-        if len(U._all_raw_units(obs, Zealot.build_type)) == 0:
+        if len(U.minimap_units(
+                obs, Zealot.build_type, U._max_order_filter(5))) == 0:
             return False
         minerals, _, food = U._resources(obs)
         return minerals >= Zealot.minerals and food >= Zealot.food
@@ -497,7 +510,8 @@ class U(object):
     @staticmethod
     def can_train_stalker(obs):
         # check build unit
-        if len(U._all_raw_units(obs, Stalker.build_type)) == 0:
+        if len(U.minimap_units(
+                obs, Stalker.build_type, U._max_order_filter(5))) == 0:
             return False
         minerals, vespene, food = U._resources(obs)
         return minerals >= Stalker.minerals and \
@@ -507,6 +521,15 @@ class U(object):
     @staticmethod
     def can_select_army(obs):
         return FUNCTIONS.select_army.id in obs.observation.available_actions
+
+    @staticmethod
+    def can_collect_gas(obs):
+        assimilator_type = units.Protoss.Assimilator
+        assimilators = obs._feature_units_completed.get(assimilator_type, [])
+        for assimilator in assimilators:
+            if assimilator.assigned_harvesters < 3:
+                return True
+        return False
 
 
 def build_a_pylon():
@@ -586,11 +609,12 @@ def training_a_probe():
         # train a zealot
         FUNCTIONS.Train_Probe_quick]
     funcs_args = [
-        lambda obs: (U.rand_minimap_unit_location(obs, units.Protoss.Nexus),),
+        lambda obs: (U.rand_minimap_unit_location(
+            obs, units.Protoss.Nexus, U._max_order_filter(5)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
-            obs, units.Protoss.Nexus)),
+            obs, units.Protoss.Nexus, U._max_order_filter(5))),
         lambda obs: ("now",)]
-    cond = U.can_training_probe
+    cond = U.can_train_probe
     return cond, funcs, funcs_args
 
 
@@ -603,9 +627,10 @@ def training_a_zealot():
         # train a zealot
         FUNCTIONS.Train_Zealot_quick]
     funcs_args = [
-        lambda obs: (U.rand_minimap_unit_location(obs, units.Protoss.Gateway),),
+        lambda obs: (U.rand_minimap_unit_location(
+            obs, units.Protoss.Gateway, U._max_order_filter(5)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
-            obs, units.Protoss.Gateway)),
+            obs, units.Protoss.Gateway, U._max_order_filter(5))),
         lambda obs: ("now",)]
     cond = U.can_train_zealot
     return cond, funcs, funcs_args
@@ -620,9 +645,10 @@ def training_a_stalker():
         # train a stalker
         FUNCTIONS.Train_Stalker_quick]
     funcs_args = [
-        lambda obs: (U.rand_minimap_unit_location(obs, units.Protoss.Gateway),),
+        lambda obs: (U.rand_minimap_unit_location(
+            obs, units.Protoss.Gateway, U._max_order_filter(5)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
-            obs, units.Protoss.Gateway)),
+            obs, units.Protoss.Gateway, U._max_order_filter(5))),
         lambda obs: ("now",)]
     cond = U.can_train_stalker
     return cond, funcs, funcs_args
@@ -662,7 +688,7 @@ def collect_minerals():
 
 
 def collect_gas():
-    cond = lambda obs: True
+    cond = U.can_collect_gas
     funcs = [
         # move camera to base
         FUNCTIONS.move_camera,

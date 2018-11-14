@@ -33,12 +33,12 @@ class FCNNetwork():
         policies = []
         act_dim, _ = policy_dims[0]
         act_policy = layers.fully_connected(
-            fc, num_outputs=act_dim, activation_fn=None, scope='act_policy')
-        available_actions = 1
+            fc, num_outputs=act_dim, scope='act_policy',
+            activation_fn=tf.nn.softmax)
         if 'available_actions' in config._non_spatial_index_table:
             available_actions = non_spatial_input[
                 config._non_spatial_index_table['available_actions']]
-        act_policy = tf.nn.softmax(act_policy * available_actions)
+            act_policy = FCNNetwork.mask_probs(act_policy, available_actions)
         policies.append(act_policy)
 
         for arg_dim, is_spatial in policy_dims[1:]:
@@ -112,3 +112,9 @@ class FCNNetwork():
         u = tf.random_uniform(tf.shape(probs))
         clipped_u = tf.clip_by_value(u, 1e-12, 1.0)
         return tf.argmax(tf.log(clipped_u) / probs, axis=1)
+
+    @staticmethod
+    def mask_probs(probs, mask):
+        masked = probs * mask
+        masked_sum = tf.reduce_sum(masked, axis=1, keep_dims=True)
+        return masked / tf.clip_by_value(masked_sum, 1e-12, 1.0)

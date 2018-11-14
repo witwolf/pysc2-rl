@@ -37,6 +37,7 @@ class A2CProtossExperiment(DistributedExperiment):
         parser.add_argument("--lr", type=float, default=7e-4)
         parser.add_argument("--visualize", type=ast.literal_eval, default=False)
         parser.add_argument("--debug", type=ast.literal_eval, default=False)
+        parser.add_argument("--mode", type=str, default='multi_thread')
         args, _ = parser.parse_known_args()
         self._local_args = args
 
@@ -57,10 +58,11 @@ class A2CProtossExperiment(DistributedExperiment):
                 lr=local_args.lr, td_step=local_args.td_step,
                 ent_coef=local_args.ent_coef, v_coef=local_args.v_coef)
         with agent.create_session(**self.tf_sess_opts(global_args)):
-            env = ParallelEnvs(
+            env = ParallelEnvs.new(
+                mode=local_args.mode,
                 env_makers=default_macro_env_maker,
                 env_num=local_args.env_num,
-                env_args=env_args) if global_args.train else None
+                env_args=env_args)
             obs_adapter = ObservationAdapter(config)
             act_adapter = MacroAdapter(config)
             rwd_adapter = RewardAdapter(config, 8)

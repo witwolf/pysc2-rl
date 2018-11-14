@@ -18,7 +18,7 @@ class TestParallelEnv(utils.TestCase):
             'step_mul': 8
         }
         env_num = 2
-        parallel_envs = ParallelEnvs(env_num=env_num, env_args=env_arg)
+        parallel_envs = ParallelEnvs.new(env_num=env_num, env_args=env_arg)
         agent_cls = [MoveToBeacon, RandomAgent]
         agents = [agent_cls[randint(0, 1)]() for _ in range(env_num)]
 

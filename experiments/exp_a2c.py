@@ -34,6 +34,7 @@ class A2CExperiment(DistributedExperiment):
         parser.add_argument("--v_coef", type=float, default=0.25)
         parser.add_argument("--ent_coef", type=float, default=1e-3)
         parser.add_argument("--lr", type=float, default=7e-4)
+        parser.add_argument("--mode", type=str, default='multi_thread')
         parser.add_argument("--visualize", type=ast.literal_eval, default=False)
         args, _ = parser.parse_known_args()
         self._local_args = args
@@ -50,9 +51,10 @@ class A2CExperiment(DistributedExperiment):
                 lr=local_args.lr, td_step=local_args.td_step,
                 ent_coef=local_args.ent_coef, v_coef=local_args.v_coef)
         with agent.create_session(**self.tf_sess_opts(global_args)):
-            env = ParallelEnvs(
+            env = ParallelEnvs.new(
+                mode=local_args.mode,
                 env_num=local_args.env_num,
-                env_args=env_args) if global_args.train else None
+                env_args=env_args)
             obs_adapter = ObservationAdapter(config)
             act_adapter = ActionAdapter(config)
             env_runner = EnvRunner(

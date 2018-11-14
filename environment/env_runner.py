@@ -47,12 +47,13 @@ class EnvRunner(object):
         for step_i in range(self._step_n):
             states.append(ss)
             timestamps.extend(self._obs)
-            acts = self._agent.step(state=ss, obs=self._obs)
+            acts_or_funcs = self._agent.step(
+                state=ss, obs=self._obs, evaluate=not self._train)
+            acts, func_calls = self._acts_funcs(acts_or_funcs)
             if not actions:
                 actions = [[] for _ in range(len(acts))]
             for c, e in zip(actions, acts):
                 c.append(e)
-            func_calls = self._act_adapter.reverse(acts)
             self._obs = self._env.step([(f,) for f in func_calls])
             ss, rs, ds, _ = self._obs_adapter.transform(self._obs)
             if self._reward_adapter:
@@ -69,6 +70,15 @@ class EnvRunner(object):
                      np.concatenate(dones, axis=0), timestamps)
             summary, step = self._agent.update(*batch)
             self._summary(summary=summary, step=step)
+
+    def _acts_funcs(self, acts_or_funcs):
+        if isinstance(acts_or_funcs[0], tuple):
+            funcs = acts_or_funcs
+            acts = self._act_adapter.transform(funcs)
+        else:
+            acts = acts_or_funcs
+            funcs = self._act_adapter.reverse(acts)
+        return acts, funcs
 
     def _flatten_state(self, states):
         columns = len(states[0])
