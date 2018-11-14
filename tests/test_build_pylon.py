@@ -1,3 +1,7 @@
+import sys
+import math
+import numpy as np
+sys.path.append('.')
 import random
 import numpy as np
 from absl import app
@@ -6,6 +10,14 @@ from pysc2.env import sc2_env
 from pysc2.lib import actions, features, units
 import enum
 import math
+from pysc2.lib import actions, features, units
+from pysc2.lib.actions import FUNCTIONS
+from lib.protoss_macro import PROTOSS_MACROS
+from tests.agent_test.protoss_base_agent import ProtossBaseAgent
+from lib.protoss_adapter import ProtossRewardAdapter as RewardAdapter
+from lib.protoss_timestep import ProtossTimeStepFactory as TimeStepFactory
+from lib.config import Config
+import time
 
 _PRO=units.Protoss
 _UNIT_TYPE = features.SCREEN_FEATURES.unit_type.index
@@ -110,11 +122,9 @@ class TestAgent(base_agent.BaseAgent):
             print("select worker")
             return action("select",(worker.x,worker.y))
         else:
-            action=actions.FUNCTIONS.Build_Pylon_screen
-            #(x,y)=tuple(np.array(self.buildings[_CENTER][1])+np.array([11,0]))
-            #(x,y)=self.getLocation(obs)
-            (x,y)=self.pylonlocate
-            return action("now",(int(x),int(y)))
+            action,arg_func=PROTOSS_MACROS.Attack_Enemy()[0]
+            action_args = arg_func(obs)
+            return action(*action_args)
 def main(unused_argv):
   agent =TestAgent()
   try:

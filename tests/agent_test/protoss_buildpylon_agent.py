@@ -1,7 +1,3 @@
-# Copyright (c) 2018 horizon robotics. All rights reserved.
-# Created by yingxiang.hong@horizon.ai on 2018/11/1.
-#
-
 import sys
 import math
 import numpy as np
@@ -26,9 +22,11 @@ _POWER="PylonPower"
 _ASSIM=_PRO.Assimilator
 _TMP_BUILDS=[_CENTER,_GATE,_ASSIM,_PYLON]
 
-class ProtossStalkerAgent(ProtossBaseAgent):
+
+
+class ProtossBuildPylonAgent(ProtossBaseAgent):
     def __init__(self):
-        super(ProtossStalkerAgent, self).__init__()
+        super(ProtossBuildPylonAgent, self).__init__()
         self.time = time.time()
         self.probe_count = 12
         self.probe_frame = 0
@@ -58,30 +56,12 @@ class ProtossStalkerAgent(ProtossBaseAgent):
         return (x,y)
 
     def step(self, obs):
-
-        super(ProtossStalkerAgent, self).step(obs)
-
-        #self.information.update([obs])
-        #print(self.information.transform([obs]))
-
+        super(ProtossBuildPylonAgent, self).step(obs)
         for tmpUnit in self._ALL_UNIT:
             self.getTypespots(obs,tmpUnit)
 
         obs = self.timestep_factory.process(obs)
-        print(obs.to_feature())
-
-        # print(obs.observation.last_actions)
-        # pylon_progress = [unit.build_progress for unit in obs.observation.raw_units
-        #                   if unit.unit_type == units.Protoss.Stalker]
-        # if len(pylon_progress) > 0:
-        #     print(pylon_progress)
-
-        # probe_count = len([unit for unit in obs.observation.raw_units if unit.unit_type == units.Protoss.Zealot])
-        # if probe_count != self.probe_count:
-        #     print("probe frame", self.frame - self.probe_frame)
-        #     self.probe_frame = self.frame
-        #     self.probe_count = probe_count
-
+        #cprint(obs.to_feature())
         if self.frame % self.frame_skip != 1:
             return FUNCTIONS.no_op()
         # find macro to execute
@@ -109,56 +89,19 @@ class ProtossStalkerAgent(ProtossBaseAgent):
             idle_workers = obs.observation.player.idle_worker_count
             power_type=obs.observation['feature_screen'][_POWER_TYPE]
             power_map=(power_type == 1).nonzero()
-            # if can build a building
-            if armyCount>5:
-                self.actions=PROTOSS_MACROS.Attack_Enemy()
-                print(PROTOSS_MACROS.Attack_Enemy, adapter.transform([obs],
-                                                                    [PROTOSS_MACROS.Attack_Enemy]))
-            elif idle_workers > 0:
+
+            if idle_workers > 0:
                 self.actions = PROTOSS_MACROS.Callback_Idle_Workers()
             elif mineral > 50 and food > 1 and self.get_unit_counts(obs, units.Protoss.Probe) < 16:
                 print(PROTOSS_MACROS.Train_Probe, adapter.transform([obs],
                                                                     [PROTOSS_MACROS.Train_Probe]))
                 self.actions = PROTOSS_MACROS.Train_Probe()
-            elif mineral > 125 and gas > 50 and food > 2 \
-                    and len(self.get_all_complete_units_by_type(obs, units.Protoss.Gateway)) \
-                    and len(self.get_all_complete_units_by_type(obs, units.Protoss.CyberneticsCore)) > 0:
-                print(PROTOSS_MACROS.Train_Stalker, adapter.transform([obs],
-                                                                      [PROTOSS_MACROS.Train_Stalker]))
-                self.actions = PROTOSS_MACROS.Train_Stalker()
-            elif len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) > 0 and not gasHarvestersFull:
-                print(PROTOSS_MACROS.Collect_Gas, adapter.transform([obs],
-                                                                    [PROTOSS_MACROS.Collect_Gas]))
-                self.actions = PROTOSS_MACROS.Collect_Gas()
             elif self.can_build():
-                if food < 4 and mineral > 100:
-                    print(PROTOSS_MACROS.Build_Pylon, adapter.transform([obs],
+                print(PROTOSS_MACROS.Build_Pylon, adapter.transform([obs],
                                                                         [PROTOSS_MACROS.Build_Pylon]))
-                    self.actions = PROTOSS_MACROS.Build_Pylon()
-                    self.last_build_frame = self.frame
-                elif self.get_unit_counts(obs, units.Protoss.Probe) > 16 and mineral > 75 \
-                        and len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) < 1:
-                    print(PROTOSS_MACROS.Build_Assimilator, adapter.transform([obs],
-                                                                              [PROTOSS_MACROS.Build_Assimilator]))
-                    self.actions = PROTOSS_MACROS.Build_Assimilator()
-                    self.last_build_frame = self.frame
-                elif len(self.get_all_complete_units_by_type(obs, units.Protoss.Gateway)) > 0 and mineral > 150:
-                    print(PROTOSS_MACROS.Build_CyberneticsCore, adapter.transform([obs],
-                                                                                  [PROTOSS_MACROS.Build_CyberneticsCore]))
-                    self.actions = PROTOSS_MACROS.Build_CyberneticsCore()
-                    self.last_build_frame = self.frame
-                elif self.get_unit_counts(obs, units.Protoss.Probe) > 16 and mineral > 75 \
-                        and len(self.get_all_complete_units_by_type(obs, units.Protoss.Assimilator)) < 2:
-                    print(PROTOSS_MACROS.Build_Assimilator, adapter.transform([obs],
-                                                                              [PROTOSS_MACROS.Build_Assimilator]))
-                elif mineral > 150 and self.get_unit_counts(obs, units.Protoss.Gateway) < 1:
-                    print(PROTOSS_MACROS.Build_Gateway, adapter.transform([obs],
-                                                                          [PROTOSS_MACROS.Build_Gateway]))
-                    self.actions = PROTOSS_MACROS.Build_Gateway()
-                    self.last_build_frame = self.frame
-
+                self.actions = PROTOSS_MACROS.Build_Pylon()
+                self.last_build_frame = self.frame
             return FUNCTIONS.no_op()
-
         action, arg_func = self.actions[0]
         self.actions = self.actions[1:]
         if self.can_do(obs, action.id):
