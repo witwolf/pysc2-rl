@@ -20,7 +20,7 @@ class ProtossRewardAdapter(Adapter):
         self._memory_step_obs = [None] * memory_step_n
 
     def get_feature_vector(self, timestep):
-        return (timestep._feature_unit_counts,
+        return (timestep._unit_counts,
                 timestep.observation.player.minerals,
                 timestep.observation.player.vespene,
                 timestep.observation.player.food_cap -
@@ -35,7 +35,7 @@ class ProtossRewardAdapter(Adapter):
             unit = _PROTOSS_UNITS_MACROS[action.id]
             for requirement in unit.requirement_types:
                 # if requirements miss
-                if requirement not in features:
+                if features.get(requirement, 0) == 0:
                     return -1
             # if worker
             if unit.unit_type == units.Protoss.Probe:
@@ -56,26 +56,42 @@ class ProtossRewardAdapter(Adapter):
             building = _PROTOSS_BUILDINGS_MACROS[action.id]
             for requirement in building.requirement_types:
                 # if requirements miss
-                if requirement not in features:
+                if features.get(requirement, 0) == 0:
                     return -1
-            # first building return 1
-            if building.unit_type not in features:
-                return 1
             # if need food
-            elif building.unit_type == units.Protoss.Pylon:
+            if building.unit_type == units.Protoss.Pylon:
+                # if first pylon, give a big reward
+                if features.get(units.Protoss.Pylon, 0) == 0:
+                    return 10
                 # if food urgent, give a big reward
-                if food <= 2:
+                if food <= 2 and timestep.observation.player.food_cap < 200:
                     return 10
                 # if too much food, give a neg reward
-                if food >= 16:
+                elif food >= 16:
+                    return -1
+                # if much food and no gateway, give a neg reward
+                elif food >= 4 and features.get(units.Protoss.Gateway, 0) == 0:
+                    return -1
+                # if food cap, give neg reward
+                elif timestep.observation.player.food_cap >= 200:
                     return -1
                 # if enough food, give no reward
                 elif food >= 8:
                     return 0
                 else:
                     return 1
+            # quick gateway
+            elif building.unit_type != units.Protoss.Gateway and \
+                    features.get(units.Protoss.Gateway, 0) == 0:
+                return -1
+            # first building return 1
+            elif features.get(building.unit_type, 0) == 0:
+                return 1
             else:
-                return np.exp(-features[building.unit_type])
+                reward = np.exp(-features.get(building.unit_type, 0))
+                if not building.trainable:
+                    reward /= 2
+                return reward
 
         if action.id == PROTOSS_MACROS.Callback_Idle_Workers:
             if timestep.observation.player.idle_worker_count == 0:
