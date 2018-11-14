@@ -15,7 +15,6 @@ from lib.protoss_unit import *
 from pysc2.lib.actions import FUNCTIONS
 
 _UNIT_TYPE = features.SCREEN_FEATURES.unit_type.index
-_POWER_TYPE = features.SCREEN_FEATURES.power.index
 
 
 class UnitSize(enum.IntEnum):
@@ -228,14 +227,12 @@ class U(object):
     @staticmethod
     def new_gateway_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        power_feature = obs.observation['feature_screen'][_POWER_TYPE]
-        ys, xs = (power_feature == 1).nonzero()
-        powerMap = list(zip(list(xs), list(ys)))
-        if len(powerMap) == 0:
+        power_map = obs.observation.power_map
+        if len(power_map) == 0:
             return None
         try_time = 0
         while try_time < 100:
-            x, y = powerMap[randint(0, len(powerMap))]
+            x, y = power_map[randint(0, len(power_map))]
             if U.building_location_judge(obs, (x, y), UnitSize.Gateway):
                 return x, y
             try_time += 1
@@ -255,14 +252,12 @@ class U(object):
     @staticmethod
     def new_cyberneticscore_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        power_feature = obs.observation['feature_screen'][_POWER_TYPE]
-        ys, xs = (power_feature == 1).nonzero()
-        powerMap = list(zip(list(xs), list(ys)))
-        if len(powerMap) == 0:
+        power_map = obs.observation.power_map
+        if len(power_map) == 0:
             return None
         try_time = 0
         while try_time < 100:
-            x, y = powerMap[randint(0, len(powerMap))]
+            x, y = power_map[randint(0, len(power_map))]
             if U.building_location_judge(obs, (x, y), UnitSize.CyberneticsCore):
                 return x, y
             try_time += 1
