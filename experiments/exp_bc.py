@@ -80,7 +80,7 @@ class BCExperiment(DistributedExperiment):
                 td_step=local_args.td_step, lr=local_args.lr,
                 v_coef=local_args.v_coef, script_agents=script_agents)
         with agent.create_session(**self.tf_sess_opts(global_args)):
-            env = ParallelEnvs(
+            env = ParallelEnvs.new(
                 env_num=local_args.env_num,
                 env_args=env_args)
             obs_adapter = ObservationAdapter(config)
