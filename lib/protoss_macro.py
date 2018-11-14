@@ -14,9 +14,9 @@ from pysc2.lib import point
 from lib.protoss_unit import *
 from pysc2.lib.actions import FUNCTIONS
 
-
 _UNIT_TYPE = features.SCREEN_FEATURES.unit_type.index
 _POWER_TYPE = features.SCREEN_FEATURES.power.index
+
 
 class UnitSize(enum.IntEnum):
     '''units' radius'''
@@ -117,74 +117,78 @@ class U(object):
         return None
 
     @staticmethod
-    def getDistance(pot1,pot2):
-        pot1=np.array(pot1);pot2=np.array(pot2)
-        if len(pot1)==1 and len(pot2)==1:
-            tmp=np.linalg.norm(pot1-pot2)
-        elif (len(pot1)==1 and len(pot2)>1) or (len(pot1)>1 and len(pot2)==1):
-            tmp=np.sqrt(np.sum(np.asarray(pot1 - pot2)**2, axis=1))
+    def getDistance(pot1, pot2):
+        pot1 = np.array(pot1);
+        pot2 = np.array(pot2)
+        if len(pot1) == 1 and len(pot2) == 1:
+            tmp = np.linalg.norm(pot1 - pot2)
+        elif (len(pot1) == 1 and len(pot2) > 1) or (len(pot1) > 1 and len(pot2) == 1):
+            tmp = np.sqrt(np.sum(np.asarray(pot1 - pot2) ** 2, axis=1))
         return tmp
 
     ''' will be completed'''
+
     @staticmethod
-    def near_away(pot,n_a_pot):
-        nearPot=n_a_pot[0];awayPot=n_a_pot[1]
-        p_n=U.getDistance(pot,nearPot)
-        p_a=U.getDistance(pot,awayPot)
-        n_a=U.getDistance(nearPot,awayPot)
+    def near_away(pot, n_a_pot):
+        nearPot = n_a_pot[0];
+        awayPot = n_a_pot[1]
+        p_n = U.getDistance(pot, nearPot)
+        p_a = U.getDistance(pot, awayPot)
+        n_a = U.getDistance(nearPot, awayPot)
         return True
 
     @staticmethod
-    def pylon_location_judge(obs,pot):
-        #_c_l:centerLoaction,_m_l:mineralsLocation,_g_l:gasLocation,_py_l:pylonLocation
-        _c_L=U.locations_by_type(obs, units.Protoss.Nexus)
-        _m_L=U.locations_by_type(obs, units.Neutral.MineralField)
-        _g_L=U.locations_by_type(obs, units.Neutral.VespeneGeyser)
-        _py_L=[list(pot)]
-        if len(_c_L)==0 or len(_g_L)==0 or len(_m_L)==0:
+    def pylon_location_judge(obs, pot):
+        # _c_l:centerLoaction,_m_l:mineralsLocation,_g_l:gasLocation,_py_l:pylonLocation
+        _c_L = U.locations_by_type(obs, units.Protoss.Nexus)
+        _m_L = U.locations_by_type(obs, units.Neutral.MineralField)
+        _g_L = U.locations_by_type(obs, units.Neutral.VespeneGeyser)
+        _py_L = [list(pot)]
+        if len(_c_L) == 0 or len(_g_L) == 0 or len(_m_L) == 0:
             return True
-        if U.getDistance(_c_L,_py_L)>(UnitSize.PylonPower.value-UnitSize.Nexus.value) \
-                and U.getDistance(_c_L,_py_L)<U.getDistance(_g_L,_py_L).min() \
-                and U.getDistance(_c_L,_py_L)<U.getDistance(_m_L,_py_L).min() \
-                and U.getDistance(_c_L,_py_L)<(UnitSize.PylonPower.value+UnitSize.Nexus.value):
-                    return True
+        if U.getDistance(_c_L, _py_L) > (UnitSize.PylonPower.value - UnitSize.Nexus.value) \
+                and U.getDistance(_c_L, _py_L) < U.getDistance(_g_L, _py_L).min() \
+                and U.getDistance(_c_L, _py_L) < U.getDistance(_m_L, _py_L).min() \
+                and U.getDistance(_c_L, _py_L) < (UnitSize.PylonPower.value + UnitSize.Nexus.value):
+            return True
         else:
             return False
 
     @staticmethod
-    def isConquered(obs,pot,unitSize_type):
+    def isConquered(obs, pot, unitSize_type):
         screen_w, screen_h = U.screen_size(obs)
         unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
-        typeMap=unit_type.nonzero()
-        (ys,xs)=typeMap;potMap=list(zip(xs,ys))
-        x_Low=0 if pot[0]-unitSize_type.value<=0 else pot[0]-unitSize_type.value
-        x_High=screen_w if pot[0]+unitSize_type.value>=screen_w else pot[0]+unitSize_type.value
-        y_Low=0 if pot[1]-unitSize_type.value<=0 else pot[1]-unitSize_type.value
-        y_High=screen_h if pot[1]+unitSize_type.value>=screen_h else pot[1]+unitSize_type.value
-        if (x_High-x_Low)*(y_High-y_Low)>len(potMap):
-            dists=U.getDistance([list(pot)],potMap)
-            if dists.min()>unitSize_type.value:
+        typeMap = unit_type.nonzero()
+        (ys, xs) = typeMap;
+        potMap = list(zip(xs, ys))
+        x_Low = 0 if pot[0] - unitSize_type.value <= 0 else pot[0] - unitSize_type.value
+        x_High = screen_w if pot[0] + unitSize_type.value >= screen_w else pot[0] + unitSize_type.value
+        y_Low = 0 if pot[1] - unitSize_type.value <= 0 else pot[1] - unitSize_type.value
+        y_High = screen_h if pot[1] + unitSize_type.value >= screen_h else pot[1] + unitSize_type.value
+        if (x_High - x_Low) * (y_High - y_Low) > len(potMap):
+            dists = U.getDistance([list(pot)], potMap)
+            if dists.min() > unitSize_type.value:
                 return False
             else:
                 return True
         else:
-            for i in range(x_Low,x_High+1):
-                for j in range(y_Low,y_High+1):
-                    if (i,j) in potMap:
-                        if U.getDistance([list((i,j))],[list(pot)])<unitSize_type.value:
+            for i in range(x_Low, x_High + 1):
+                for j in range(y_Low, y_High + 1):
+                    if (i, j) in potMap:
+                        if U.getDistance([list((i, j))], [list(pot)]) < unitSize_type.value:
                             return True
             return False
 
     @staticmethod
-    def building_location_judge(obs,pot,unit_size):
-        #_g_l:gatewayLoaction,_g_l:gasLocation,_py_l:pylonLocation
+    def building_location_judge(obs, pot, unit_size):
+        # _g_l:gatewayLoaction,_g_l:gasLocation,_py_l:pylonLocation
         '''
         _c_L=U.locations_by_type(obs, units.Protoss.Nexus)
         _gas_L=U.locations_by_type(obs, units.Neutral.VespeneGeyser)
         _m_L=U.locations_by_type(obs, units.Neutral.MineralField)
         _gate_L=[list(opt)]
         '''
-        if U.isConquered(obs,pot,unit_size):
+        if U.isConquered(obs, pot, unit_size):
             return False
         else:
             return True
@@ -192,20 +196,22 @@ class U(object):
     @staticmethod
     def new_pylon_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        _c_L=U.locations_by_type(obs, units.Protoss.Nexus)
-        wholeDis=UnitSize.PylonPower.value+UnitSize.Nexus.value
-        if len(_c_L)==1:
-            x_Low= 0 if _c_L[0][0]-wholeDis<=0 else _c_L[0][0]-wholeDis
-            y_Low= 0 if _c_L[0][1]-wholeDis<=0 else _c_L[0][1]-wholeDis
-            x_High= screen_w if _c_L[0][0]+wholeDis>=screen_w else _c_L[0][0]+wholeDis
-            y_High= screen_h if _c_L[0][1]+wholeDis>=screen_h else _c_L[0][1]+wholeDis
+        _c_L = U.locations_by_type(obs, units.Protoss.Nexus)
+        wholeDis = UnitSize.PylonPower.value + UnitSize.Nexus.value
+        if len(_c_L) == 1:
+            x_Low = 0 if _c_L[0][0] - wholeDis <= 0 else _c_L[0][0] - wholeDis
+            y_Low = 0 if _c_L[0][1] - wholeDis <= 0 else _c_L[0][1] - wholeDis
+            x_High = screen_w if _c_L[0][0] + wholeDis >= screen_w else _c_L[0][0] + wholeDis
+            y_High = screen_h if _c_L[0][1] + wholeDis >= screen_h else _c_L[0][1] + wholeDis
         else:
-            x_Low=y_Low=0;x_High=screen_w;y_High=screen_h
+            x_Low = y_Low = 0;
+            x_High = screen_w;
+            y_High = screen_h
         try_time = 0
         while try_time < 100:
             x = randint(x_Low, x_High)
             y = randint(y_Low, y_High)
-            if U.pylon_location_judge(obs,(x,y)):
+            if U.pylon_location_judge(obs, (x, y)):
                 return x, y
             try_time += 1
         return randint(0, screen_w), randint(0, screen_h)
@@ -214,14 +220,14 @@ class U(object):
     def new_gateway_location(obs):
         screen_w, screen_h = U.screen_size(obs)
         power_feature = obs.observation['feature_screen'][_POWER_TYPE]
-        ys,xs=(power_feature == 1).nonzero()
-        powerMap=list(zip(list(xs),list(ys)))
+        ys, xs = (power_feature == 1).nonzero()
+        powerMap = list(zip(list(xs), list(ys)))
         if len(powerMap) == 0:
             return None
         try_time = 0
         while try_time < 100:
-            x,y=powerMap[randint(0,len(powerMap))]
-            if U.building_location_judge(obs,(x,y),UnitSize.Gateway):
+            x, y = powerMap[randint(0, len(powerMap))]
+            if U.building_location_judge(obs, (x, y), UnitSize.Gateway):
                 return x, y
             try_time += 1
         return randint(0, screen_w), randint(0, screen_h)
@@ -241,14 +247,14 @@ class U(object):
     def new_cyberneticscore_location(obs):
         screen_w, screen_h = U.screen_size(obs)
         power_feature = obs.observation['feature_screen'][_POWER_TYPE]
-        ys,xs=(power_feature == 1).nonzero()
-        powerMap=list(zip(list(xs),list(ys)))
+        ys, xs = (power_feature == 1).nonzero()
+        powerMap = list(zip(list(xs), list(ys)))
         if len(powerMap) == 0:
             return None
         try_time = 0
         while try_time < 100:
-            x,y=powerMap[randint(0,len(powerMap))]
-            if U.building_location_judge(obs,(x,y),UnitSize.CyberneticsCore):
+            x, y = powerMap[randint(0, len(powerMap))]
+            if U.building_location_judge(obs, (x, y), UnitSize.CyberneticsCore):
                 return x, y
             try_time += 1
         return randint(0, screen_w), randint(0, screen_h)
@@ -264,7 +270,6 @@ class U(object):
 
     @staticmethod
     def gas_location(obs):
-        _feature_units = obs.observation.feature_units
         assimilator_type = units.Protoss.Assimilator
         assimilators = obs._feature_units_completed.get(assimilator_type, [])
         for assimilator in assimilators:
@@ -462,6 +467,15 @@ class U(object):
     def can_select_army(obs):
         return FUNCTIONS.select_army.id in obs.observation.available_actions
 
+    @staticmethod
+    def can_collect_gas(obs):
+        assimilator_type = units.Protoss.Assimilator
+        assimilators = obs._feature_units_completed.get(assimilator_type, [])
+        for assimilator in assimilators:
+            if assimilator.assigned_harvesters < 3:
+                return True
+        return False
+
 
 def build_a_pylon():
     funcs = [
@@ -616,7 +630,7 @@ def collect_minerals():
 
 
 def collect_gas():
-    cond = lambda obs: True
+    cond = U.can_collect_gas
     funcs = [
         # move camera to base
         FUNCTIONS.move_camera,
