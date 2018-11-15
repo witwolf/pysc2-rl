@@ -405,10 +405,14 @@ class U(object):
 
     @staticmethod
     def can_build_pylon(obs):
+        if len(U._all_raw_units(obs, Pylon.build_type)) == 0:
+            return False
         return obs.observation.player.minerals >= Pylon.minerals
 
     @staticmethod
     def can_build_gateway(obs):
+        if len(U._all_raw_units(obs, Gateway.build_type)) == 0:
+            return False
         for building_type in Gateway.requirement_types:
             if len(U._all_raw_units(obs, building_type)) == 0:
                 return False
@@ -416,6 +420,8 @@ class U(object):
 
     @staticmethod
     def can_build_assimilator(obs):
+        if len(U._all_raw_units(obs, Assimilator.build_type)) == 0:
+            return False
         nexus_num = len(U._all_raw_units(obs, units.Protoss.Nexus))
         assimilator_num = len(U._all_raw_units(obs, units.Protoss.Assimilator))
         return (assimilator_num < nexus_num * 2) and (
@@ -428,6 +434,8 @@ class U(object):
 
     @staticmethod
     def can_build_cyberneticscore(obs):
+        if len(U._all_raw_units(obs, CyberneticsCore.build_type)) == 0:
+            return False
         for building in CyberneticsCore.requirement_types:
             if len(U._all_raw_units(obs, building)) == 0:
                 return False
@@ -435,8 +443,8 @@ class U(object):
 
     @staticmethod
     def can_train_probe(obs):
-        f = U._max_order_filter(5)
-        if len(U.minimap_units(obs, Probe.build_type, _filter=f)) == 0:
+        if len(U.minimap_units(
+                obs, Probe.build_type, _filter=U._max_order_filter(5))) == 0:
             return False
         minerals, vespene, food = U._resources(obs)
         return minerals >= Probe.minerals and food >= Probe.food
