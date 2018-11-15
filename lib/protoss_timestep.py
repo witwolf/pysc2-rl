@@ -3,7 +3,6 @@
 #
 
 import copy
-import json
 from pysc2.lib.actions import FUNCTIONS
 from lib.protoss_macro import _PROTOSS_BUILDINGS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS_FUNCTIONS
@@ -15,27 +14,25 @@ from lib.protoss_macro import U
 class ProtossTimeStep(object):
     def __new__(cls, *args, **kwargs):
         instance = super(ProtossTimeStep, cls).__new__(cls)
-        instance._mixin = None
-        instance._timestep = None
+        if len(args) == 1:
+            instance._timestep = args[0]
+        else:
+            instance._timestep = None
+        instance._macro_success = False
+        instance._feature_units = {}
+        instance._feature_units_completed = {}
+        instance._feature_unit_counts = {}
+        instance._feature_unit_completed_counts = {}
+        instance._raw_units = {}
+        instance._minimap_units = {}
+        instance._unit_counts = {}
+        instance._raw_units_completed = {}
+        instance._minimap_units_completed = {}
+        instance._unit_completed_counts = {}
+        instance._mixin = {}
         return instance
 
-    def __init__(self, timestep):
-        self._timestep = timestep
-        self._macro_success = False
-        self._feature_units = {}
-        self._feature_units_completed = {}
-        self._feature_unit_counts = {}
-        self._feature_unit_completed_counts = {}
-        self._raw_units = {}
-        self._minimap_units = {}
-        self._unit_counts = {}
-        self._raw_units_completed = {}
-        self._minimap_units_completed = {}
-        self._unit_completed_counts = {}
-        self._mixin = {}
-        self._fill()
-
-    def _fill(self):
+    def fill(self):
         # update feature units count info
         feature_units = self._timestep.observation.feature_units
         for unit in feature_units:
@@ -96,7 +93,8 @@ class ProtossTimeStep(object):
                mixin['building_queues']
 
     def print(self):
-        print('obs:', self._timestep,
+        print('_macro_success:', self._macro_success,
+              '_feature_units:', self._feature_units,
               '_minimap_units:', self._minimap_units,
               'mixin:', self._mixin)
 
@@ -114,6 +112,7 @@ class ProtossTimeStepFactory():
     def update(self, timestep):
         self._frames += self._step_mul
         timestep = ProtossTimeStep(timestep)
+        timestep.fill()
 
         building_queues = self._building_queues
         unit_counts = timestep._unit_counts
