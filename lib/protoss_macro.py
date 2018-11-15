@@ -19,12 +19,12 @@ _UNIT_TYPE = features.SCREEN_FEATURES.unit_type.index
 
 class UnitSize(enum.IntEnum):
     '''units' radius'''
-    Nexus = 10
-    Pylon = 4
-    Assimilator = 6
-    Gateway = 7
-    CyberneticsCore = 7
-    PylonPower = 23
+    Nexus = 8
+    Pylon = 3
+    Assimilator = 5
+    Gateway = 6
+    CyberneticsCore = 6
+    PylonPower = 18
     Stalker = 2
 
 
