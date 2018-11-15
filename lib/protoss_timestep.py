@@ -9,6 +9,7 @@ from lib.protoss_macro import _PROTOSS_UNITS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS
 from lib.protoss_macro import _PROTOSS_BUILDINGS
 from lib.protoss_macro import U
+import numpy as np
 
 
 class ProtossTimeStep(object):
@@ -93,11 +94,32 @@ class ProtossTimeStep(object):
             last_build_count = self._factory.self_buildings[bid]
             # current build count
             build_count = self._unit_counts.get(_PROTOSS_BUILDINGS[bid].unit_type, 0)
+            # building changed, recaculate power
             if last_build_count != build_count:
-                self._factory.power_map.clear()
+                self._factory.power_list.clear()
+                self._factory.not_power_list.clear()
+
                 xs, ys = (self._timestep.observation.feature_screen.power == 1).nonzero()
+                power_center = [0,0]
                 for pt in zip(xs, ys):
-                    self._factory.power_map.append(pt)
+                    self._factory.power_list.append(pt)
+                    power_center[0] += pt[0]
+                    power_center[1] += pt[1]
+
+                if len(self._factory.power_list) > 0:
+                    power_center[0] /= len(self._factory.power_list)
+                    power_center[1] /= len(self._factory.power_list)
+
+                self._factory.power_map = set(self._factory.power_list)
+
+                screen_w = self._timestep.observation.feature_screen.shape[-1]
+                screen_h = self._timestep.observation.feature_screen.shape[-2]
+                for w in range(0, screen_w):
+                    for h in range(0, screen_h):
+                        if (w, h) not in self._factory.power_map:
+                            self._factory.not_power_list.append((w, h))
+                self._factory.not_power_list.sort(key=lambda p:U.get_distance(power_center, p))
+
             if build_count > last_build_count:
                 building_queues[bid] -= (build_count - last_build_count)
             if building_queues[bid] < 0:
@@ -162,7 +184,9 @@ class ProtossTimeStepFactory():
         self.self_buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, count)
         self.training_queues = [[] for _ in range(len(_PROTOSS_UNITS))]
         self.building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, queued_count)
-        self.power_map = []
+        self.power_list = []
+        self.power_map = set()
+        self.not_power_list = []
 
     def __getattr__(self, item):
         return getattr(self._timestep, item)
@@ -182,4 +206,6 @@ class ProtossTimeStepFactory():
         self.self_buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, count)
         self.training_queues = [[] for _ in range(len(_PROTOSS_UNITS))]
         self.building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, queued_count)
-        self.power_map = []
+        self.power_list = []
+        self.power_map = set()
+        self.not_power_list = []
