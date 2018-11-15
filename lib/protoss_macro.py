@@ -131,66 +131,84 @@ class U(object):
             return U._valid_screen_x_y(x, y, obs)
         return None
 
+    '''
+    e.g. :
+        U.get_distance([(x1, y1)], [(x2, y2)])
+        U.get_distance([(x1, y1), (x2, y2), ..., (xn-1, yn-1)], [(xn, yn)])
+        U.get_distance([(x1, y1), ..., (xn, yn)], [(xn+1, yn+1), ..., (x2n, y2n)])
+        shape: n,n or n,1 or 1,n
+    '''
     @staticmethod
-    def get_distance(pot1, pot2):
-        pot1 = np.array(pot1);
-        pot2 = np.array(pot2)
-        if len(pot1) == 1 and len(pot2) == 1:
-            tmp = np.linalg.norm(pot1 - pot2)
-        elif (len(pot1) == 1 and len(pot2) > 1) or (len(pot1) > 1 and len(pot2) == 1):
-            tmp = np.sqrt(np.sum(np.asarray(pot1 - pot2) ** 2, axis=1))
-        return tmp
+    def get_distance(position1, position2):
+        position1 = np.array(position1)
+        position2 = np.array(position2)
+        try:
+            tmp = np.sqrt(np.sum(np.asarray(position1 - position2) ** 2, axis=1))
+        except Exception as err:
+            print(err)
+            return None
+        return tmp[0] if len(tmp)==1 else tmp
 
     ''' will be completed'''
-
     @staticmethod
-    def near_away(pot,n_a_pot):
-        nearPot=n_a_pot[0];awayPot=n_a_pot[1]
-        p_n=U.get_distance(pot,nearPot)
-        p_a=U.get_distance(pot,awayPot)
-        n_a=U.get_distance(nearPot,awayPot)
+    def near_away(position,n_a_position):
+        near_position = n_a_pot[0]
+        away_position = n_a_pot[1]
+        p_n = U.get_distance(position, near_position)
+        p_a = U.get_distance(position, away_position)
+        n_a = U.get_distance(near_position, away_position)
         return True
 
     @staticmethod
-    def is_conquered(obs,pot,unitSize_type):
+    def is_conquered(obs, position, unitSize_type):
         screen_w, screen_h = U.screen_size(obs)
         unit_type = obs.observation['feature_screen'][_UNIT_TYPE]
-        typeMap = unit_type.nonzero()
-        (ys,xs) = typeMap;potMap=list(zip(xs,ys))
-        radius = unitSize_type.value+5 if unitSize_type == UnitSize.Pylon else unitSize_type.value
-        x_Low = 0 if pot[0]-radius<=0 else pot[0]-radius
-        x_High = screen_w if pot[0]+radius>=screen_w else pot[0]+radius
-        y_Low = 0 if pot[1]-radius<=0 else pot[1]-radius
-        y_High = screen_h if pot[1]+radius>=screen_h else pot[1]+radius
-        if (x_High-x_Low)*(y_High-y_Low)>len(potMap):
-            dists = U.get_distance([list(pot)],potMap)
-            if dists.min()>radius:
+        type_map = unit_type.nonzero()
+        (ys, xs) = type_map
+        position_map = list(zip(xs, ys))
+        radius = unitSize_type.value + 5 \
+                if unitSize_type == UnitSize.Pylon else unitSize_type.value
+        x_Low = 0 if position[0] - radius <= 0 else position[0] - radius
+        x_High = screen_w if position[0] + radius >= screen_w else position[0] + radius
+        y_Low = 0 if position[1] - radius <= 0 else position[1] - radius
+        y_High = screen_h if position[1] + radius >= screen_h else position[1] + radius
+        if (x_High - x_Low) * (y_High - y_Low) > len(position_map):
+            dists = U.get_distance([position], position_map)
+            if dists.min() > radius:
                 return False
             else:
                 return True
         else:
-            for i in range(x_Low,x_High+1):
-                for j in range(y_Low,y_High+1):
-                    if (i,j) in potMap:
-                        if U.get_distance([list((i,j))],[list(pot)])<radius:
+            for i in range(x_Low, x_High+1):
+                for j in range(y_Low, y_High+1):
+                    if (i, j) in position_map:
+                        if U.get_distance([(i, j)], [position]) < radius:
                             return True
             return False
 
     @staticmethod
-    def _getTranglePoint(pot1,pot2,sideLength):
-        x1,y1 = pot1;x2,y2 = pot2;newLen = sideLength*math.sqrt(3)/2
-        dx = x2-x1;dy = y2-y1;xm,ym = ((x1+x2)/2,(y1+y2)/2)
-        if dy!=0 and dx!=0:
-            k1 = dy/dx;k2 = -1/k1
-            dx1 = math.sqrt(newLen**2/(1+k2**2));dy1 = dx1*k2
-        elif dy==0:
-            dx1 = 0;dy1 = newLen
-        elif dx==0:
-            dy1 = 0;dx1 = newLen
-        dx2 = -dx1;dy2 = -dy1
-        x3=xm+dx1;x4=xm+dx2
-        y3=ym+dy1;y4=ym+dy2
-        return [(int(x3),int(y3)),(int(x4),int(y4))]
+    def _getTranglePoint(position1, position2, side_length):
+        (x1, y1), (x2, y2) = position1, position2
+        (dx, dy) = (x2 - x1), (y2 - y1)
+        xm, ym = ((x1 + x2) / 2, (y1 + y2) / 2)
+        new_len = side_length * math.sqrt(3) / 2
+        if dy != 0 and dx != 0:
+            (k1, k2) = (dy / dx, -1 / (dy / dx))
+            dx1 = math.sqrt(new_len ** 2 / (1 + k2 ** 2))
+            dy1 = dx1 * k2
+        elif len((np.array([dx, dy]) == 0).nonzero()[0]) == 1:
+            dx1, dy1 = (0, new_len)
+            tmp_index = (np.array([dx, dy]) == 0).nonzero()[0][0]
+            [dx1, dy1][tmp_index], [dx1, dy1][1 - tmp_index] = 0, new_len
+        else:
+            try:
+                raise ValueError("Two positions can't be same")
+            except Exception as err:
+                print(err)
+                return [None, None]
+        dx2 ,dy2 = -dx1, -dy1
+        (x3 ,x4), (y3, y4) = (int(xm + dx1), int(xm + dx2)), (int(ym + dy1), int(ym + dy2))
+        return [(x3, y3), (x4, y4)]
 
     @staticmethod
     def building_location_judge(obs,pot,unit_type):
@@ -202,65 +220,72 @@ class U(object):
     @staticmethod
     def get_pylon_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        _c_L = U.locations_by_type(obs, units.Protoss.Nexus)
-        _m_L = U.locations_by_type(obs, units.Neutral.MineralField)
-        _g_L = U.locations_by_type(obs, units.Neutral.VespeneGeyser)
-        _py_L= U.locations_by_type(obs, units.Protoss.Pylon)
-        dist=UnitSize.PylonPower.value-UnitSize.Nexus.value/2
-        if len(_py_L)==0 and len(_c_L)==1:
-            x,y=(_c_L[0][0],_c_L[0][1]+dist)
-            if U.get_distance(_m_L,[list((x,y))]).min()>dist:
-                return x,y
+        nexus_location = U.locations_by_type(obs, units.Protoss.Nexus)
+        mineral_location = U.locations_by_type(obs, units.Neutral.MineralField)
+        gas_location = U.locations_by_type(obs, units.Neutral.VespeneGeyser)
+        pylon_location = U.locations_by_type(obs, units.Protoss.Pylon)
+        dist = UnitSize.PylonPower.value - UnitSize.Nexus.value / 2
+        if len(pylon_location) == 0 and len(nexus_location) == 1:
+            x, y = (nexus_location[0][0], nexus_location[0][1] + dist)
+            if U.get_distance(mineral_location, [(x,y)]).min() > dist:
+                return x, y
             else:
-                x,y=(_c_L[0][0],_c_L[0][1]-dist)
-                return x,y
-        elif len(_py_L)==1 and len(_c_L)==1:
-            x,y=(_py_L[0][0]+dist,_py_L[0][1])
-            if U.get_distance(_g_L,[list((x,y))]).min()>dist:
-                return x,y
+                x, y = (nexus_location[0][0], nexus_location[0][1] - dist)
+                return x, y
+        elif len(pylon_location) == 1 and len(nexus_location) == 1:
+            x, y = (pylon_location[0][0] + dist, pylon_location[0][1])
+            if U.get_distance(gas_location, [(x,y)]).min() > dist:
+                return x, y
             else:
-                x,y=(_py_L[0][0]-dist,_py_L[0][1])
-                return x,y
+                x, y=(pylon_location[0][0] - dist, pylon_location[0][1])
+                return x, y
         else:
-            pairs=[];angle=0
-            for i in range(len(_py_L)):
-                for j in range(i+1,len(_py_L)):
-                    if abs(U.get_distance([list(_py_L[i])],[list(_py_L[j])])-dist)<3:
-                        pairs.append((i,j))
-                        pots=U._getTranglePoint(_py_L[i],_py_L[j],dist)
-                        if len(_c_L)==1:
-                            distances = U.get_distance(_c_L,pots)
-                            if distances.min() > UnitSize.Nexus.value:
-                                index = distances.argmin()
+            pairs = []
+            #pylon_location.sort(key = lambda p: U.get_distance(p, nexus_location))
+            for i in range(len(pylon_location)):
+                for j in range(i + 1, len(pylon_location)):
+                    if abs(U.get_distance([pylon_location[i]], \
+                            [pylon_location[j]]) - dist) < 3:
+                        pairs.append((i, j))
+                        positions=U._getTranglePoint(pylon_location[i], pylon_location[j], dist)
+                        if len(nexus_location) == 1 and positions:
+                            distances = U.get_distance(nexus_location, positions)
+                            if distances[0] > UnitSize.Nexus.value and \
+                                    distances[1] > UnitSize.Nexus.value:
+                                index = 0 if distances[0] < distances[1] else 1
                             else:
-                                index = distances.argmax()
+                                index = 0 if distances[0] > distances[1] else 1
                         else:
-                            index=random.randint(0,1)
-                        pot=pots[index]
-                        if U.building_location_judge(obs,pot,UnitSize.Pylon) and \
-                                0<pot[0]<screen_w and 0<pot[1]<screen_h:
-                            return pot
+                            index = 0
+                        position = positions[index]
+                        if U.building_location_judge(obs, position, UnitSize.Pylon) and \
+                                0 < position[0] < screen_w and 0 < position[1] < screen_h:
+                            return position
                         else:
                             continue
-            times=len(pairs)
+            times = len(pairs)
+            def _search_env(angle , random_position):
+                while angle < 360:
+                    dx = dist * math.cos(angle / 180 * math.pi)
+                    dy = dist * math.sin(angle / 180 * math.pi)
+                    (n_x, n_y) = tuple(np.array(random_position) + np.array([dx, dy]))
+                    (n_x, n_y) = (int(n_x), int(n_y))
+                    if n_x < screen_w and n_y < screen_h:
+                        if U.building_location_judge(obs, (n_x,n_y), UnitSize.Pylon):
+                            return (n_x, n_y)
+                    angle += 10
+                return None
             for i in range(times):
-                pots_index=random.randint(0,len(pairs)-1)
-                pot_index=pairs[pots_index][random.randint(0,1)]
-                randomPot=_py_L[pot_index]
-                pairs.pop(pots_index)
-                while True:
-                    if angle<360:
-                        dx=dist*math.cos(angle/180*math.pi)
-                        dy=dist*math.sin(angle/180*math.pi)
-                        (n_x,n_y)=tuple(np.array(randomPot)+np.array([dx,dy]))
-                        (n_x,n_y)=(int(n_x),int(n_y))
-                        if n_x<screen_w and n_y<screen_h:
-                            if U.building_location_judge(obs,(n_x,n_y),UnitSize.Pylon):
-                                return (n_x,n_y)
-                        angle+=10
+                position1 = _search_env(0, pylon_location[pairs[i][0]])
+                if not position1:
+                    position2 = _search_env(0, pylon_location[pairs[i][1]])
+                    if not position2:
+                        continue
                     else:
-                        break
-            return (None,None)
+                        return position2
+                else:
+                    return position1
+            return (None, None)
 
     @staticmethod
     def new_pylon_location(obs):
