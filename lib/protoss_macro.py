@@ -195,23 +195,19 @@ class U(object):
 
         if len(pylon_locations) == 0:
             x, y = main_nexus_location[0], main_nexus_location[1] + pylon_space
-            if min(U.get_distance_list([x, y], mineral_locations)) > pylon_space:
-                return x, y
-            else:
+            if not min(U.get_distance_list([x, y], mineral_locations)) > pylon_space:
                 x, y = main_nexus_location[0], main_nexus_location[1] - pylon_space
-                return x, y
         elif len(pylon_locations) == 1:
             x, y = pylon_locations[0][0] + pylon_space, pylon_locations[0][1]
-            if min(U.get_distance_list([x, y], geyser_locations)) > pylon_space:
-                return x, y
-            else:
+            if not min(U.get_distance_list([x, y], geyser_locations)) > pylon_space:
                 x, y = pylon_locations[0][0] - pylon_space, pylon_locations[0][1]
-                return x, y
         else:
             not_power_list = obs.not_power_list
             if len(not_power_list) > 100:
-                return not_power_list[randint(0, 100)]
-            return randint(1, screen_w - 1), randint(1, screen_h - 1)
+                x, y = not_power_list[randint(0, 100)]
+            else:
+                x, y = randint(1, screen_w - 1), randint(1, screen_h - 1)
+        return U._valid_screen_x_y(x, y, obs)
 
     @staticmethod
     def new_gateway_location(obs):
