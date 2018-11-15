@@ -27,7 +27,7 @@ class ProtossRewardAdapter(Adapter):
                 timestep.observation.player.food_used)
 
     def get_reward(self, timestep, action):
-        if not timestep.macro_success:
+        if not timestep._macro_success:
             return 0
         features, minerals, gas, food = self.get_feature_vector(timestep)
         # check unit requirements
@@ -141,7 +141,7 @@ class ProtossRewardAdapter(Adapter):
             if timestep.last():
                 game_end = True
             last_timestep = None
-            if timestep.macro_success:
+            if timestep._macro_success:
                 if step_i < self._memory_step_n:
                     last_timestep = self._memory_step_obs[step_i]
                 else:

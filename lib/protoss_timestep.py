@@ -13,34 +13,27 @@ import numpy as np
 
 
 class ProtossTimeStep(object):
-    def __init__(self, timestep, timestep_factory):
-        self._timestep = timestep
-        self._factory = timestep_factory
-        self.macro_success = False
-        self._feature_units = {}
-        self._feature_units_completed = {}
-        self._feature_unit_counts = {}
-        self._feature_unit_completed_counts = {}
-        self._raw_units = {}
-        self._minimap_units = {}
-        self._unit_counts = {}
-        self._raw_units_completed = {}
-        self._minimap_units_completed = {}
-        self._unit_completed_counts = {}
-        self.self_units = [0 for _ in range(len(_PROTOSS_UNITS))]  # (type, count)
-        self.self_upgrades = {}  # (type, true/false)
-        self._fill()
+    def __new__(cls, *args, **kwargs):
+        instance = super(ProtossTimeStep, cls).__new__(cls)
+        if len(args) == 1:
+            instance._timestep = args[0]
+        else:
+            instance._timestep = None
+        instance._macro_success = False
+        instance._feature_units = {}
+        instance._feature_units_completed = {}
+        instance._feature_unit_counts = {}
+        instance._feature_unit_completed_counts = {}
+        instance._raw_units = {}
+        instance._minimap_units = {}
+        instance._unit_counts = {}
+        instance._raw_units_completed = {}
+        instance._minimap_units_completed = {}
+        instance._unit_completed_counts = {}
+        instance._mixin = {}
+        return instance
 
-    def is_upgrade(self, action_id):
-        if action_id == FUNCTIONS.Research_Blink_quick.id:
-            return "blink"
-        if action_id == FUNCTIONS.Research_ProtossGroundArmorLevel1_quick.id:
-            return "ground armor 1"
-        if action_id == FUNCTIONS.Research_ProtossGroundWeaponsLevel1_quick.id:
-            return "ground weapon 1"
-        return None
-
-    def _fill(self):
+    def fill(self):
         # update feature units count info
         feature_units = self._timestep.observation.feature_units
         for unit in feature_units:
@@ -82,130 +75,138 @@ class ProtossTimeStep(object):
                     self._minimap_units_completed[unit_type].append(minimap_unit)
                     self._unit_completed_counts[unit_type] += 1
 
-        self.self_bases.clear()
-        self.enemy_bases.clear()
-        self.neutral_bases.clear()
+    def update(self, **mixin):
+        self._mixin.update(mixin)
 
-        building_queues = self._factory.building_queues
+    def __getattr__(self, item):
+        value = self._mixin.get(item, None)
+        if value is not None: return value
+        return getattr(self._timestep, item)
+
+    def to_feature(self):
+        mixin = self._mixin
+        # TODO
+        return [mixin['frames']] + \
+               mixin['self_units'] + \
+               mixin['buildings'] + \
+               mixin['upgrades'] + \
+               mixin['training_queues'] + \
+               mixin['building_queues']
+
+    def print(self):
+        print('_macro_success:', self._macro_success,
+              '_feature_units:', self._feature_units,
+              '_minimap_units:', self._minimap_units,
+              'mixin:', self._mixin)
+
+
+class ProtossTimeStepFactory():
+    def __init__(self, step_mul):
+        self._step_mul = step_mul
+        self._frames = 0
+        self._buildings = None
+        self._training_queues = None
+        self._building_queues = None
+        self._power_map = None
+        self._power_list = None
+        self._not_power_list = None
+        self.reset()
+
+    def update(self, timestep):
+        self._frames += self._step_mul
+        timestep = ProtossTimeStep(timestep)
+        timestep.fill()
+
+        building_queues = self._building_queues
+        unit_counts = timestep._unit_counts
+        self_units = [0 for _ in range(len(_PROTOSS_UNITS))]
         for bid in range(len(_PROTOSS_BUILDINGS)):
             if building_queues[bid] == 0:
                 continue
             # last build count
-            last_build_count = self._factory.self_buildings[bid]
+            last_build_count = self._buildings[bid]
             # current build count
-            build_count = self._unit_counts.get(_PROTOSS_BUILDINGS[bid].unit_type, 0)
+            build_count = unit_counts.get(_PROTOSS_BUILDINGS[bid].unit_type, 0)
             # building changed, recaculate power
             if last_build_count != build_count:
-                self._factory.power_list.clear()
-                self._factory.not_power_list.clear()
+                self._power_list.clear()
+                self._not_power_list.clear()
 
-                xs, ys = (self._timestep.observation.feature_screen.power == 1).nonzero()
+                xs, ys = (timestep.observation.feature_screen.power == 1).nonzero()
                 power_center = [0,0]
                 for pt in zip(xs, ys):
-                    self._factory.power_list.append(pt)
+                    self._power_list.append(pt)
                     power_center[0] += pt[0]
                     power_center[1] += pt[1]
 
-                if len(self._factory.power_list) > 0:
-                    power_center[0] /= len(self._factory.power_list)
-                    power_center[1] /= len(self._factory.power_list)
+                if len(self._power_list) > 0:
+                    power_center[0] /= len(self._power_list)
+                    power_center[1] /= len(self._power_list)
 
-                self._factory.power_map = set(self._factory.power_list)
+                self._power_map = set(self._power_list)
 
-                screen_w = self._timestep.observation.feature_screen.shape[-1]
-                screen_h = self._timestep.observation.feature_screen.shape[-2]
+                screen_w = timestep.observation.feature_screen.shape[-1]
+                screen_h = timestep.observation.feature_screen.shape[-2]
                 for w in range(0, screen_w):
                     for h in range(0, screen_h):
-                        if (w, h) not in self._factory.power_map:
-                            self._factory.not_power_list.append((w, h))
-                self._factory.not_power_list.sort(key=lambda p:U.get_distance(power_center, p))
+                        if (w, h) not in self._power_map:
+                            self._not_power_list.append((w, h))
+                self._not_power_list.sort(key=lambda p:U.get_distance(power_center, p))
 
             if build_count > last_build_count:
                 building_queues[bid] -= (build_count - last_build_count)
             if building_queues[bid] < 0:
                 building_queues[bid] = 0
-            self._factory.self_buildings[bid] = build_count
+            self._buildings[bid] = build_count
 
         # update training queue
         for uid in range(len(_PROTOSS_UNITS)):
             index = 0
-            training_queue = self._factory.training_queues[uid]
+            training_queue = self._training_queues[uid]
             while index < len(training_queue):
                 training_queue[index] -= 1
                 if training_queue[index] == 0:
                     del training_queue[index]
                 else:
                     index += 1
-            self.self_units[uid] = self._unit_counts.get(_PROTOSS_UNITS[uid].unit_type, 0)
+                    self_units[uid] = unit_counts.get(
+                        _PROTOSS_UNITS[uid].unit_type, 0)
 
-        last_actions = self._timestep.observation.last_actions
+        last_actions = timestep.observation.last_actions
+        upgrades = {}
+        upgrade_map = {
+            FUNCTIONS.Research_Blink_quick.id: 0,
+            FUNCTIONS.Research_ProtossGroundArmorLevel1_quick.id: 1,
+            FUNCTIONS.Research_ProtossGroundWeaponsLevel1_quick.id: 2
+        }
         for last_action in last_actions:
-            # update building queue
             if last_action in _PROTOSS_BUILDINGS_FUNCTIONS:
                 bid = _PROTOSS_BUILDINGS_FUNCTIONS[last_action].id
-                self._factory.building_queues[bid] += 1
-            # update training queue
+                self._building_queues[bid] += 1
             elif last_action in _PROTOSS_UNITS_FUNCTIONS:
                 uid = _PROTOSS_UNITS_FUNCTIONS[last_action].id
                 time = _PROTOSS_UNITS_FUNCTIONS[last_action].time
-                self._factory.training_queues[uid].append(time)
-            # update upgrades
-            upgrade = self.is_upgrade(last_action)
-            if upgrade:
-                self.self_upgrades[upgrade] = True
+                self._training_queues[uid].append(time)
+            if last_action in upgrade_map:
+                upgrades[upgrade_map[last_action]] = True
 
-    def to_feature(self):
-        self_bases = [(key, self._factory.self_bases[key]) for key in sorted(self._factory.self_bases.keys())]
-        enemy_bases = [(key, self._factory.enemy_bases[key]) for key in sorted(self._factory.enemy_bases.keys())]
-        neutral_bases = [(key, self._factory.neutral_bases[key]) for key in sorted(self._factory.neutral_bases.keys())]
-        enemy_units = [(key, self._factory.enemy_units[key]) for key in sorted(self._factory.enemy_units.keys())
-                       if self._factory.enemy_units[key] > 0]
-        self_upgrades = [(key, self.self_upgrades[key]) for key in sorted(self.self_upgrades.keys())]
-        return [self._factory.frame_pass] + self_bases + enemy_bases + neutral_bases + self.self_units + \
-               enemy_units + self._factory.self_buildings + self_upgrades + self._factory.training_queues + \
-               self._factory.building_queues
+        timestep.update(
+            frame=self._frames,
+            building_queues=self._building_queues,
+            training_queues=self._training_queues,
+            self_units=self_units,
+            power_map=self._power_map,
+            power_list=self._power_list,
+            not_power_list=self._not_power_list,
+            upgrades=upgrades)
 
-    def __getattr__(self, item):
-        if hasattr(self._factory, item):
-            return getattr(self._factory, item)
-        return getattr(self._timestep, item)
-
-
-class ProtossTimeStepFactory():
-    def __init__(self, timestep, macro_success, step_mul):
-        self._timestep = timestep
-        self._step_mul = step_mul
-        self.macro_success = macro_success
-        self.frame_pass = 0  # second pass
-        self.self_bases = {}  # (location, worker assigned)
-        self.enemy_bases = {}  # (location, worker assigned)
-        self.neutral_bases = {}  # (location, true/false)
-        self.enemy_units = {}  # (tag, type)
-        self.self_buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, count)
-        self.training_queues = [[] for _ in range(len(_PROTOSS_UNITS))]
-        self.building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, queued_count)
-        self.power_list = []
-        self.power_map = set()
-        self.not_power_list = []
-
-    def __getattr__(self, item):
-        return getattr(self._timestep, item)
-
-    def process(self, timestep):
-        # TODO 1 , update infomation
-        # TODO 2 , mixin timestep
-        self.frame_pass += self._step_mul
-        return ProtossTimeStep(timestep, self)
+        return timestep
 
     def reset(self):
-        self.frame_pass = 0  # second pass
-        self.self_bases = {}  # (location, worker assigned)
-        self.enemy_bases = {}  # (location, worker assigned)
-        self.neutral_bases = {}  # (location, true/false)
-        self.enemy_units = {}  # (tag, type)
-        self.self_buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, count)
-        self.training_queues = [[] for _ in range(len(_PROTOSS_UNITS))]
-        self.building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]  # (type, queued_count)
-        self.power_list = []
-        self.power_map = set()
-        self.not_power_list = []
+        self._frames = 0  # second pass
+        self._buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]
+        self._training_queues = [[] for _ in range(len(_PROTOSS_UNITS))]
+        self._building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]
+        self._power_map = {}
+        self._power_list = []
+        self._not_power_list = []
