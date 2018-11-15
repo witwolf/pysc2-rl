@@ -79,7 +79,7 @@ class ProtossTimeStep(object):
 
     def __getattr__(self, item):
         value = self._mixin.get(item, None)
-        if value: return value
+        if value is not None: return value
         return getattr(self._timestep, item)
 
     def to_feature(self):
