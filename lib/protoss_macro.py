@@ -227,7 +227,7 @@ class U(object):
     @staticmethod
     def new_gateway_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        power_map = obs.observation.power_map
+        power_map = obs.power_map
         if len(power_map) == 0:
             return None
         try_time = 0
@@ -252,7 +252,7 @@ class U(object):
     @staticmethod
     def new_cyberneticscore_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        power_map = obs.observation.power_map
+        power_map = obs.power_map
         if len(power_map) == 0:
             return None
         try_time = 0

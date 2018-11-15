@@ -21,7 +21,7 @@ class ProtossStalkerAgent(ProtossBaseAgent):
         self.time = time.time()
         self.probe_count = 12
         self.probe_frame = 0
-        self.timestep_factory = TimeStepFactory(None, True, 1)
+        self.timestep_factory = TimeStepFactory(1)
 
     def step(self, obs):
         super(ProtossStalkerAgent, self).step(obs)
@@ -92,7 +92,8 @@ class ProtossStalkerAgent(ProtossBaseAgent):
                     self.last_build_frame = self.frame
                 elif len(self.get_all_complete_units_by_type(obs, units.Protoss.Gateway)) > 0 and mineral > 150:
                     print(PROTOSS_MACROS.Build_CyberneticsCore, adapter.transform([obs],
-                                                                                  [PROTOSS_MACROS.Build_CyberneticsCore]))
+                                                                                  [
+                                                                                      PROTOSS_MACROS.Build_CyberneticsCore]))
                     self.actions = PROTOSS_MACROS.Build_CyberneticsCore()
                     self.last_build_frame = self.frame
                 elif self.get_unit_counts(obs, units.Protoss.Probe) > 16 and mineral > 75 \

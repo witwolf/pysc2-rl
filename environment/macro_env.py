@@ -90,12 +90,12 @@ class MacroEnv(sc2_env.SC2Env):
             ensure_available_actions)
 
         self._debug = debug
-        self._timestep_factory = ProtossTimeStepFactory(None, None, self._step_mul)
+        self._timestep_factory = ProtossTimeStepFactory(self._step_mul)
 
     def reset(self):
         obs = super().reset()
         self._timestep_factory.reset()
-        self._last_obs = (self._timestep_factory.process(obs[0]),)
+        self._last_obs = (self._timestep_factory.update(obs[0]),)
         return self._last_obs
 
     def step(self, macros, update_observation=None):
@@ -126,7 +126,7 @@ class MacroEnv(sc2_env.SC2Env):
 
             act = (act_func(*args),)
             obs = super().step(act, update_observation)
-            self._last_obs = (self._timestep_factory.process(obs[0]),)
+            self._last_obs = (self._timestep_factory.update(obs[0]),)
             #  TODO remove this check temporary
 
             # last_actions = obs.observation.last_actions
@@ -142,7 +142,7 @@ class MacroEnv(sc2_env.SC2Env):
                 logging.warning("%s execute failed, err:%s", macro, err_msg)
             else:
                 logging.warning("%s execute success", macro)
-        self._last_obs[0].macro_success = success
+        self._last_obs[0]._macro_success = success
         if self._last_obs[0].last():
             self._timestep_factory.reset()
         return self._last_obs
