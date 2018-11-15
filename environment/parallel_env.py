@@ -108,7 +108,7 @@ def working_process(remote, env_maker_wrapper, env_arg):
         elif cmd == 'action_spec':
             remote.send(env.action_spec()[0])
         elif cmd == 'step':
-            obs = env.step(data)
+            obs = env.step(data.x)
             remote.send(obs[0])
         elif cmd == 'reset':
             obs = env.reset()
@@ -153,7 +153,7 @@ class MultiProcessEnvs(object):
 
     def step(self, actions):
         for remote, action in zip(self._remotes, actions):
-            remote.send(('step', action))
+            remote.send(('step', PickleWrapper(action)))
         results = [remote.recv() for remote in self._remotes]
         return results
 

@@ -3,6 +3,7 @@
 #
 
 import copy
+import json
 from pysc2.lib.actions import FUNCTIONS
 from lib.protoss_macro import _PROTOSS_BUILDINGS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS_FUNCTIONS
@@ -12,6 +13,12 @@ from lib.protoss_macro import U
 
 
 class ProtossTimeStep(object):
+    def __new__(cls, *args, **kwargs):
+        instance = super(ProtossTimeStep, cls).__new__(cls)
+        instance._mixin = None
+        instance._timestep = None
+        return instance
+
     def __init__(self, timestep):
         self._timestep = timestep
         self._macro_success = False
@@ -87,6 +94,11 @@ class ProtossTimeStep(object):
                mixin['upgrades'] + \
                mixin['training_queues'] + \
                mixin['building_queues']
+
+    def print(self):
+        print('obs:', self._timestep,
+              '_minimap_units:', self._minimap_units,
+              'mixin:', self._mixin)
 
 
 class ProtossTimeStepFactory():
