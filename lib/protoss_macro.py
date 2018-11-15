@@ -27,6 +27,7 @@ class UnitSize(enum.IntEnum):
     PylonPower = 18
     Stalker = 2
 
+
 _PROTOSS_BUILDINGS_SIZE = {
     units.Protoss.Nexus: UnitSize.Nexus.value,
     units.Protoss.Pylon: UnitSize.Pylon.value,
@@ -34,6 +35,7 @@ _PROTOSS_BUILDINGS_SIZE = {
     units.Protoss.Gateway: UnitSize.Gateway.value,
     units.Protoss.CyberneticsCore: UnitSize.CyberneticsCore.value,
 }
+
 
 class U(object):
     @staticmethod
@@ -159,7 +161,7 @@ class U(object):
             return pos
 
         for radius in range(int(unit_size * 3 / 2)):
-            for x in range(pos[0]-radius, pos[0]+radius+1):
+            for x in range(pos[0] - radius, pos[0] + radius + 1):
                 if x < 0 or x >= screen_size[0]:
                     continue
                 y = pos[1] - radius
@@ -178,7 +180,7 @@ class U(object):
         screen_w, screen_h = U.screen_size(obs)
 
         if len(obs.power_list) >= screen_w * screen_h * 3 / 4:
-            return randint(1, screen_w-1), randint(1, screen_h-1)
+            return randint(1, screen_w - 1), randint(1, screen_h - 1)
 
         nexus_locations = U.locations_by_type(obs, units.Protoss.Nexus)
         mineral_locations = U.locations_by_type(obs, units.Neutral.MineralField)
@@ -186,19 +188,19 @@ class U(object):
         pylon_locations = U.locations_by_type(obs, units.Protoss.Pylon)
         pylon_space = UnitSize.PylonPower.value - int(UnitSize.Pylon.value / 2)
 
-        if len(nexus_locations)==0:
-            return randint(1, screen_w-1), randint(1, screen_h-1)
+        if len(nexus_locations) == 0:
+            return randint(1, screen_w - 1), randint(1, screen_h - 1)
 
         main_nexus_location = nexus_locations[0]
 
-        if len(pylon_locations)==0:
+        if len(pylon_locations) == 0:
             x, y = main_nexus_location[0], main_nexus_location[1] + pylon_space
             if min(U.get_distance_list([x, y], mineral_locations)) > pylon_space:
                 return x, y
             else:
                 x, y = main_nexus_location[0], main_nexus_location[1] - pylon_space
                 return x, y
-        elif len(pylon_locations)==1:
+        elif len(pylon_locations) == 1:
             x, y = pylon_locations[0][0] + pylon_space, pylon_locations[0][1]
             if min(U.get_distance_list([x, y], geyser_locations)) > pylon_space:
                 return x, y
@@ -209,8 +211,7 @@ class U(object):
             not_power_list = obs.not_power_list
             if len(not_power_list) > 100:
                 return not_power_list[randint(0, 100)]
-            return randint(1, screen_w-1), randint(1, screen_h-1)
-
+            return randint(1, screen_w - 1), randint(1, screen_h - 1)
 
     @staticmethod
     def new_gateway_location(obs):
@@ -486,7 +487,7 @@ def build_a_pylon():
         # build a pylon
         FUNCTIONS.Build_Pylon_screen]
     funcs_args = [
-        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: (U.rand_minimap_unit_location(obs, U.worker_type(obs)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
         lambda obs: ("now", U.new_pylon_location(obs))]
@@ -643,6 +644,7 @@ def collect_gas():
         FUNCTIONS.Harvest_Gather_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
+        # todo select an `idle` worker
         lambda obs: ("select", U.rand_unit_location(
             obs, U.worker_type(obs))),
         lambda obs: ("now", U.gas_location(obs))]

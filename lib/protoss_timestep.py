@@ -9,7 +9,6 @@ from lib.protoss_macro import _PROTOSS_UNITS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS
 from lib.protoss_macro import _PROTOSS_BUILDINGS
 from lib.protoss_macro import U
-import numpy as np
 
 
 class ProtossTimeStep(object):
@@ -44,36 +43,39 @@ class ProtossTimeStep(object):
             self._feature_units[unit_type].append(unit)
             self._feature_unit_counts[unit_type] += 1
             # completed units
-            if int(unit.build_progress) == 100:
-                if unit_type not in self._feature_units_completed:
-                    self._feature_units_completed[unit_type] = []
-                    self._feature_unit_completed_counts[unit_type] = 0
-                self._feature_units_completed[unit_type].append(unit)
-                self._feature_unit_completed_counts[unit_type] += 1
+            if int(unit.build_progress) != 100:
+                continue
+            if unit_type not in self._feature_units_completed:
+                self._feature_units_completed[unit_type] = []
+                self._feature_unit_completed_counts[unit_type] = 0
+            self._feature_units_completed[unit_type].append(unit)
+            self._feature_unit_completed_counts[unit_type] += 1
 
         # update raw units count info
         raw_units = self._timestep.observation.raw_units
         for unit in raw_units:
-            if unit.alliance == 1:
-                unit_type = unit.unit_type
-                if not unit_type in self._raw_units:
-                    self._raw_units[unit_type] = []
-                    self._minimap_units[unit_type] = []
-                    self._unit_counts[unit_type] = 0
-                self._raw_units[unit_type].append(unit)
-                minimap_unit = copy.deepcopy(unit)
-                minimap_unit.x, minimap_unit.y = U._world_tl_to_minimap_px(unit)
-                self._minimap_units[unit_type].append(minimap_unit)
-                self._unit_counts[unit_type] += 1
-                # completed units
-                if int(unit.build_progress) == 100:
-                    if not unit_type in self._raw_units_completed:
-                        self._raw_units_completed[unit_type] = []
-                        self._minimap_units_completed[unit_type] = []
-                        self._unit_completed_counts[unit_type] = 0
-                    self._raw_units_completed[unit_type].append(unit)
-                    self._minimap_units_completed[unit_type].append(minimap_unit)
-                    self._unit_completed_counts[unit_type] += 1
+            if unit.alliance != 1:
+                continue
+            unit_type = unit.unit_type
+            if not unit_type in self._raw_units:
+                self._raw_units[unit_type] = []
+                self._minimap_units[unit_type] = []
+                self._unit_counts[unit_type] = 0
+            self._raw_units[unit_type].append(unit)
+            minimap_unit = copy.deepcopy(unit)
+            minimap_unit.x, minimap_unit.y = U._world_tl_to_minimap_px(unit)
+            self._minimap_units[unit_type].append(minimap_unit)
+            self._unit_counts[unit_type] += 1
+            # completed units
+            if int(unit.build_progress) != 100:
+                continue
+            if not unit_type in self._raw_units_completed:
+                self._raw_units_completed[unit_type] = []
+                self._minimap_units_completed[unit_type] = []
+                self._unit_completed_counts[unit_type] = 0
+            self._raw_units_completed[unit_type].append(unit)
+            self._minimap_units_completed[unit_type].append(minimap_unit)
+            self._unit_completed_counts[unit_type] += 1
 
     def update(self, **mixin):
         self._mixin.update(mixin)
@@ -82,16 +84,6 @@ class ProtossTimeStep(object):
         value = self._mixin.get(item, None)
         if value is not None: return value
         return getattr(self._timestep, item)
-
-    def to_feature(self):
-        mixin = self._mixin
-        # TODO
-        return [mixin['frames']] + \
-               mixin['self_units'] + \
-               mixin['buildings'] + \
-               mixin['upgrades'] + \
-               mixin['training_queues'] + \
-               mixin['building_queues']
 
     def print(self):
         print('_macro_success:', self._macro_success,
@@ -133,7 +125,7 @@ class ProtossTimeStepFactory():
                 self._not_power_list.clear()
 
                 xs, ys = (timestep.observation.feature_screen.power == 1).nonzero()
-                power_center = [0,0]
+                power_center = [0, 0]
                 for pt in zip(xs, ys):
                     self._power_list.append(pt)
                     power_center[0] += pt[0]
@@ -151,7 +143,7 @@ class ProtossTimeStepFactory():
                     for h in range(0, screen_h):
                         if (w, h) not in self._power_map:
                             self._not_power_list.append((w, h))
-                self._not_power_list.sort(key=lambda p:U.get_distance(power_center, p))
+                self._not_power_list.sort(key=lambda p: U.get_distance(power_center, p))
 
             if build_count > last_build_count:
                 building_queues[bid] -= (build_count - last_build_count)
