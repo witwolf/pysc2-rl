@@ -28,15 +28,11 @@ class ProtossRewardAdapter(Adapter):
 
     def get_reward(self, timestep, action):
         if not timestep._macro_success:
-            return 0
+            return -1
         features, minerals, gas, food = self.get_feature_vector(timestep)
         # check unit requirements
         if action.id in _PROTOSS_UNITS_MACROS:
             unit = _PROTOSS_UNITS_MACROS[action.id]
-            for requirement in unit.requirement_types:
-                # if requirements miss
-                if features.get(requirement, 0) == 0:
-                    return -1
             # if worker
             if unit.unit_type == units.Protoss.Probe:
                 protos_nexus = timestep._raw_units.get(units.Protoss.Nexus, [])
@@ -54,10 +50,6 @@ class ProtossRewardAdapter(Adapter):
         # check building requirements
         if action.id in _PROTOSS_BUILDINGS_MACROS:
             building = _PROTOSS_BUILDINGS_MACROS[action.id]
-            for requirement in building.requirement_types:
-                # if requirements miss
-                if features.get(requirement, 0) == 0:
-                    return -1
             # if need food
             if building.unit_type == units.Protoss.Pylon:
                 # if first pylon, give a big reward
@@ -105,7 +97,7 @@ class ProtossRewardAdapter(Adapter):
             return 1
 
         # other function return 0
-        return 0
+        return 1e-2
 
     def get_damage(self, timestep, last_timestep):
         if not last_timestep:
