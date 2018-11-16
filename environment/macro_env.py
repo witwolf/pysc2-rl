@@ -108,6 +108,8 @@ class MacroEnv(sc2_env.SC2Env):
                 act = (FUNCTIONS.no_op(),)
             obs = super().step(act, update_observation)
             self._last_obs = (self._timestep_factory.update(obs[0]),)
+            if not success:
+                break
         logging.debug("%s execute %s", macro, "success" if success else "failed")
         self._last_obs[0]._macro_success = success
         if self._last_obs[0].last():

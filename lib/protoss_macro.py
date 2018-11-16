@@ -484,6 +484,14 @@ class U(object):
         return False
 
 
+def do_nothing():
+    funcs = [
+        FUNCTIONS.no_op]
+    funcs_args = [lambda obs: ()]
+    cond = lambda obs: True
+    return cond, funcs, funcs_args
+
+
 def build_a_pylon():
     funcs = [
         # move camera to worker
@@ -851,7 +859,8 @@ _PROTOSS_MACROS = [
     ProtossMacro.ability(14, "Move_Bottom", move_screen_bottom, 14),
     ProtossMacro.ability(15, "Move_BottomLeft", move_screen_bottomleft, 15),
     ProtossMacro.ability(16, "Move_Left", move_screen_left, 16),
-    ProtossMacro.ability(17, "Attack_Enemy", attack_enemy, 17)
+    ProtossMacro.ability(17, "Attack_Enemy", attack_enemy, 17),
+    ProtossMacro.ability(18, "No_op", do_nothing, 18)
     # ProtossMacro.ability(8, "Collect_Mineral", collect_minerals, 8),
 ]
 

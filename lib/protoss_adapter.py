@@ -30,6 +30,9 @@ class ProtossRewardAdapter(Adapter):
         if not timestep._macro_success:
             return -1
         features, minerals, gas, food = self.get_feature_vector(timestep)
+
+        if action.id == PROTOSS_MACROS.No_op:
+            return -1
         # check unit requirements
         if action.id in _PROTOSS_UNITS_MACROS:
             unit = _PROTOSS_UNITS_MACROS[action.id]
