@@ -36,7 +36,6 @@ class A2CProtossExperiment(DistributedExperiment):
         parser.add_argument("--ent_coef", type=float, default=1e-3)
         parser.add_argument("--lr", type=float, default=7e-4)
         parser.add_argument("--visualize", type=ast.literal_eval, default=False)
-        parser.add_argument("--debug", type=ast.literal_eval, default=False)
         parser.add_argument("--mode", type=str, default='multi_thread')
         args, _ = parser.parse_known_args()
         self._local_args = args
@@ -51,7 +50,6 @@ class A2CProtossExperiment(DistributedExperiment):
         env_args = [{'map_name': "Simple64"}
                     for _ in range(local_args.env_num)]
         env_args[0]['visualize'] = local_args.visualize
-        env_args[0]['debug'] = local_args.debug
         with tf.device(self.tf_device(global_args)):
             agent = A2C(
                 network_creator=network_creator(config),

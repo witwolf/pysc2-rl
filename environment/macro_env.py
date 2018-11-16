@@ -68,7 +68,6 @@ class MacroEnv(sc2_env.SC2Env):
                  score_multiplier=None,
                  random_seed=None,
                  disable_fog=False,
-                 debug=False,
                  ensure_available_actions=True):
         super().__init__(
             _only_use_kwargs,
@@ -90,7 +89,6 @@ class MacroEnv(sc2_env.SC2Env):
             disable_fog,
             ensure_available_actions)
 
-        self._debug = debug
         self._timestep_factory = ProtossTimeStepFactory(self._step_mul)
 
     def reset(self):

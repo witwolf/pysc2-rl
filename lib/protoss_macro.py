@@ -195,11 +195,13 @@ class U(object):
 
         if len(pylon_locations) == 0:
             x, y = main_nexus_location[0], main_nexus_location[1] + pylon_space
-            if not min(U.get_distance_list([x, y], mineral_locations)) > pylon_space:
+            if mineral_locations and min(
+                    U.get_distance_list([x, y], mineral_locations)) <= pylon_space:
                 x, y = main_nexus_location[0], main_nexus_location[1] - pylon_space
         elif len(pylon_locations) == 1:
             x, y = pylon_locations[0][0] + pylon_space, pylon_locations[0][1]
-            if not min(U.get_distance_list([x, y], geyser_locations)) > pylon_space:
+            if geyser_locations and min(
+                    U.get_distance_list([x, y], geyser_locations)) <= pylon_space:
                 x, y = pylon_locations[0][0] - pylon_space, pylon_locations[0][1]
         else:
             not_power_list = obs.not_power_list
@@ -491,7 +493,7 @@ def build_a_pylon():
         # build a pylon
         FUNCTIONS.Build_Pylon_screen]
     funcs_args = [
-        lambda obs: (U.rand_minimap_unit_location(obs, U.worker_type(obs)),),
+        lambda obs: (U.rand_minimap_unit_location(obs, units.Protoss.Nexus),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
         lambda obs: ("now", U.new_pylon_location(obs))]
