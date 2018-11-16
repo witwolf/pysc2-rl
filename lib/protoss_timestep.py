@@ -113,7 +113,6 @@ class ProtossTimeStepFactory():
         timestep.fill()
 
         if len(self._neutral_map) == 0:
-            print("update neutral")
             ys, xs = (timestep.observation.feature_screen.player_relative == features.PlayerRelative.NEUTRAL).\
                 nonzero()
             for pt in zip(xs, ys):
@@ -125,7 +124,7 @@ class ProtossTimeStepFactory():
                 self._neutral_center[1] /= len(self._neutral_map)
 
         first_base_loc = None
-        if len(timestep._feature_units[units.Protoss.Nexus]) > 0:
+        if len(timestep._feature_units.get(units.Protoss.Nexus, [])) > 0:
             first_base = timestep._feature_units[units.Protoss.Nexus][0]
             first_base_loc = (first_base.x, first_base.y)
 
@@ -141,7 +140,6 @@ class ProtossTimeStepFactory():
             build_count = unit_counts.get(_PROTOSS_BUILDINGS[bid].unit_type, 0)
             # building changed, recaculate power
             if last_build_count != build_count:
-                print("update feature by", bid)
                 self._power_list.clear()
                 self._not_power_list.clear()
 
