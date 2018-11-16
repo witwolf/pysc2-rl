@@ -842,26 +842,32 @@ class ProtossMacro(collections.namedtuple(
 
 
 _PROTOSS_MACROS = [
+    # ProtossMacro.ability(0, "Build_Pylon", build_a_pylon, 0),
+    # ProtossMacro.ability(1, "Build_Gateway", build_a_gateway, 1),
+    # ProtossMacro.ability(2, "Build_Assimilator", build_a_assimilator, 2),
+    # ProtossMacro.ability(3, "Build_CyberneticsCore", build_a_cyberneticscore, 3),
+    # ProtossMacro.ability(4, "Train_Probe", training_a_probe, 4),
+    # ProtossMacro.ability(5, "Train_Zealot", training_a_zealot, 5),
+    # ProtossMacro.ability(6, "Train_Stalker", training_a_stalker, 6),
+    # ProtossMacro.ability(7, "Callback_Idle_Workers", callback_idle_workers, 7),
+    # ProtossMacro.ability(8, "Collect_Gas", collect_gas, 8),
+    # ProtossMacro.ability(9, "Move_TopLeft", move_screen_topleft, 9),
+    # ProtossMacro.ability(10, "Move_Top", move_screen_top, 10),
+    # ProtossMacro.ability(11, "Move_TopRight", move_screen_topright, 11),
+    # ProtossMacro.ability(12, "Move_Right", move_screen_right, 12),
+    # ProtossMacro.ability(13, "Move_BottomRight", move_screen_bottomright, 13),
+    # ProtossMacro.ability(14, "Move_Bottom", move_screen_bottom, 14),
+    # ProtossMacro.ability(15, "Move_BottomLeft", move_screen_bottomleft, 15),
+    # ProtossMacro.ability(16, "Move_Left", move_screen_left, 16),
+    # ProtossMacro.ability(17, "Attack_Enemy", attack_enemy, 17),
+    # ProtossMacro.ability(18, "No_op", do_nothing, 18)
     ProtossMacro.ability(0, "Build_Pylon", build_a_pylon, 0),
     ProtossMacro.ability(1, "Build_Gateway", build_a_gateway, 1),
-    ProtossMacro.ability(2, "Build_Assimilator", build_a_assimilator, 2),
-    ProtossMacro.ability(3, "Build_CyberneticsCore", build_a_cyberneticscore, 3),
-    ProtossMacro.ability(4, "Train_Probe", training_a_probe, 4),
-    ProtossMacro.ability(5, "Train_Zealot", training_a_zealot, 5),
-    ProtossMacro.ability(6, "Train_Stalker", training_a_stalker, 6),
-    ProtossMacro.ability(7, "Callback_Idle_Workers", callback_idle_workers, 7),
-    ProtossMacro.ability(8, "Collect_Gas", collect_gas, 8),
-    ProtossMacro.ability(9, "Move_TopLeft", move_screen_topleft, 9),
-    ProtossMacro.ability(10, "Move_Top", move_screen_top, 10),
-    ProtossMacro.ability(11, "Move_TopRight", move_screen_topright, 11),
-    ProtossMacro.ability(12, "Move_Right", move_screen_right, 12),
-    ProtossMacro.ability(13, "Move_BottomRight", move_screen_bottomright, 13),
-    ProtossMacro.ability(14, "Move_Bottom", move_screen_bottom, 14),
-    ProtossMacro.ability(15, "Move_BottomLeft", move_screen_bottomleft, 15),
-    ProtossMacro.ability(16, "Move_Left", move_screen_left, 16),
-    ProtossMacro.ability(17, "Attack_Enemy", attack_enemy, 17),
-    ProtossMacro.ability(18, "No_op", do_nothing, 18)
-    # ProtossMacro.ability(8, "Collect_Mineral", collect_minerals, 8),
+    ProtossMacro.ability(2, "Train_Probe", training_a_probe, 2),
+    ProtossMacro.ability(3, "Train_Zealot", training_a_zealot, 3),
+    ProtossMacro.ability(4, "Callback_Idle_Workers", callback_idle_workers, 4),
+    ProtossMacro.ability(5, "Attack_Enemy", attack_enemy, 5),
+    ProtossMacro.ability(6, "No_op", do_nothing, 6)
 ]
 
 
@@ -958,13 +964,13 @@ _PROTOSS_UNITS_DICT = {
 _PROTOSS_UNITS_MACROS = {
     PROTOSS_MACROS.Train_Probe.id: Probe,
     PROTOSS_MACROS.Train_Zealot.id: Zealot,
-    PROTOSS_MACROS.Train_Stalker.id: Stalker
+    # PROTOSS_MACROS.Train_Stalker.id: Stalker
 }
 
 _PROTOSS_UNITS_FUNCTIONS = {
     FUNCTIONS.Train_Probe_quick.id: Probe,
     FUNCTIONS.Train_Zealot_quick.id: Zealot,
-    FUNCTIONS.Train_Stalker_quick.id: Stalker
+    # FUNCTIONS.Train_Stalker_quick.id: Stalker
 }
 
 _PROTOSS_BUILDINGS = [
@@ -998,13 +1004,13 @@ _PROTOSS_BUILDINGS_DICT = {
 _PROTOSS_BUILDINGS_MACROS = {
     PROTOSS_MACROS.Build_Pylon.id: Pylon,
     PROTOSS_MACROS.Build_Gateway.id: Gateway,
-    PROTOSS_MACROS.Build_Assimilator.id: Assimilator,
-    PROTOSS_MACROS.Build_CyberneticsCore.id: CyberneticsCore
+    # PROTOSS_MACROS.Build_Assimilator.id: Assimilator,
+    # PROTOSS_MACROS.Build_CyberneticsCore.id: CyberneticsCore
 }
 
 _PROTOSS_BUILDINGS_FUNCTIONS = {
     FUNCTIONS.Build_Pylon_screen.id: Pylon,
     FUNCTIONS.Build_Gateway_screen.id: Gateway,
-    FUNCTIONS.Build_Assimilator_screen.id: Assimilator,
-    FUNCTIONS.Build_CyberneticsCore_screen.id: CyberneticsCore
+    # FUNCTIONS.Build_Assimilator_screen.id: Assimilator,
+    # FUNCTIONS.Build_CyberneticsCore_screen.id: CyberneticsCore
 }

@@ -3,7 +3,7 @@
 #
 from pysc2.agents import base_agent
 from pysc2.lib import units
-from lib.protoss_macro import PROTOSS_MACROS
+from lib.protoss_macro import _PROTOSS_BUILDINGS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS_DICT
 from lib.protoss_macro import _PROTOSS_BUILDINGS_DICT
 from lib.protoss_timestep import ProtossTimeStepFactory as InformationWrapper
@@ -46,10 +46,7 @@ class ProtossBaseAgent(base_agent.BaseAgent):
         return queue_units
 
     def is_building_macro(self, macro_action):
-        return macro_action in [PROTOSS_MACROS.Build_Pylon.id,
-                          PROTOSS_MACROS.Build_Gateway.id,
-                          PROTOSS_MACROS.Build_Assimilator.id,
-                          PROTOSS_MACROS.Build_CyberneticsCore.id]
+        return macro_action in _PROTOSS_BUILDINGS_FUNCTIONS
 
     def can_build(self):
         return self.frame - self.last_build_frame > self.build_frame_gap
