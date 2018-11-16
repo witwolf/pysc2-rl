@@ -486,16 +486,19 @@ class U(object):
 
 def build_a_pylon():
     funcs = [
-        # move camera to base
+        # move camera to worker
         FUNCTIONS.move_camera,
         # select all workers
         FUNCTIONS.select_point,
+        # move camera to base
+        FUNCTIONS.move_camera,
         # build a pylon
         FUNCTIONS.Build_Pylon_screen]
     funcs_args = [
         lambda obs: (U.rand_minimap_unit_location(obs, units.Protoss.Nexus),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
+        lambda obs: (U.base_minimap_location(obs)),
         lambda obs: ("now", U.new_pylon_location(obs))]
     cond = U.can_build_pylon
     return cond, funcs, funcs_args
@@ -503,16 +506,19 @@ def build_a_pylon():
 
 def build_a_gateway():
     funcs = [
-        # move camera to base
+        # move camera to worker
         FUNCTIONS.move_camera,
         # select all workers
         FUNCTIONS.select_point,
+        # move camera to base
+        FUNCTIONS.move_camera,
         # build a gateway
         FUNCTIONS.Build_Gateway_screen]
     funcs_args = [
         lambda obs: (U.rand_minimap_unit_location(obs, U.worker_type(obs)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
+        lambda obs: (U.base_minimap_location(obs)),
         lambda obs: ("now", U.new_gateway_location(obs))]
     cond = U.can_build_gateway
     return cond, funcs, funcs_args
@@ -520,16 +526,19 @@ def build_a_gateway():
 
 def build_a_assimilator():
     funcs = [
-        # move camera to base
+        # move camera to worker
         FUNCTIONS.move_camera,
         # select all workers
         FUNCTIONS.select_point,
+        # move camera to base
+        FUNCTIONS.move_camera,
         # build a assimilator
         FUNCTIONS.Build_Assimilator_screen]
     funcs_args = [
         lambda obs: (U.rand_minimap_unit_location(obs, U.worker_type(obs)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
+        lambda obs: (U.base_minimap_location(obs)),
         lambda obs: ("now", U.new_assimilator_location(obs))]
     cond = U.can_build_assimilator
     return cond, funcs, funcs_args
@@ -538,16 +547,19 @@ def build_a_assimilator():
 def build_a_cyberneticscore():
     cond = U.can_build_cyberneticscore
     funcs = [
-        # move camera to base
+        # move camera to worker
         FUNCTIONS.move_camera,
         # select all workers
         FUNCTIONS.select_point,
+        # move camera to base
+        FUNCTIONS.move_camera,
         # build a CyberneticsCore
         FUNCTIONS.Build_CyberneticsCore_screen]
     funcs_args = [
         lambda obs: (U.rand_minimap_unit_location(obs, U.worker_type(obs)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
+        lambda obs: (U.base_minimap_location(obs)),
         lambda obs: ("now", U.new_cyberneticscore_location(obs))]
     return cond, funcs, funcs_args
 
