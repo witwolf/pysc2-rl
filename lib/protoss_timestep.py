@@ -9,6 +9,7 @@ from lib.protoss_macro import _PROTOSS_UNITS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS
 from lib.protoss_macro import _PROTOSS_BUILDINGS
 from lib.protoss_macro import U
+from pysc2.lib import features, units
 
 
 class ProtossTimeStep(object):
@@ -100,6 +101,8 @@ class ProtossTimeStepFactory():
         self._training_queues = None
         self._building_queues = None
         self._power_map = None
+        self._neutral_map = None
+        self._neutral_center = None
         self._power_list = None
         self._not_power_list = None
         self.reset()
@@ -108,6 +111,23 @@ class ProtossTimeStepFactory():
         self._frames += self._step_mul
         timestep = ProtossTimeStep(timestep)
         timestep.fill()
+
+        if len(self._neutral_map) == 0:
+            print("update neutral")
+            ys, xs = (timestep.observation.feature_screen.player_relative == features.PlayerRelative.NEUTRAL).\
+                nonzero()
+            for pt in zip(xs, ys):
+                self._neutral_map.add(pt)
+                self._neutral_center[0] += pt[0]
+                self._neutral_center[1] += pt[1]
+            if len(self._neutral_map) > 0:
+                self._neutral_center[0] /= len(self._neutral_map)
+                self._neutral_center[1] /= len(self._neutral_map)
+
+        first_base_loc = None
+        if len(timestep._feature_units[units.Protoss.Nexus]) > 0:
+            first_base = timestep._feature_units[units.Protoss.Nexus][0]
+            first_base_loc = (first_base.x, first_base.y)
 
         building_queues = self._building_queues
         unit_counts = timestep._unit_counts
@@ -121,15 +141,21 @@ class ProtossTimeStepFactory():
             build_count = unit_counts.get(_PROTOSS_BUILDINGS[bid].unit_type, 0)
             # building changed, recaculate power
             if last_build_count != build_count:
+                print("update feature by", bid)
                 self._power_list.clear()
                 self._not_power_list.clear()
 
                 xs, ys = (timestep.observation.feature_screen.power == 1).nonzero()
                 power_center = [0, 0]
                 for pt in zip(xs, ys):
-                    self._power_list.append(pt)
-                    power_center[0] += pt[0]
-                    power_center[1] += pt[1]
+                    if pt not in self._neutral_map:
+                        dist = 12
+                        if first_base_loc:
+                            dist = U.get_distance(first_base_loc, pt)
+                        if dist < 11:
+                            self._power_list.append(pt)
+                            power_center[0] += pt[0]
+                            power_center[1] += pt[1]
 
                 if len(self._power_list) > 0:
                     power_center[0] /= len(self._power_list)
@@ -141,9 +167,15 @@ class ProtossTimeStepFactory():
                 screen_h = timestep.observation.feature_screen.shape[-2]
                 for w in range(0, screen_w):
                     for h in range(0, screen_h):
-                        if (w, h) not in self._power_map:
-                            self._not_power_list.append((w, h))
-                self._not_power_list.sort(key=lambda p: U.get_distance(power_center, p))
+                        pt = (w, h)
+                        if pt not in self._power_map and pt not in self._neutral_map:
+                            dist = 12
+                            if first_base_loc:
+                                dist = U.get_distance(first_base_loc, pt)
+                            if dist < 11:
+                                self._not_power_list.append(pt)
+                self._not_power_list.sort(
+                    key=lambda p: U.get_distance(power_center, p) - U.get_distance(self._neutral_center, p))
 
             if build_count > last_build_count:
                 building_queues[bid] -= (build_count - last_build_count)
@@ -188,6 +220,7 @@ class ProtossTimeStepFactory():
             training_queues=self._training_queues,
             self_units=self_units,
             power_map=self._power_map,
+            neutral_map = self._neutral_map,
             power_list=self._power_list,
             not_power_list=self._not_power_list,
             upgrades=upgrades)
@@ -199,6 +232,8 @@ class ProtossTimeStepFactory():
         self._buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]
         self._training_queues = [[] for _ in range(len(_PROTOSS_UNITS))]
         self._building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]
-        self._power_map = {}
+        self._power_map = set()
+        self._neutral_map = set()
+        self._neutral_center = [0, 0]
         self._power_list = []
         self._not_power_list = []

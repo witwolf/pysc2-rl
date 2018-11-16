@@ -179,7 +179,7 @@ class U(object):
     def new_pylon_location(obs):
         screen_w, screen_h = U.screen_size(obs)
 
-        if len(obs.power_list) >= screen_w * screen_h * 3 / 4:
+        if len(obs.power_list) >= screen_w * screen_h * 7 / 8:
             return randint(1, screen_w - 1), randint(1, screen_h - 1)
 
         nexus_locations = U.locations_by_type(obs, units.Protoss.Nexus)
@@ -203,8 +203,8 @@ class U(object):
                 x, y = pylon_locations[0][0] - pylon_space, pylon_locations[0][1]
         else:
             not_power_list = obs.not_power_list
-            if len(not_power_list) > 100:
-                x, y = not_power_list[randint(0, 100)]
+            if len(not_power_list) > 500:
+                x, y = not_power_list[randint(0, 500)]
             else:
                 x, y = randint(1, screen_w - 1), randint(1, screen_h - 1)
         return U._valid_screen_x_y(x, y, obs)
