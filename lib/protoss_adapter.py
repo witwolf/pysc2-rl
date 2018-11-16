@@ -92,14 +92,14 @@ class ProtossRewardAdapter(Adapter):
 
         if action.id == PROTOSS_MACROS.Callback_Idle_Workers:
             if timestep.observation.player.idle_worker_count == 0:
-                return 1
+                return 10
             else:
                 return -1
 
         if action.id == PROTOSS_MACROS.Attack_Enemy:
             # if not enough zealot, don't attack
             zealot_num = timestep._unit_counts.get(units.Protoss.Zealot, 0)
-            if zealot_num <= 16:
+            if zealot_num <= 12:
                 return -1
             else:
                 return 0.1
