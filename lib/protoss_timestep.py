@@ -113,8 +113,9 @@ class ProtossTimeStepFactory():
         timestep.fill()
 
         if len(self._neutral_map) == 0:
-            print("update neutral")
-            ys, xs = (timestep.observation.feature_screen.player_relative == features.PlayerRelative.NEUTRAL).\
+            player_relative = timestep.observation.feature_screen.player_relative
+            neutral = features.PlayerRelative.NEUTRAL
+            ys, xs = (player_relative == neutral). \
                 nonzero()
             for pt in zip(xs, ys):
                 self._neutral_map.add(pt)
@@ -125,7 +126,7 @@ class ProtossTimeStepFactory():
                 self._neutral_center[1] /= len(self._neutral_map)
 
         first_base_loc = None
-        if len(timestep._feature_units[units.Protoss.Nexus]) > 0:
+        if len(timestep._feature_units.get(units.Protoss.Nexus, [])) > 0:
             first_base = timestep._feature_units[units.Protoss.Nexus][0]
             first_base_loc = (first_base.x, first_base.y)
 
@@ -220,7 +221,7 @@ class ProtossTimeStepFactory():
             training_queues=self._training_queues,
             self_units=self_units,
             power_map=self._power_map,
-            neutral_map = self._neutral_map,
+            neutral_map=self._neutral_map,
             power_list=self._power_list,
             not_power_list=self._not_power_list,
             upgrades=upgrades)
