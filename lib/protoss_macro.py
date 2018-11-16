@@ -498,7 +498,7 @@ def build_a_pylon():
         lambda obs: (U.rand_minimap_unit_location(obs, units.Protoss.Nexus),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
-        lambda obs: (U.base_minimap_location(obs)),
+        lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("now", U.new_pylon_location(obs))]
     cond = U.can_build_pylon
     return cond, funcs, funcs_args
@@ -518,7 +518,7 @@ def build_a_gateway():
         lambda obs: (U.rand_minimap_unit_location(obs, U.worker_type(obs)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
-        lambda obs: (U.base_minimap_location(obs)),
+        lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("now", U.new_gateway_location(obs))]
     cond = U.can_build_gateway
     return cond, funcs, funcs_args
@@ -538,7 +538,7 @@ def build_a_assimilator():
         lambda obs: (U.rand_minimap_unit_location(obs, U.worker_type(obs)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
-        lambda obs: (U.base_minimap_location(obs)),
+        lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("now", U.new_assimilator_location(obs))]
     cond = U.can_build_assimilator
     return cond, funcs, funcs_args
@@ -559,7 +559,7 @@ def build_a_cyberneticscore():
         lambda obs: (U.rand_minimap_unit_location(obs, U.worker_type(obs)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
-        lambda obs: (U.base_minimap_location(obs)),
+        lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("now", U.new_cyberneticscore_location(obs))]
     return cond, funcs, funcs_args
 
