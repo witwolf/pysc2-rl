@@ -64,7 +64,7 @@ class ProtossRewardAdapter(Adapter):
                 pylon_num = timestep._unit_counts.get(units.Protoss.Pylon, 0)
                 pylon_in_queue = timestep.building_queues[_PROTOSS_BUILDINGS_DICT[units.Protoss.Pylon].id]
                 # if first pylon, give a big reward
-                if pylon_num + pylon_in_queue >= 1:
+                if pylon_num + pylon_in_queue == 1:
                     return 10
                 # if food urgent, give a big reward
                 elif food_future <= 10 and timestep.observation.player.food_cap < 200:
@@ -91,10 +91,7 @@ class ProtossRewardAdapter(Adapter):
                 return -1
 
         if action.id == PROTOSS_MACROS.Callback_Idle_Workers:
-            if timestep.observation.player.idle_worker_count == 0:
-                return 10
-            else:
-                return -1
+            return 10
 
         if action.id == PROTOSS_MACROS.Attack_Enemy:
             # if not enough zealot, don't attack
