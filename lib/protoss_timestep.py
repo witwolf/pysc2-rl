@@ -229,7 +229,7 @@ class ProtossTimeStepFactory():
             power_list=self._power_list,
             not_power_list=self._not_power_list,
             upgrades=upgrades,
-            features=self._feature_vector)
+            timestep_information=self._feature_vector)
 
         return timestep
 
@@ -247,7 +247,7 @@ class ProtossTimeStepFactory():
 
     def update_feature(self, timestep):
         # training units
-        training_units = [self._training_queues[i] / 20 for i in range(len(_PROTOSS_UNITS_MACROS))]
+        training_units = [len(self._training_queues[i]) / 20 for i in range(len(_PROTOSS_UNITS_MACROS))]
         # complete units
         complete_units = [timestep._unit_completed_counts.get(_PROTOSS_UNITS[i].unit_type, 0) / 20
                           for i in range(len(_PROTOSS_UNITS_MACROS))]

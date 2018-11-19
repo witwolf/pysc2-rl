@@ -168,6 +168,12 @@ class ProtossObservationAdapter(DefaultObservationAdapter):
                 feature[i] = 1
         return feature[action_indexes]
 
+    def _nonspatial_feature(self, timestep, field):
+        f = getattr(timestep, field, None)
+        if not f:
+            return timestep.observation[field]
+        return f
+
 
 class ProtossMacroAdapter(Adapter):
     def __init__(self, config):
