@@ -8,6 +8,8 @@ from lib.protoss_macro import _PROTOSS_BUILDINGS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS
 from lib.protoss_macro import _PROTOSS_BUILDINGS
+from lib.protoss_macro import _PROTOSS_UNITS_MACROS
+from lib.protoss_macro import _PROTOSS_BUILDINGS_MACROS
 from lib.protoss_macro import U
 from pysc2.lib import features, units
 
@@ -105,6 +107,7 @@ class ProtossTimeStepFactory():
         self._neutral_center = None
         self._power_list = None
         self._not_power_list = None
+        self._feature_vector = None
         self.reset()
 
     def update(self, timestep):
@@ -214,6 +217,8 @@ class ProtossTimeStepFactory():
             if last_action in upgrade_map:
                 upgrades[upgrade_map[last_action]] = True
 
+        self.update_feature(timestep)
+
         timestep.update(
             frame=self._frames,
             building_queues=self._building_queues,
@@ -223,7 +228,8 @@ class ProtossTimeStepFactory():
             neutral_map=self._neutral_map,
             power_list=self._power_list,
             not_power_list=self._not_power_list,
-            upgrades=upgrades)
+            upgrades=upgrades,
+            features=self._feature_vector)
 
         return timestep
 
@@ -237,3 +243,30 @@ class ProtossTimeStepFactory():
         self._neutral_center = [0, 0]
         self._power_list = []
         self._not_power_list = []
+        self._feature_vector = [0] * (3 * len(_PROTOSS_UNITS_MACROS) + 3 * len(_PROTOSS_BUILDINGS_MACROS) + 4)
+
+    def update_feature(self, timestep):
+        # training units
+        training_units = [self._training_queues[i] / 20 for i in range(len(_PROTOSS_UNITS_MACROS))]
+        # complete units
+        complete_units = [timestep._unit_completed_counts.get(_PROTOSS_UNITS[i].unit_type, 0) / 20
+                          for i in range(len(_PROTOSS_UNITS_MACROS))]
+        # total units
+        total_units = [tp[0] + tp[1] for tp in zip(training_units, complete_units)]
+        units_vector = training_units + complete_units + total_units
+
+        # queued buildings
+        queued_buildings = [self._building_queues[i] / 20 for i in range(len(_PROTOSS_BUILDINGS_MACROS))]
+        # exists buildings
+        exists_buildings = [timestep._unit_counts.get(_PROTOSS_BUILDINGS[i].unit_type, 0) / 20
+                            for i in range(len(_PROTOSS_BUILDINGS_MACROS))]
+        # total buildings
+        total_buildings = [tp[0] + tp[1] for tp in zip(queued_buildings, exists_buildings)]
+        buildings_vector = queued_buildings + exists_buildings + total_buildings
+
+        resource_vector = [timestep.observation.player.minerals / 1000,
+                           timestep.observation.player.vespene / 1000,
+                           timestep.observation.player.food_cap / 40,
+                           timestep.observation.player.food_used / 40]
+
+        self._feature_vector = units_vector + buildings_vector + resource_vector

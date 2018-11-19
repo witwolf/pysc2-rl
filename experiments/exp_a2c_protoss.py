@@ -70,12 +70,10 @@ class A2CProtossExperiment(DistributedExperiment):
             minimap_features=[],
             available_actions=PROTOSS_MACROS._macro_list,
             non_spatial_features=[
-                'player',
-                'score_cumulative',
+                'timestep_information',
                 'available_actions'],
             non_spatial_feature_dims=dict(
-                player=(11,),
-                score_cumulative=(13,),
+                timestep_information=(16,),
                 available_actions=(len(PROTOSS_MACROS),)))
         env_args = [{'map_name': "Simple64"}
                     for _ in range(local_args.env_num)]

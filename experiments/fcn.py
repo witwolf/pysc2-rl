@@ -132,7 +132,7 @@ class FCNNetwork2():
                 inputs.append(input_ph)
                 if field != 'available_actions':
                     states.append(input_ph)
-        state = tf.log(tf.concat(states, axis=1) + 1.0)
+        state = tf.concat(states, axis=1)
         fc = layers.fully_connected(state, num_outputs=256, scope='fc')
         fc = layers.fully_connected(fc, num_outputs=256, scope='fc1')
         value = layers.fully_connected(

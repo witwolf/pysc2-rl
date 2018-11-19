@@ -27,6 +27,7 @@ class ProtossStalkerAgent(ProtossBaseAgent):
         super(ProtossStalkerAgent, self).step(obs)
 
         obs = self.timestep_factory.update(obs)
+        print(obs.features)
         # print(obs.to_feature())
         # print(obs.observation.last_actions)
         # pylon_progress = [unit.build_progress for unit in obs.observation.raw_units
