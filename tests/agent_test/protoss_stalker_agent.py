@@ -8,7 +8,7 @@ import numpy as np
 sys.path.append('.')
 from pysc2.lib import actions, features, units
 from pysc2.lib.actions import FUNCTIONS
-from lib.protoss_macro import PROTOSS_MACROS
+from lib.protoss_macro import PROTOSS_MACROS,U
 from tests.agent_test.protoss_base_agent import ProtossBaseAgent
 from lib.protoss_adapter import ProtossRewardAdapter as RewardAdapter
 from lib.protoss_timestep import ProtossTimeStepFactory as TimeStepFactory
@@ -25,6 +25,7 @@ _PYLON=_PRO.Pylon
 _POWER="PylonPower"
 _ASSIM=_PRO.Assimilator
 _TMP_BUILDS=[_CENTER,_GATE,_ASSIM,_PYLON]
+_MINERAL=units.Neutral.MineralField
 
 class ProtossStalkerAgent(ProtossBaseAgent):
     def __init__(self):
@@ -91,6 +92,11 @@ class ProtossStalkerAgent(ProtossBaseAgent):
                     print(tmp," Center:",self.allunits[tmp][1]," Radius:",self.allunits[tmp][2])
             config = Config()
             adapter = RewardAdapter(config, 1)
+            minerals = U.get_other_mineral_location(obs)
+            #all_unit=obs.observation.raw_units
+            #minerals_location=[(tmp_unit.x,tmp_unit.y) for tmp_unit in all_unit 
+            #        if tmp_unit.unit_type == _MINERAL]
+            print("mineral locations:",minerals)
 
             assigned_gas_harvesters = [unit.assigned_harvesters for unit in obs.observation.feature_units
                                        if unit.unit_type == units.Protoss.Assimilator]
