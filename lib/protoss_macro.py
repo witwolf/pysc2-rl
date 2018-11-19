@@ -472,7 +472,8 @@ class U(object):
 
     @staticmethod
     def can_select_army(obs):
-        return FUNCTIONS.select_army.id in obs.observation.available_actions
+        action_id = FUNCTIONS.select_army.id
+        return action_id in obs.observation.available_actions
 
     @staticmethod
     def can_collect_gas(obs):
@@ -627,7 +628,8 @@ def training_a_stalker():
 
 
 def callback_idle_workers():
-    cond = lambda obs: FUNCTIONS.select_idle_worker in obs.observation.available_actions
+    action_id = FUNCTIONS.select_idle_worker.id
+    cond = lambda obs: action_id in obs.observation.available_actions
     funcs = [
         # select idle workers
         FUNCTIONS.select_idle_worker,
