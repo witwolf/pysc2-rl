@@ -37,7 +37,7 @@ def default_macro_env_maker(kwargs):
             sc2_env.Bot(sc2_env.Race.terran,
                         sc2_env.Difficulty.very_easy)]
     if 'game_steps_per_episode' not in kwargs:
-        kwargs['game_steps_per_episode'] = 0
+        kwargs['game_steps_per_episode'] = 20000
     if 'visualize' not in kwargs:
         kwargs['visualize'] = False
     if 'step_mul' not in kwargs:
@@ -122,8 +122,10 @@ class MacroEnv(sc2_env.SC2Env):
             return None
         args = args_func(obs)
         if args is None:
+            logging.debug("arg none")
             return None
         for arg in args:
             if arg is None:
+                logging.debug("arg none")
                 return None
         return (act_func(*args),)
