@@ -138,7 +138,6 @@ class U(object):
         minerals_location = [(tmp_unit.x,tmp_unit.y) for tmp_unit in all_unit
                     if tmp_unit.unit_type == _NEU.MineralField]
         minerals_location = np.array(minerals_location)
-        print(minerals_location)
         minerals_location = minerals_location[np.lexsort(minerals_location[:,::-1].T)].tolist()
         mineral_dic = {"mineral_1":[],"mineral_2":[],"mineral_3":[],"mineral_4":[]}
         for tmp_key in mineral_dic.keys():
@@ -148,7 +147,6 @@ class U(object):
                 if len(mineral_dic[tmp_key]) == 0:
                     decrease=True
                 else:
-                    print(minerals_location,mineral_dic)
                     if abs(minerals_location[index][1] - mineral_dic[tmp_key][-1][1]) > 7:
                         decrease=False
                     else:
