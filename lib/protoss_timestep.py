@@ -22,6 +22,7 @@ class ProtossTimeStep(object):
         else:
             instance._timestep = None
         instance._macro_success = False
+        instance._last_arg = None
         instance._feature_units = {}
         instance._feature_units_completed = {}
         instance._feature_unit_counts = {}
@@ -105,6 +106,7 @@ class ProtossTimeStepFactory():
         self._power_map = None
         self._neutral_map = None
         self._neutral_center = None
+        self._power_record_num = None
         self._power_list = None
         self._not_power_list = None
         self._feature_vector = None
@@ -136,49 +138,50 @@ class ProtossTimeStepFactory():
         building_queues = self._building_queues
         unit_counts = timestep._unit_counts
         self_units = [0 for _ in range(len(_PROTOSS_UNITS))]
+
+        # recaculate power every frame
+        self._power_list.clear()
+        self._not_power_list.clear()
+
+        xs, ys = (timestep.observation.feature_screen.power == 1).nonzero()
+        power_center = [0, 0]
+        for pt in zip(xs, ys):
+            if pt not in self._neutral_map:
+                dist = 12
+                if first_base_loc:
+                    dist = U.get_distance(first_base_loc, pt)
+                if dist < 11:
+                    self._power_list.append(pt)
+                    power_center[0] += pt[0]
+                    power_center[1] += pt[1]
+
+        if len(self._power_list) > 0:
+            power_center[0] /= len(self._power_list)
+            power_center[1] /= len(self._power_list)
+
+        self._power_map = set(self._power_list)
+
+        screen_w = timestep.observation.feature_screen.shape[-1]
+        screen_h = timestep.observation.feature_screen.shape[-2]
+        for w in range(0, screen_w):
+            for h in range(0, screen_h):
+                pt = (w, h)
+                if pt not in self._power_map and pt not in self._neutral_map:
+                    dist = 12
+                    if first_base_loc:
+                        dist = U.get_distance(first_base_loc, pt)
+                    if dist < 11:
+                        self._not_power_list.append(pt)
+        self._not_power_list.sort(
+            key=lambda p: U.get_distance(power_center, p) - U.get_distance(self._neutral_center, p))
+
         for bid in range(len(_PROTOSS_BUILDINGS)):
             if building_queues[bid] == 0:
                 continue
             # last build count
             last_build_count = self._buildings[bid]
             # current build count
-            build_count = unit_counts.get(_PROTOSS_BUILDINGS[bid].unit_type, 0)
-            # building changed, recaculate power
-            if last_build_count != build_count:
-                self._power_list.clear()
-                self._not_power_list.clear()
-
-                xs, ys = (timestep.observation.feature_screen.power == 1).nonzero()
-                power_center = [0, 0]
-                for pt in zip(xs, ys):
-                    if pt not in self._neutral_map:
-                        dist = 12
-                        if first_base_loc:
-                            dist = U.get_distance(first_base_loc, pt)
-                        if dist < 11:
-                            self._power_list.append(pt)
-                            power_center[0] += pt[0]
-                            power_center[1] += pt[1]
-
-                if len(self._power_list) > 0:
-                    power_center[0] /= len(self._power_list)
-                    power_center[1] /= len(self._power_list)
-
-                self._power_map = set(self._power_list)
-
-                screen_w = timestep.observation.feature_screen.shape[-1]
-                screen_h = timestep.observation.feature_screen.shape[-2]
-                for w in range(0, screen_w):
-                    for h in range(0, screen_h):
-                        pt = (w, h)
-                        if pt not in self._power_map and pt not in self._neutral_map:
-                            dist = 12
-                            if first_base_loc:
-                                dist = U.get_distance(first_base_loc, pt)
-                            if dist < 11:
-                                self._not_power_list.append(pt)
-                self._not_power_list.sort(
-                    key=lambda p: U.get_distance(power_center, p) - U.get_distance(self._neutral_center, p))
+            build_count = timestep._unit_completed_counts.get(_PROTOSS_BUILDINGS[bid].unit_type, 0)
 
             if build_count > last_build_count:
                 building_queues[bid] -= (build_count - last_build_count)
@@ -187,17 +190,17 @@ class ProtossTimeStepFactory():
             self._buildings[bid] = build_count
 
         # update training queue
+        self._training_queues = [0 for _ in range(len(_PROTOSS_UNITS))]
         for uid in range(len(_PROTOSS_UNITS)):
-            index = 0
-            training_queue = self._training_queues[uid]
-            while index < len(training_queue):
-                training_queue[index] -= 1
-                if training_queue[index] == 0:
-                    del training_queue[index]
-                else:
-                    index += 1
-                    self_units[uid] = unit_counts.get(
-                        _PROTOSS_UNITS[uid].unit_type, 0)
+            self._training_queues[uid] = 0
+            self_units[uid] = unit_counts.get(
+                _PROTOSS_UNITS[uid].unit_type, 0)
+        for orders in timestep.observation.units_orders:
+            for order in orders:
+                if order.ability_id == 916:
+                    self._training_queues[1] += 1
+                elif order.ability_id == 1006:
+                    self._training_queues[0] += 1
 
         last_actions = timestep.observation.last_actions
         upgrades = {}
@@ -210,10 +213,6 @@ class ProtossTimeStepFactory():
             if last_action in _PROTOSS_BUILDINGS_FUNCTIONS:
                 bid = _PROTOSS_BUILDINGS_FUNCTIONS[last_action].id
                 self._building_queues[bid] += 1
-            elif last_action in _PROTOSS_UNITS_FUNCTIONS:
-                uid = _PROTOSS_UNITS_FUNCTIONS[last_action].id
-                time = _PROTOSS_UNITS_FUNCTIONS[last_action].time
-                self._training_queues[uid].append(time)
             if last_action in upgrade_map:
                 upgrades[upgrade_map[last_action]] = True
 
@@ -236,18 +235,20 @@ class ProtossTimeStepFactory():
     def reset(self):
         self._frames = 0  # second pass
         self._buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]
-        self._training_queues = [[] for _ in range(len(_PROTOSS_UNITS))]
+        self._training_queues = [0 for _ in range(len(_PROTOSS_UNITS))]
         self._building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]
         self._power_map = set()
         self._neutral_map = set()
         self._neutral_center = [0, 0]
         self._power_list = []
         self._not_power_list = []
-        self._feature_vector = [0] * (3 * len(_PROTOSS_UNITS_MACROS) + 3 * len(_PROTOSS_BUILDINGS_MACROS) + 4)
+        self._power_record_num = 0
+        self._feature_vector = [0 for _ in
+                                range(3 * len(_PROTOSS_UNITS_MACROS) + 3 * len(_PROTOSS_BUILDINGS_MACROS) + 4)]
 
     def update_feature(self, timestep):
         # training units
-        training_units = [len(self._training_queues[i]) / 20 for i in range(len(_PROTOSS_UNITS_MACROS))]
+        training_units = [self._training_queues[i] / 20 for i in range(len(_PROTOSS_UNITS_MACROS))]
         # complete units
         complete_units = [timestep._unit_completed_counts.get(_PROTOSS_UNITS[i].unit_type, 0) / 20
                           for i in range(len(_PROTOSS_UNITS_MACROS))]

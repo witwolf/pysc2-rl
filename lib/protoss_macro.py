@@ -974,8 +974,8 @@ _PROTOSS_UNITS_FUNCTIONS = {
 }
 
 _PROTOSS_BUILDINGS = [
-    Pylon, Assimilator, Gateway,
-    WarpGate, Forge, CyberneticsCore, Nexus,
+    Pylon, Gateway, Assimilator,
+    Forge, CyberneticsCore, Nexus, WarpGate,
     PhotonCannon, ShieldBattery,
     RoboticsFacility, Stargate, TwilightCouncil,
     RoboticsBay, FleetBeacon, TemplarArchive, DarkShrine,
@@ -983,12 +983,12 @@ _PROTOSS_BUILDINGS = [
 
 _PROTOSS_BUILDINGS_DICT = {
     units.Protoss.Pylon: Pylon,
-    units.Protoss.Assimilator: Assimilator,
     units.Protoss.Gateway: Gateway,
-    units.Protoss.WarpGate: WarpGate,
+    units.Protoss.Assimilator: Assimilator,
     units.Protoss.Forge: Forge,
     units.Protoss.CyberneticsCore: CyberneticsCore,
     units.Protoss.Nexus: Nexus,
+    units.Protoss.WarpGate: WarpGate,
     units.Protoss.PhotonCannon: PhotonCannon,
     units.Protoss.ShieldBattery: ShieldBattery,
     units.Protoss.RoboticsFacility: RoboticsFacility,

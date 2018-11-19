@@ -27,7 +27,8 @@ class ProtossStalkerAgent(ProtossBaseAgent):
         super(ProtossStalkerAgent, self).step(obs)
 
         obs = self.timestep_factory.update(obs)
-        print(obs.features)
+        print(obs.timestep_information)
+        print(len(obs.power_list))
         # print(obs.to_feature())
         # print(obs.observation.last_actions)
         # pylon_progress = [unit.build_progress for unit in obs.observation.raw_units
@@ -62,7 +63,7 @@ class ProtossStalkerAgent(ProtossBaseAgent):
             gas = obs.observation.player.vespene
             food = self.future_food(obs) - obs.observation.player.food_used
             idle_workers = obs.observation.player.idle_worker_count
-            training_probe = len(obs.training_queues[0])
+            training_probe = obs.training_queues[0]
             probe = obs._unit_counts.get(units.Protoss.Probe, 0)
             # if can build a building
             if idle_workers > 0:

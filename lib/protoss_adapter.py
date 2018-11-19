@@ -45,7 +45,7 @@ class ProtossRewardAdapter(Adapter):
             if unit.unit_type == units.Protoss.Probe:
                 probe_num = timestep._unit_counts.get(units.Protoss.Probe, 0)
                 probe_in_queue = \
-                    len(timestep.training_queues[_PROTOSS_UNITS_DICT[units.Protoss.Probe].id])
+                    timestep.training_queues[_PROTOSS_UNITS_DICT[units.Protoss.Probe].id]
                 # max 16 probe
                 if probe_num + probe_in_queue <= 16:
                     return 1

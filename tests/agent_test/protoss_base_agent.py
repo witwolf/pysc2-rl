@@ -37,7 +37,7 @@ class ProtossBaseAgent(base_agent.BaseAgent):
     def get_unit_counts(self, obs, unit_type):
         queue_units = 0
         if unit_type in _PROTOSS_UNITS_DICT:
-            queue_units = len(self._last_obs._training_queues[_PROTOSS_UNITS_DICT[unit_type].id])
+            queue_units = self._last_obs._training_queues[_PROTOSS_UNITS_DICT[unit_type].id]
         elif unit_type in _PROTOSS_BUILDINGS_DICT:
             queue_units = self._last_obs._building_queues[_PROTOSS_BUILDINGS_DICT[unit_type].id]
         for unit in obs.observation.unit_counts:
