@@ -37,7 +37,7 @@ def default_macro_env_maker(kwargs):
             sc2_env.Bot(sc2_env.Race.terran,
                         sc2_env.Difficulty.very_easy)]
     if 'game_steps_per_episode' not in kwargs:
-        kwargs['game_steps_per_episode'] = 20000
+        kwargs['game_steps_per_episode'] = 16000
     if 'visualize' not in kwargs:
         kwargs['visualize'] = False
     if 'step_mul' not in kwargs:

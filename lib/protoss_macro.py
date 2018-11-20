@@ -253,6 +253,7 @@ class U(object):
     @staticmethod
     def mineral_location(obs):
         minerals = U.locations_by_type(obs, units.Neutral.MineralField)
+        minerals += U.locations_by_type(obs, units.Neutral.MineralField750)
         # if no mineral, go to center
         if len(minerals) == 0:
             return None
@@ -341,6 +342,8 @@ class U(object):
 
         # if enemy on screen follow enemy closest
         army_ys, army_xs = (player_relative == player_self).nonzero()
+        if len(army_ys) == 0:
+            return None
         army_c_x, army_c_y = (army_xs.mean(), army_ys.mean())
         distances = np.ndarray(shape=[len(enemy_xs)], dtype=np.float32)
         for i, x, y in zip(range(len(enemy_xs)), enemy_xs, enemy_ys):
@@ -353,6 +356,8 @@ class U(object):
     @staticmethod
     def attack_location_army2enemy(obs):
         army_front = U.army_minimap_location(obs)
+        if not army_front:
+            return None
         enemy_base = U.enemy_minimap_location(obs)
         screen_w, screen_h = U.screen_size(obs)
         attack_direction = (
