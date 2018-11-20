@@ -231,10 +231,18 @@ class ProtossTimeStepFactory():
         buildings_vector = queued_buildings + exists_buildings
 
         player = timestep.observation.player
+        army_food_used = 0
+        worker_food_used = 0
+        for unit in _PROTOSS_UNITS_MACROS:
+            if unit.unit_type == units.Protoss.Probe:
+                worker_food_used += unit.food * unit_counts.get(unit.unit_type, 0)
+            else:
+                army_food_used += unit.food * unit_counts.get(unit.unit_type, 0)
         resource_vector = [
             player.minerals / 1000,
             player.vespene / 1000,
             player.food_cap / 40,
-            player.food_used / 40]
+            player.worker_food_used / 40,
+            player.army_food_used / 40]
 
         return units_vector + buildings_vector + resource_vector
