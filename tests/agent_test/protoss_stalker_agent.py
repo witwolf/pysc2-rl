@@ -18,6 +18,7 @@ import time
 _PRO=units.Protoss
 _UNIT_TYPE = features.SCREEN_FEATURES.unit_type.index
 _POWER_TYPE=features.SCREEN_FEATURES.power.index
+_CAMERA = features.MINIMAP_FEATURES.camera.index
 _WORKER=_PRO.Probe
 _CENTER=_PRO.Nexus
 _GATE=_PRO.Gateway
@@ -69,7 +70,7 @@ class ProtossStalkerAgent(ProtossBaseAgent):
             self.getTypespots(obs,tmpUnit)
 
         obs = self.timestep_factory.process(obs)
-        print(obs.to_feature())
+        #print(obs.to_feature())
 
         # print(obs.observation.last_actions)
         # pylon_progress = [unit.build_progress for unit in obs.observation.raw_units
@@ -174,6 +175,8 @@ class ProtossStalkerAgent(ProtossBaseAgent):
             for action_arg in action_args:
                 if not action_arg:
                     return FUNCTIONS.no_op()
+            if action == FUNCTIONS.move_camera:
+                print("Move Camera")
+                print(action_args)
             return action(*action_args)
-
         return FUNCTIONS.no_op()
