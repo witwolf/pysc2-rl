@@ -3,9 +3,9 @@
 #
 
 import copy
+import numpy as np
 from pysc2.lib.actions import FUNCTIONS
 from lib.protoss_macro import _PROTOSS_BUILDINGS_FUNCTIONS
-from lib.protoss_macro import _PROTOSS_UNITS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS
 from lib.protoss_macro import _PROTOSS_BUILDINGS
 from lib.protoss_macro import _PROTOSS_UNITS_MACROS
@@ -101,15 +101,7 @@ class ProtossTimeStepFactory():
         self._step_mul = step_mul
         self._frames = 0
         self._buildings = None
-        self._training_queues = None
         self._building_queues = None
-        self._power_map = None
-        self._neutral_map = None
-        self._neutral_center = None
-        self._power_record_num = None
-        self._power_list = None
-        self._not_power_list = None
-        self._feature_vector = None
         self.reset()
 
     def update(self, timestep):
@@ -117,158 +109,140 @@ class ProtossTimeStepFactory():
         timestep = ProtossTimeStep(timestep)
         timestep.fill()
 
-        if len(self._neutral_map) == 0:
-            player_relative = timestep.observation.feature_screen.player_relative
-            neutral = features.PlayerRelative.NEUTRAL
-            ys, xs = (player_relative == neutral). \
-                nonzero()
-            for pt in zip(xs, ys):
-                self._neutral_map.add(pt)
-                self._neutral_center[0] += pt[0]
-                self._neutral_center[1] += pt[1]
-            if len(self._neutral_map) > 0:
-                self._neutral_center[0] /= len(self._neutral_map)
-                self._neutral_center[1] /= len(self._neutral_map)
+        # neutral information
+        neutral_map = set()
+        neutral_center = [0, 0]
+        player_relative = timestep.observation.feature_screen.player_relative
+        neutral = features.PlayerRelative.NEUTRAL
+        ys, xs = (player_relative == neutral).nonzero()
+        for x, y in zip(xs, ys):
+            neutral_map.add((x, y))
+        neutral_center[0] = np.mean(xs) if neutral_map else 0
+        neutral_center[1] = np.mean(ys) if neutral_map else 0
 
-        first_base_loc = None
+        # base information
+        base_location = None
         if len(timestep._feature_units.get(units.Protoss.Nexus, [])) > 0:
-            first_base = timestep._feature_units[units.Protoss.Nexus][0]
-            first_base_loc = (first_base.x, first_base.y)
+            base = timestep._feature_units[units.Protoss.Nexus][0]
+            base_location = (base.x, base.y)
 
-        building_queues = self._building_queues
-        unit_counts = timestep._unit_counts
-        self_units = [0 for _ in range(len(_PROTOSS_UNITS))]
-
-        # recaculate power every frame
-        self._power_list.clear()
-        self._not_power_list.clear()
-
-        xs, ys = (timestep.observation.feature_screen.power == 1).nonzero()
+        # power information
+        power_list = []
+        not_power_list = []
         power_center = [0, 0]
-        for pt in zip(xs, ys):
-            if pt not in self._neutral_map:
-                dist = 12
-                if first_base_loc:
-                    dist = U.get_distance(first_base_loc, pt)
-                if dist < 11:
-                    self._power_list.append(pt)
-                    power_center[0] += pt[0]
-                    power_center[1] += pt[1]
-
-        if len(self._power_list) > 0:
-            power_center[0] /= len(self._power_list)
-            power_center[1] /= len(self._power_list)
-
-        self._power_map = set(self._power_list)
-
         screen_w = timestep.observation.feature_screen.shape[-1]
         screen_h = timestep.observation.feature_screen.shape[-2]
-        for w in range(0, screen_w):
-            for h in range(0, screen_h):
-                pt = (w, h)
-                if pt not in self._power_map and pt not in self._neutral_map:
-                    dist = 12
-                    if first_base_loc:
-                        dist = U.get_distance(first_base_loc, pt)
-                    if dist < 11:
-                        self._not_power_list.append(pt)
-        self._not_power_list.sort(
-            key=lambda p: U.get_distance(power_center, p) - U.get_distance(self._neutral_center, p))
+        xs, ys = (timestep.observation.feature_screen.power == 1).nonzero()
+        if base_location:
+            for pt in zip(xs, ys):
+                if pt not in neutral_map:
+                    if U.get_distance(base_location, pt) < 11:
+                        power_list.append(pt)
+        if power_list:
+            power_center[0] = np.mean(pt[0] for pt in power_list)
+            power_center[1] = np.mean(pt[1] for pt in power_list)
+        power_map = set(power_list)
+        if base_location:
+            for w in range(0, screen_w):
+                for h in range(0, screen_h):
+                    pt = (w, h)
+                    if pt not in power_map and pt not in neutral_map:
+                        if U.get_distance(base_location, pt) < 11:
+                            not_power_list.append(pt)
+        not_power_list.sort(
+            key=lambda p: U.get_distance(power_center, p) -
+                          U.get_distance(neutral_center, p))
 
+        # building information
+        building_queues = self._building_queues
+        unit_counts = timestep._unit_counts
+        unit_completed_counts = timestep._unit_completed_counts
+        self_units = [0 for _ in range(len(_PROTOSS_UNITS))]
         for bid in range(len(_PROTOSS_BUILDINGS)):
             if building_queues[bid] == 0:
                 continue
-            # last build count
             last_build_count = self._buildings[bid]
-            # current build count
-            build_count = timestep._unit_completed_counts.get(_PROTOSS_BUILDINGS[bid].unit_type, 0)
-
+            unit_type = _PROTOSS_BUILDINGS[bid].unit_type
+            build_count = unit_completed_counts.get(unit_type, 0)
             if build_count > last_build_count:
                 building_queues[bid] -= (build_count - last_build_count)
             if building_queues[bid] < 0:
                 building_queues[bid] = 0
             self._buildings[bid] = build_count
+        last_actions = timestep.observation.last_actions
+        for last_action in last_actions:
+            if last_action in _PROTOSS_BUILDINGS_FUNCTIONS:
+                bid = _PROTOSS_BUILDINGS_FUNCTIONS[last_action].id
+                self._building_queues[bid] += 1
 
-        # update training queue
-        self._training_queues = [0 for _ in range(len(_PROTOSS_UNITS))]
+        # training information
+        training_queues = [0 for _ in range(len(_PROTOSS_UNITS))]
         for uid in range(len(_PROTOSS_UNITS)):
-            self._training_queues[uid] = 0
+            training_queues[uid] = 0
             self_units[uid] = unit_counts.get(
                 _PROTOSS_UNITS[uid].unit_type, 0)
         for orders in timestep.observation.units_orders:
             for order in orders:
                 if order.ability_id == 916:
-                    self._training_queues[1] += 1
+                    training_queues[1] += 1
                 elif order.ability_id == 1006:
-                    self._training_queues[0] += 1
+                    training_queues[0] += 1
 
-        last_actions = timestep.observation.last_actions
-        upgrades = {}
-        upgrade_map = {
-            FUNCTIONS.Research_Blink_quick.id: 0,
-            FUNCTIONS.Research_ProtossGroundArmorLevel1_quick.id: 1,
-            FUNCTIONS.Research_ProtossGroundWeaponsLevel1_quick.id: 2
-        }
-        for last_action in last_actions:
-            if last_action in _PROTOSS_BUILDINGS_FUNCTIONS:
-                bid = _PROTOSS_BUILDINGS_FUNCTIONS[last_action].id
-                self._building_queues[bid] += 1
-            if last_action in upgrade_map:
-                upgrades[upgrade_map[last_action]] = True
-
-        self.update_feature(timestep)
-
+        feature_vetor = self.to_feature(timestep, training_queues)
         timestep.update(
             frame=self._frames,
             building_queues=self._building_queues,
-            training_queues=self._training_queues,
+            training_queues=training_queues,
             self_units=self_units,
-            power_map=self._power_map,
-            neutral_map=self._neutral_map,
-            power_list=self._power_list,
-            not_power_list=self._not_power_list,
-            upgrades=upgrades,
-            timestep_information=self._feature_vector)
+            power_map=power_map,
+            neutral_map=neutral_map,
+            power_list=power_list,
+            not_power_list=not_power_list,
+            timestep_information=feature_vetor)
 
         return timestep
 
     def reset(self):
-        self._frames = 0  # second pass
+        self._frames = 0
         self._buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]
-        self._training_queues = [0 for _ in range(len(_PROTOSS_UNITS))]
         self._building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]
-        self._power_map = set()
-        self._neutral_map = set()
-        self._neutral_center = [0, 0]
-        self._power_list = []
-        self._not_power_list = []
-        self._power_record_num = 0
-        self._feature_vector = [0 for _ in
-                                range(3 * len(_PROTOSS_UNITS_MACROS) + 3 * len(_PROTOSS_BUILDINGS_MACROS) + 5)]
 
-    def update_feature(self, timestep):
+    def to_feature(self, timestep, training_queues):
         # training units
-        training_units = [self._training_queues[i] / 20 for i in range(len(_PROTOSS_UNITS_MACROS))]
+        training_units = [
+            training_queues[i] / 20 for i in
+            range(len(_PROTOSS_UNITS_MACROS))]
         # complete units
-        complete_units = [timestep._unit_completed_counts.get(_PROTOSS_UNITS[i].unit_type, 0) / 20
-                          for i in range(len(_PROTOSS_UNITS_MACROS))]
+        completed_counts = timestep._unit_completed_counts
+        complete_units = [
+            completed_counts.get(_PROTOSS_UNITS[i].unit_type, 0) / 20
+            for i in range(len(_PROTOSS_UNITS_MACROS))]
         # total units
-        total_units = [tp[0] + tp[1] for tp in zip(training_units, complete_units)]
+        total_units = [
+            tp[0] + tp[1] for tp in
+            zip(training_units, complete_units)]
         units_vector = training_units + complete_units + total_units
-
         # queued buildings
-        queued_buildings = [self._building_queues[i] / 20 for i in range(len(_PROTOSS_BUILDINGS_MACROS))]
+        queued_buildings = [
+            self._building_queues[i] / 20 for i in
+            range(len(_PROTOSS_BUILDINGS_MACROS))]
         # exists buildings
-        exists_buildings = [timestep._unit_counts.get(_PROTOSS_BUILDINGS[i].unit_type, 0) / 20
-                            for i in range(len(_PROTOSS_BUILDINGS_MACROS))]
+        unit_counts = timestep._unit_counts
+        exists_buildings = [
+            unit_counts.get(_PROTOSS_BUILDINGS[i].unit_type, 0) / 20
+            for i in range(len(_PROTOSS_BUILDINGS_MACROS))]
         # total buildings
-        total_buildings = [tp[0] + tp[1] for tp in zip(queued_buildings, exists_buildings)]
+        total_buildings = [
+            tp[0] + tp[1] for tp in
+            zip(queued_buildings, exists_buildings)]
         buildings_vector = queued_buildings + exists_buildings + total_buildings
 
-        resource_vector = [timestep.observation.player.minerals / 1000,
-                           timestep.observation.player.vespene / 1000,
-                           timestep.observation.player.food_cap / 40,
-                           timestep.observation.player.food_used / 40,
-                           (timestep.observation.player.food_cap - timestep.observation.player.food_used) / 10]
+        player = timestep.observation.player
+        resource_vector = [
+            player.minerals / 1000,
+            player.vespene / 1000,
+            player.food_cap / 40,
+            player.food_used / 40,
+            (player.food_cap - player.food_used) / 10]
 
-        self._feature_vector = units_vector + buildings_vector + resource_vector
+        return units_vector + buildings_vector + resource_vector
