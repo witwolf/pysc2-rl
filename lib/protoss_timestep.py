@@ -116,10 +116,11 @@ class ProtossTimeStepFactory():
         ys, xs = (player_relative == neutral).nonzero()
         for x, y in zip(xs, ys):
             neutral_map.add((x, y))
-        neutral_center[0] = np.mean(xs) if neutral_map else 0
-        neutral_center[1] = np.mean(ys) if neutral_map else 0
+        if neutral_map:
+            neutral_center[0] = np.mean(xs)
+            neutral_center[1] = np.mean(ys)
 
-        # base information
+            # base information
         base_location = None
         if len(timestep._feature_units.get(units.Protoss.Nexus, [])) > 0:
             base = timestep._feature_units[units.Protoss.Nexus][0]
@@ -138,8 +139,8 @@ class ProtossTimeStepFactory():
                     if U.get_distance(base_location, pt) < 11:
                         power_list.append(pt)
         if power_list:
-            power_center[0] = np.mean(pt[0] for pt in power_list)
-            power_center[1] = np.mean(pt[1] for pt in power_list)
+            power_center[0] = np.mean([pt[0] for pt in power_list])
+            power_center[1] = np.mean([pt[1] for pt in power_list])
         power_map = set(power_list)
         if base_location:
             for w in range(0, screen_w):
