@@ -244,7 +244,7 @@ class ProtossTimeStepFactory():
         self._not_power_list = []
         self._power_record_num = 0
         self._feature_vector = [0 for _ in
-                                range(3 * len(_PROTOSS_UNITS_MACROS) + 3 * len(_PROTOSS_BUILDINGS_MACROS) + 4)]
+                                range(3 * len(_PROTOSS_UNITS_MACROS) + 3 * len(_PROTOSS_BUILDINGS_MACROS) + 5)]
 
     def update_feature(self, timestep):
         # training units
@@ -268,6 +268,7 @@ class ProtossTimeStepFactory():
         resource_vector = [timestep.observation.player.minerals / 1000,
                            timestep.observation.player.vespene / 1000,
                            timestep.observation.player.food_cap / 40,
-                           timestep.observation.player.food_used / 40]
+                           timestep.observation.player.food_used / 40,
+                           (timestep.observation.player.food_cap - timestep.observation.player.food_used) / 10]
 
         self._feature_vector = units_vector + buildings_vector + resource_vector
