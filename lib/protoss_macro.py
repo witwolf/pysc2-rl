@@ -198,11 +198,6 @@ class U(object):
             if mineral_locations and min(
                     U.get_distance_list([x, y], mineral_locations)) <= pylon_space:
                 x, y = main_nexus_location[0], main_nexus_location[1] - pylon_space
-        elif len(pylon_locations) == 1:
-            x, y = pylon_locations[0][0] + pylon_space, pylon_locations[0][1]
-            if geyser_locations and min(
-                    U.get_distance_list([x, y], geyser_locations)) <= pylon_space:
-                x, y = pylon_locations[0][0] - pylon_space, pylon_locations[0][1]
         else:
             not_power_list = obs.not_power_list
             if len(not_power_list) > 500:
