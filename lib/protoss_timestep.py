@@ -234,6 +234,6 @@ class ProtossTimeStepFactory():
             player.minerals / 1000,
             player.vespene / 1000,
             player.food_cap / 40,
-            player.food_used - player.food_used / 40]
+            player.food_used / 40]
 
         return units_vector + buildings_vector + resource_vector
