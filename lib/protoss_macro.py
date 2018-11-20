@@ -317,7 +317,7 @@ class U(object):
         ys, xs = \
             (player_relative == player_self).nonzero()
         if len(xs) == 0:
-            return U.base_minimap_location(obs)
+            return None
         enemy_x, enemy_y = U.enemy_minimap_location(obs)
         dists = np.ndarray(shape=[len(xs)], dtype=np.float32)
         for (i, x, y) in zip(range(len(xs)), xs, ys):
@@ -336,7 +336,8 @@ class U(object):
             (player_relative == player_enemy).nonzero()
         if len(enemy_xs) == 0:
             # if no enemy on screen follow army-enemy direction
-            return U.attack_location_army2enemy(obs)
+            enemy_dir = U.attack_location_army2enemy(obs)
+            return enemy_dir
 
         # if enemy on screen follow enemy closest
         army_ys, army_xs = (player_relative == player_self).nonzero()
@@ -346,7 +347,8 @@ class U(object):
             distances[i] = abs(x - army_c_x) + abs(y - army_c_y)
         pos = np.argmin(distances)
         x, y = enemy_xs[pos], enemy_ys[pos]
-        return U._valid_screen_x_y(x, y, obs)
+        enemy_pos = U._valid_screen_x_y(x, y, obs)
+        return enemy_pos
 
     @staticmethod
     def attack_location_army2enemy(obs):
@@ -358,11 +360,13 @@ class U(object):
             enemy_base[1] - army_front[1])
         radius = attack_direction[0] * attack_direction[0] \
                  + attack_direction[1] * attack_direction[1]
+        radius = np.sqrt(radius)
 
         radius = np.clip(radius, 1e-1, None)
-        ratio = float(min(screen_w, screen_h) / 2.5) / float(radius)
-        x, y = (attack_direction[0] * ratio - screen_h / 2,
-                attack_direction[1] * ratio - screen_h / 2)
+        radius_screen = min(screen_w, screen_h) / 2.5
+        ratio = float(radius_screen) / float(radius)
+        x, y = (attack_direction[0] * ratio + screen_h / 2,
+                attack_direction[1] * ratio + screen_w / 2)
         return U._valid_screen_x_y(x, y, obs)
 
     @staticmethod
