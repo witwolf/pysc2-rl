@@ -73,7 +73,7 @@ class A2CProtossExperiment(DistributedExperiment):
                 'timestep_information',
                 'available_actions'],
             non_spatial_feature_dims=dict(
-                timestep_information=(17,),
+                timestep_information=(12,),
                 available_actions=(len(PROTOSS_MACROS),)))
         env_args = [{'map_name': "Simple64"}
                     for _ in range(local_args.env_num)]

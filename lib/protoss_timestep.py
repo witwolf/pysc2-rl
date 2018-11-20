@@ -4,7 +4,6 @@
 
 import copy
 import numpy as np
-from pysc2.lib.actions import FUNCTIONS
 from lib.protoss_macro import _PROTOSS_BUILDINGS_FUNCTIONS
 from lib.protoss_macro import _PROTOSS_UNITS
 from lib.protoss_macro import _PROTOSS_BUILDINGS
@@ -188,7 +187,7 @@ class ProtossTimeStepFactory():
                 elif order.ability_id == 1006:
                     training_queues[0] += 1
 
-        feature_vetor = self.to_feature(timestep, training_queues)
+        feature_vector = self.to_feature(timestep, training_queues)
         timestep.update(
             frame=self._frames,
             building_queues=self._building_queues,
@@ -198,7 +197,7 @@ class ProtossTimeStepFactory():
             neutral_map=neutral_map,
             power_list=power_list,
             not_power_list=not_power_list,
-            timestep_information=feature_vetor)
+            timestep_information=feature_vector)
 
         return timestep
 
@@ -217,11 +216,8 @@ class ProtossTimeStepFactory():
         complete_units = [
             completed_counts.get(_PROTOSS_UNITS[i].unit_type, 0) / 20
             for i in range(len(_PROTOSS_UNITS_MACROS))]
-        # total units
-        total_units = [
-            tp[0] + tp[1] for tp in
-            zip(training_units, complete_units)]
-        units_vector = training_units + complete_units + total_units
+        units_vector = training_units + complete_units
+
         # queued buildings
         queued_buildings = [
             self._building_queues[i] / 20 for i in
@@ -231,18 +227,13 @@ class ProtossTimeStepFactory():
         exists_buildings = [
             unit_counts.get(_PROTOSS_BUILDINGS[i].unit_type, 0) / 20
             for i in range(len(_PROTOSS_BUILDINGS_MACROS))]
-        # total buildings
-        total_buildings = [
-            tp[0] + tp[1] for tp in
-            zip(queued_buildings, exists_buildings)]
-        buildings_vector = queued_buildings + exists_buildings + total_buildings
+        buildings_vector = queued_buildings + exists_buildings
 
         player = timestep.observation.player
         resource_vector = [
             player.minerals / 1000,
             player.vespene / 1000,
             player.food_cap / 40,
-            player.food_used / 40,
-            (player.food_cap - player.food_used) / 10]
+            player.food_used / 40]
 
         return units_vector + buildings_vector + resource_vector
