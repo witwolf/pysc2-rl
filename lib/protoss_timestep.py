@@ -108,50 +108,17 @@ class ProtossTimeStepFactory():
         timestep = ProtossTimeStep(timestep)
         timestep.fill()
 
-        # neutral information
-        neutral_map = set()
-        neutral_center = [0, 0]
-        player_relative = timestep.observation.feature_screen.player_relative
-        neutral = features.PlayerRelative.NEUTRAL
-        ys, xs = (player_relative == neutral).nonzero()
-        for x, y in zip(xs, ys):
-            neutral_map.add((x, y))
-        if neutral_map:
-            neutral_center[0] = np.mean(xs)
-            neutral_center[1] = np.mean(ys)
-
-            # base information
-        base_location = None
-        if len(timestep._feature_units.get(units.Protoss.Nexus, [])) > 0:
-            base = timestep._feature_units[units.Protoss.Nexus][0]
-            base_location = (base.x, base.y)
-
         # power information
-        power_list = []
-        not_power_list = []
-        power_center = [0, 0]
-        screen_w = timestep.observation.feature_screen.shape[-1]
-        screen_h = timestep.observation.feature_screen.shape[-2]
-        xs, ys = (timestep.observation.feature_screen.power == 1).nonzero()
-        if base_location:
-            for pt in zip(xs, ys):
-                if pt not in neutral_map:
-                    if U.get_distance(base_location, pt) < 11:
-                        power_list.append(pt)
-        if power_list:
-            power_center[0] = np.mean([pt[0] for pt in power_list])
-            power_center[1] = np.mean([pt[1] for pt in power_list])
-        power_map = set(power_list)
-        if base_location:
-            for w in range(0, screen_w):
-                for h in range(0, screen_h):
-                    pt = (w, h)
-                    if pt not in power_map and pt not in neutral_map:
-                        if U.get_distance(base_location, pt) < 11:
-                            not_power_list.append(pt)
-        not_power_list.sort(
-            key=lambda p: U.get_distance(power_center, p) -
-                          U.get_distance(neutral_center, p))
+        feature_screen = timestep.observation.feature_screen
+        power = np.array(feature_screen.power)
+        building = 1 - np.isin(feature_screen.unit_type, [
+            0,
+            units.Protoss.Probe,
+            units.Protoss.Zealot])
+        building_indices = building.nonzero()
+        power[building_indices] = 0
+        not_power = 1 - power
+        not_power[building_indices] = 0
 
         # building information
         building_queues = self._building_queues
@@ -194,10 +161,8 @@ class ProtossTimeStepFactory():
             building_queues=self._building_queues,
             training_queues=training_queues,
             self_units=self_units,
-            power_map=power_map,
-            neutral_map=neutral_map,
-            power_list=power_list,
-            not_power_list=not_power_list,
+            power=power,
+            not_power=not_power,
             timestep_information=feature_vector)
 
         return timestep

@@ -143,82 +143,82 @@ class U(object):
         return [np.linalg.norm(p1 - np.array(p2)) for p2 in pos_list]
 
     @staticmethod
-    def building_location_judge(obs, pos, unit_size):
-        for unit_type in obs._feature_units:
-            # for any building on screen
-            if unit_type in _PROTOSS_BUILDINGS_DICT:
-                building_size = _PROTOSS_BUILDINGS_SIZE[unit_type]
-                for building in obs._feature_units[unit_type]:
-                    min_distance = unit_size + building_size + UnitSize.Pylon.value + 1
-                    # if distance between building center
-                    if U.get_distance(pos, (building.x, building.y)) < min_distance:
-                        return False
-        return True
+    def _rect_points(l, t, r, b, max_r, max_b):
+        points = []
+        for x in range(max(0, l), min(r, max_r)):
+            if t >= 0:
+                points.append((x, t))
+            if b < max_b:
+                points.append((x, b))
+
+        for y in range(max(0, t), min(b, max_b)):
+            if l >= 0:
+                points.append((l, y))
+            if r < max_r:
+                points.append((r, y))
+        return points
 
     @staticmethod
-    def search_buildable_location(obs, pos, screen_size, unit_size):
-        if U.building_location_judge(obs, pos, unit_size):
-            return pos
+    def new_pylon_location(obs):
+        w, h = U.screen_size(obs)
+        nexus = U.locations_by_type(obs, units.Protoss.Nexus)
+        base_x, base_y = w // 2, h // 2
+        if len(nexus) > 0:
+            base_x, base_y = nexus[0]
 
-        for radius in range(int(unit_size * 3 / 2)):
-            for x in range(pos[0] - radius, pos[0] + radius + 1):
-                if x < 0 or x >= screen_size[0]:
-                    continue
-                y = pos[1] - radius
-                if 0 <= y < screen_size[1]:
-                    if U.building_location_judge(obs, (x, pos[1]), unit_size):
-                        return x, pos[1]
-                y = pos[1] + radius
-                if 0 <= y < screen_size[1]:
-                    if U.building_location_judge(obs, (x, pos[1]), unit_size):
-                        return x, pos[1]
+        radius = UnitSize.Pylon
+        side = 2 * radius
+        l = base_x - UnitSize.Nexus - side
+        t = base_y - UnitSize.Nexus - side
+        r = base_x + UnitSize.Nexus
+        b = base_y + UnitSize.Nexus
+
+        not_power = obs.not_power
+        max_r = w - side
+        max_b = h - side
+        while l >= 0 or b < w or t >= 0 or b < h:
+            for left, top in U._rect_points(l, t, r, b, max_r, max_b):
+                xs = range(left, left + side)
+                ys = range(top, top + side)
+                if np.all(not_power[(ys, xs)]):
+                    return left + radius, top + radius
+            l -= 1
+            t -= 1
+            r += 1
+            b += 1
 
         return None
 
     @staticmethod
-    def new_pylon_location(obs):
-        screen_w, screen_h = U.screen_size(obs)
-
-        if len(obs.power_list) >= screen_w * screen_h * 7 / 8:
-            return randint(1, screen_w - 1), randint(1, screen_h - 1)
-
-        nexus_locations = U.locations_by_type(obs, units.Protoss.Nexus)
-        mineral_locations = U.locations_by_type(obs, units.Neutral.MineralField)
-        geyser_locations = U.locations_by_type(obs, units.Neutral.VespeneGeyser)
-        pylon_locations = U.locations_by_type(obs, units.Protoss.Pylon)
-        pylon_space = UnitSize.PylonPower.value - int(UnitSize.Pylon.value / 2)
-
-        if len(nexus_locations) == 0:
-            return randint(1, screen_w - 1), randint(1, screen_h - 1)
-
-        main_nexus_location = nexus_locations[0]
-
-        if len(pylon_locations) == 0:
-            x, y = main_nexus_location[0], main_nexus_location[1] + pylon_space
-            if mineral_locations and min(
-                    U.get_distance_list([x, y], mineral_locations)) <= pylon_space:
-                x, y = main_nexus_location[0], main_nexus_location[1] - pylon_space
-        else:
-            not_power_list = obs.not_power_list
-            if len(not_power_list) > 500:
-                x, y = not_power_list[randint(0, 500)]
-            else:
-                x, y = randint(1, screen_w - 1), randint(1, screen_h - 1)
-        return U._valid_screen_x_y(x, y, obs)
-
-    @staticmethod
     def new_gateway_location(obs):
-        screen_w, screen_h = U.screen_size(obs)
-        power_list = obs.power_list
-        if len(power_list) == 0:
-            return None
-        try_time = 0
-        while try_time < 100:
-            x, y = power_list[randint(0, len(power_list))]
-            if U.building_location_judge(obs, (x, y), UnitSize.Gateway):
-                return x, y
-            try_time += 1
-        return randint(0, screen_w), randint(0, screen_h)
+        w, h = U.screen_size(obs)
+        nexus = U.locations_by_type(obs, units.Protoss.Nexus)
+        base_x, base_y = w // 2, h // 2
+        if len(nexus) > 0:
+            base_x, base_y = nexus[0]
+
+        radius = UnitSize.Gateway
+        side = 2 * radius
+        l = base_x - UnitSize.Nexus - side
+        t = base_y - UnitSize.Nexus - side
+        r = base_x + UnitSize.Nexus
+        b = base_y + UnitSize.Nexus
+
+        power = obs.power
+        max_r = w - side
+        max_b = h - side
+        while l >= 0 or b < w or t >= 0 or b < h:
+            for left, top in U._rect_points(l, t, r, b, max_r, max_b):
+                xs = range(left, left + side)
+                ys = range(top, top + side)
+                if np.all(power[(ys, xs)]):
+                    return left + radius, top + radius
+            l -= 1
+            t -= 1
+            r += 1
+            b += 1
+
+        return None
 
     @staticmethod
     def new_assimilator_location(obs):
@@ -234,15 +234,7 @@ class U(object):
     @staticmethod
     def new_cyberneticscore_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        power_list = obs.power_list
-        if len(power_list) == 0:
-            return None
-        try_time = 0
-        while try_time < 100:
-            x, y = power_list[randint(0, len(power_list))]
-            if U.building_location_judge(obs, (x, y), UnitSize.CyberneticsCore):
-                return x, y
-            try_time += 1
+        # TODO
         return randint(0, screen_w), randint(0, screen_h)
 
     @staticmethod
