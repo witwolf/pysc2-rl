@@ -144,15 +144,14 @@ class U(object):
         return [np.linalg.norm(p1 - np.array(p2)) for p2 in pos_list]
 
     @staticmethod
-    def _rect_points(l, t, r, b, max_r, max_b):
+    def _rect_points(l, t, r, b, max_r, max_t):
         points = []
         for x in range(max(0, l), min(r, max_r)):
-            if t >= 0:
+            if t < max_t:
                 points.append((x, t))
-            if b < max_b:
+            if b >= 0:
                 points.append((x, b))
-
-        for y in range(max(0, t), min(b, max_b)):
+        for y in range(max(0, b), min(t, max_t)):
             if l >= 0:
                 points.append((l, y))
             if r < max_r:
@@ -170,23 +169,23 @@ class U(object):
         radius = UnitSize.Pylon
         side = 2 * radius
         l = base_x - UnitSize.Nexus - side
-        t = base_y - UnitSize.Nexus - side
+        t = base_y + UnitSize.Nexus
         r = base_x + UnitSize.Nexus
-        b = base_y + UnitSize.Nexus
+        b = base_y - UnitSize.Nexus - side
         not_power = obs.not_power
         height_map = np.array(obs.observation.feature_screen.height_map)
-        while l >= 0 or b < w or t >= 0 or b < h:
-            for left, top in U._rect_points(l, t, r, b, w - side, h - side):
+        while l >= 0 or t < h or r < w or b >= 0:
+            for left, bottom in U._rect_points(l, t, r, b, w - side, h - side):
                 xs = range(left, left + side)
-                ys = range(top, top + side)
+                ys = range(bottom, bottom + side)
                 height = height_map[(ys, xs)]
                 if np.min(height) == np.max(height):
                     if np.all(not_power[(ys, xs)]):
-                        return left + radius, top + radius
+                        return left + radius, bottom + radius
             l -= 1
-            t -= 1
+            t += 1
             r += 1
-            b += 1
+            b -= 1
         return randint(radius, w - side), randint(radius, h - side)
 
     @staticmethod
@@ -196,28 +195,26 @@ class U(object):
         base_x, base_y = w // 2, h // 2
         if len(nexus) > 0:
             base_x, base_y = nexus[0]
-
         radius = UnitSize.Gateway
         side = 2 * radius
         l = base_x - UnitSize.Nexus - side
-        t = base_y - UnitSize.Nexus - side
+        t = base_y + UnitSize.Nexus
         r = base_x + UnitSize.Nexus
-        b = base_y + UnitSize.Nexus
-
+        b = base_y - UnitSize.Nexus - side
         power = obs.power
         height_map = np.array(obs.observation.feature_screen.height_map)
-        while l >= 0 or b < w or t >= 0 or b < h:
-            for left, top in U._rect_points(l, t, r, b, w - side, h - side):
+        while l >= 0 or t < h or r < w or b >= 0:
+            for left, bottom in U._rect_points(l, t, r, b, w - side, h - side):
                 xs = range(left, left + side)
-                ys = range(top, top + side)
+                ys = range(bottom, bottom + side)
                 height = height_map[(ys, xs)]
                 if np.min(height) == np.max(height):
                     if np.all(power[(ys, xs)]):
-                        return left + radius, top + radius
+                        return left + radius, bottom + radius
             l -= 1
-            t -= 1
+            t += 1
             r += 1
-            b += 1
+            b -= 1
 
         return None
 
