@@ -7,6 +7,7 @@ import numbers
 import numpy as np
 import logging
 
+from random import shuffle
 from numpy.random import randint
 from pysc2.lib import features
 from pysc2.lib import transform
@@ -22,7 +23,7 @@ class UnitSize(enum.IntEnum):
     Nexus = 8
     Pylon = 3
     Assimilator = 5
-    Gateway = 6
+    Gateway = 7
     CyberneticsCore = 6
     PylonPower = 18
     Stalker = 2
@@ -156,6 +157,7 @@ class U(object):
                 points.append((l, y))
             if r < max_r:
                 points.append((r, y))
+        shuffle(points)
         return points
 
     @staticmethod
@@ -165,29 +167,27 @@ class U(object):
         base_x, base_y = w // 2, h // 2
         if len(nexus) > 0:
             base_x, base_y = nexus[0]
-
         radius = UnitSize.Pylon
         side = 2 * radius
         l = base_x - UnitSize.Nexus - side
         t = base_y - UnitSize.Nexus - side
         r = base_x + UnitSize.Nexus
         b = base_y + UnitSize.Nexus
-
         not_power = obs.not_power
-        max_r = w - side
-        max_b = h - side
+        height_map = np.array(obs.observation.feature_screen.height_map)
         while l >= 0 or b < w or t >= 0 or b < h:
-            for left, top in U._rect_points(l, t, r, b, max_r, max_b):
+            for left, top in U._rect_points(l, t, r, b, w - side, h - side):
                 xs = range(left, left + side)
                 ys = range(top, top + side)
-                if np.all(not_power[(ys, xs)]):
-                    return left + radius, top + radius
+                height = height_map[(ys, xs)]
+                if np.min(height) == np.max(height):
+                    if np.all(not_power[(ys, xs)]):
+                        return left + radius, top + radius
             l -= 1
             t -= 1
             r += 1
             b += 1
-
-        return None
+        return randint(radius, w - side), randint(radius, h - side)
 
     @staticmethod
     def new_gateway_location(obs):
@@ -205,14 +205,15 @@ class U(object):
         b = base_y + UnitSize.Nexus
 
         power = obs.power
-        max_r = w - side
-        max_b = h - side
+        height_map = np.array(obs.observation.feature_screen.height_map)
         while l >= 0 or b < w or t >= 0 or b < h:
-            for left, top in U._rect_points(l, t, r, b, max_r, max_b):
+            for left, top in U._rect_points(l, t, r, b, w - side, h - side):
                 xs = range(left, left + side)
                 ys = range(top, top + side)
-                if np.all(power[(ys, xs)]):
-                    return left + radius, top + radius
+                height = height_map[(ys, xs)]
+                if np.min(height) == np.max(height):
+                    if np.all(power[(ys, xs)]):
+                        return left + radius, top + radius
             l -= 1
             t -= 1
             r += 1
