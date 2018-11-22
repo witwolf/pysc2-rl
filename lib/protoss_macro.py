@@ -156,7 +156,7 @@ class U(object):
                 points.append((l, y))
             if r < max_r:
                 points.append((r, y))
-        shuffle(points)
+        # shuffle(points)
         return points
 
     @staticmethod
@@ -179,13 +179,15 @@ class U(object):
                 xs = range(left, left + side)
                 ys = range(bottom, bottom + side)
                 height = height_map[(ys, xs)]
-                if np.min(height) == np.max(height):
+                if np.min(height) == np.max(height) == 255:
                     if np.all(not_power[(ys, xs)]):
                         return left + radius, bottom + radius
             l -= 1
             t += 1
             r += 1
             b -= 1
+
+        logging.warning("pylon full")
         return randint(radius, w - side), randint(radius, h - side)
 
     @staticmethod
@@ -208,7 +210,7 @@ class U(object):
                 xs = range(left, left + side)
                 ys = range(bottom, bottom + side)
                 height = height_map[(ys, xs)]
-                if np.min(height) == np.max(height):
+                if np.min(height) == np.max(height) == 255:
                     if np.all(power[(ys, xs)]):
                         return left + radius, bottom + radius
             l -= 1
