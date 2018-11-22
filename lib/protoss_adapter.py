@@ -9,103 +9,114 @@ from lib.adapter import DefaultObservationAdapter
 from lib.protoss_macro import PROTOSS_MACROS
 from lib.protoss_macro import _PROTOSS_UNITS_MACROS
 from lib.protoss_macro import _PROTOSS_BUILDINGS_MACROS
-from lib.protoss_macro import _PROTOSS_UNITS_DICT
-from lib.protoss_macro import _PROTOSS_BUILDINGS_DICT
+from lib.protoss_macro import Pylon, Probe, Gateway, CyberneticsCore
 
 
 class ProtossRewardAdapter(Adapter):
     def __init__(self, config, memory_step_n=8):
         self._config = config
-        self._memory_step_n = memory_step_n
-        self._memory_step_obs = [None] * memory_step_n
 
-    def get_feature_vector(self, timestep):
-        return (timestep._unit_counts,
-                timestep.observation.player.minerals,
-                timestep.observation.player.vespene,
-                timestep.observation.player.food_cap -
-                timestep.observation.player.food_used)
+    def transform(self, timesteps, actions):
+        rewards = []
+        for timestep, action in zip(timesteps, actions):
+            print(timestep.reward)
+            rewards.append(self.get_reward(timestep, action) + 1000 *
+                           timestep.reward)
+        return np.array(rewards)
+
+    def reverse(self, *args, **kwargs):
+        raise NotImplementedError()
 
     def get_reward(self, timestep, action):
+        # macro execute failed
         if not timestep._macro_success:
             return -2
-        features, minerals, gas, food = self.get_feature_vector(timestep)
-        food_cap = timestep._unit_counts.get(units.Protoss.Nexus, 0) * 15
-        # add future pylon
-        food_cap += timestep._unit_counts.get(units.Protoss.Pylon, 0) * 8
-        food_cap += timestep.building_queues[_PROTOSS_BUILDINGS_DICT[units.Protoss.Pylon].id] * 8
-        food_future = food_cap - timestep.observation.player.food_used
-
+        # no op
         if action.id == PROTOSS_MACROS.No_op:
             return -0.125
-        # check unit requirements
-        if action.id in _PROTOSS_UNITS_MACROS:
-            unit = _PROTOSS_UNITS_MACROS[action.id]
-            # if worker
-            if unit.unit_type == units.Protoss.Probe:
-                probe_num = timestep._unit_counts.get(units.Protoss.Probe, 0)
-                probe_in_queue = \
-                    timestep.training_queues[_PROTOSS_UNITS_DICT[units.Protoss.Probe].id]
-                # max 16 probe
-                if probe_num + probe_in_queue <= 16:
-                    return 1
-                else:
-                    return -2
-            # if zealot
-            elif unit.unit_type == units.Protoss.Zealot:
-                return 2
-            return -2
-
-        # check building requirements
-        if action.id in _PROTOSS_BUILDINGS_MACROS:
-            building = _PROTOSS_BUILDINGS_MACROS[action.id]
-            gateway_num = timestep._unit_counts.get(units.Protoss.Gateway, 0)
-            gateway_in_queue = timestep.building_queues[_PROTOSS_BUILDINGS_DICT[units.Protoss.Gateway].id]
-            gateway_total = gateway_num + gateway_in_queue
-            # if need food
-            if building.unit_type == units.Protoss.Pylon:
-                pylon_num = timestep._unit_counts.get(units.Protoss.Pylon, 0)
-                pylon_in_queue = timestep.building_queues[_PROTOSS_BUILDINGS_DICT[units.Protoss.Pylon].id]
-                # if first pylon, give a big reward
-                if pylon_num + pylon_in_queue == 1:
-                    return 4
-                # if food urgent, give a big reward
-                elif food_future <= 10 and timestep.observation.player.food_cap < 200:
-                    return 4
-                # if food cap, give neg reward
-                elif timestep.observation.player.food_cap >= 200:
-                    return -8
-                # if too much food, give a neg reward
-                elif food_future >= 32:
-                    return -4
-                # if much food and no gateway, give a neg reward
-                elif food_future >= 12 and gateway_total == 0:
-                    return -2
-                else:
-                    return 1
-            elif building.unit_type == units.Protoss.Gateway:
-                if gateway_total <= 5:
-                    return 2 ** np.clip(3 - gateway_total, 0, 2)
-                else:
-                    return -2
-            else:
-                return -2
-
+        # callback idle workers
         if action.id == PROTOSS_MACROS.Callback_Idle_Workers:
             return 4
-
+        # collect gas
+        if action.id == PROTOSS_MACROS.Collect_Gas:
+            return 1
+        # train units macros
+        if action.id in _PROTOSS_UNITS_MACROS:
+            return self._unit_reward(timestep, action)
+        # build building macros
+        if action.id in _PROTOSS_BUILDINGS_MACROS:
+            return self._building_reward(timestep, action)
         if action.id == PROTOSS_MACROS.Attack_Enemy:
-            # if not enough zealot, don't attack
-            zealot_num = timestep._unit_counts.get(units.Protoss.Zealot, 0)
-            if zealot_num <= 12:
-                return -2
-            else:
-                return 0.125
-
-        # other function return 0
+            unit_counts = timestep._unit_counts
+            zealot_num = unit_counts.get(units.Protoss.Zealot, 0)
+            stalker_num = unit_counts.get(units.Protoss.Stalker, 0)
+            army_food = zealot_num * 1 + stalker_num * 2
+            return -2 if army_food <= 6 else 0.125
         return 1e-2
 
-    def get_damage(self, timestep, last_timestep):
+    def _unit_reward(self, timestep, action):
+        unit_counts = timestep._unit_counts
+        training_queue = timestep.training_queues
+        unit = _PROTOSS_UNITS_MACROS[action.id]
+        if unit.unit_type == units.Protoss.Probe:
+            probe_num = unit_counts.get(units.Protoss.Probe, 0)
+            probe_in_queue = training_queue[Probe.id]
+            reward = 1 if probe_num + probe_in_queue <= 16 else -2
+            return reward
+        elif unit.unit_type == units.Protoss.Zealot:
+            return 2
+        elif unit.unit_type == units.Protoss.Stalker:
+            return 3
+        return -2
+
+    def _building_reward(self, timestep, action):
+        unit_counts = timestep._unit_counts
+        building_queue = timestep.building_queues
+        building = _PROTOSS_BUILDINGS_MACROS[action.id]
+        gateway_num = unit_counts.get(units.Protoss.Gateway, 0)
+        gateway_in_queue = building_queue[Gateway.id]
+        gateway_num += gateway_in_queue
+
+        if building.unit_type == units.Protoss.Pylon:
+            food_cap = timestep.observation.player.food_cap
+            food_cap += building_queue[Pylon.id] * 8
+            food_future = food_cap - timestep.observation.player.food_used
+            pylon_num = unit_counts.get(units.Protoss.Pylon, 0)
+            pylon_in_queue = timestep.building_queues[Pylon.id]
+            pylon_num += pylon_in_queue
+            # if first pylon, give a big reward
+            if pylon_num == 1:
+                return 4
+            # if food urgent, give a big reward
+            elif food_future <= 10 and timestep.observation.player.food_cap < 200:
+                return 4
+            # if food cap, give neg reward
+            elif timestep.observation.player.food_cap >= 200:
+                return -8
+            # if too much food, give a neg reward
+            elif food_future >= 32:
+                return -4
+            # if much food and no gateway, give a neg reward
+            elif food_future >= 12 and gateway_num == 0:
+                return -2
+            return 1
+        elif building.unit_type == units.Protoss.Gateway:
+            if gateway_num <= 5:
+                return 2 ** (3 - gateway_num)
+            return -2
+        elif building.unit_type == units.Protoss.Assimilator:
+            return 4
+        elif building.unit_type == units.Protoss.CyberneticsCore:
+            cybernetics_num = unit_counts.get(units.Protoss.CyberneticsCore, 0)
+            cybernetics_in_queue = building_queue[CyberneticsCore.id]
+            cybernetics_num += cybernetics_in_queue
+            if cybernetics_num <= 2:
+                return 3 ** (3 - cybernetics_num)
+            return -3
+        else:
+            return -2
+
+    def _damage_reward(self, timestep, last_timestep):
         if not last_timestep:
             return 0
         # self health
@@ -130,32 +141,6 @@ class ProtossRewardAdapter(Adapter):
         self_hp_delta = self_hp - self_last_hp
         enemy_hp_delta = enemy_hp - enemy_last_hp
         return np.clip(self_hp_delta - enemy_hp_delta, -5, 5)
-
-    def transform(self, timesteps, actions):
-        step_i = 0
-        rewards = []
-        game_end = False
-        for timestep, action in zip(timesteps, actions):
-            if timestep.last():
-                game_end = True
-            last_timestep = None
-            if timestep._macro_success:
-                if step_i < self._memory_step_n:
-                    last_timestep = self._memory_step_obs[step_i]
-                else:
-                    last_timestep = timesteps[step_i - self._memory_step_n]
-            rewards.append(self.get_reward(timestep, action) +
-                           # self.get_damage(timestep, last_timestep) +
-                           timestep.reward)
-            step_i += 1
-        if not game_end:
-            self._memory_step_obs = timesteps[-self._memory_step_n:]
-        else:
-            self._memory_step_obs = [None] * self._memory_step_n
-        return np.array(rewards)
-
-    def reverse(self, *args, **kwargs):
-        raise NotImplementedError()
 
 
 class ProtossObservationAdapter(DefaultObservationAdapter):
@@ -182,9 +167,7 @@ class ProtossMacroAdapter(Adapter):
 
     def transform(self, macros):
         values = []
-        action_index_table = \
-            self._config._action_index_table
-
+        action_index_table = self._config._action_index_table
         length = len(macros)
         for dim, _ in self._config.policy_dims:
             values.append(np.zeros(shape=(length), dtype=np.int32))

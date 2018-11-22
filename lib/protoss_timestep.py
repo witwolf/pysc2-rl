@@ -10,7 +10,7 @@ from lib.protoss_macro import _PROTOSS_BUILDINGS
 from lib.protoss_macro import _PROTOSS_UNITS_MACROS
 from lib.protoss_macro import _PROTOSS_BUILDINGS_MACROS
 from lib.protoss_macro import U
-from pysc2.lib import features, units
+from pysc2.lib import units
 
 
 class ProtossTimeStep(object):
@@ -114,7 +114,8 @@ class ProtossTimeStepFactory():
         building = 1 - np.isin(feature_screen.unit_type, [
             0,
             units.Protoss.Probe,
-            units.Protoss.Zealot])
+            units.Protoss.Zealot,
+            units.Protoss.Stalker])
         building_indices = building.nonzero()
         power[building_indices] = 0
         not_power = 1 - power

@@ -25,7 +25,7 @@ class UnitSize(enum.IntEnum):
     Pylon = 3
     Assimilator = 5
     Gateway = 5
-    CyberneticsCore = 6
+    CyberneticsCore = 5
     PylonPower = 18
     Stalker = 2
 
@@ -157,15 +157,22 @@ class U(object):
                 points.append((l, y))
             if r < max_r:
                 points.append((r, y))
-        # shuffle(points)
+        shuffle(points)
         return points
 
     @staticmethod
-    def _find_place_xy(l, t, r, b, radius, ava_places, obs):
+    def _find_place_xy(radius, ava_places, obs):
         w, h = U.screen_size(obs)
-        side = radius * 2
-        max_r = w - side
-        max_t = h - side
+        nexus = U.locations_by_type(obs, units.Protoss.Nexus)
+        base_x, base_y = w // 2, h // 2
+        if len(nexus) > 0:
+            base_x, base_y = nexus[0]
+        side = 2 * radius
+        l = base_x - UnitSize.Nexus - side
+        t = base_y + UnitSize.Nexus
+        r = base_x + UnitSize.Nexus
+        b = base_y - UnitSize.Nexus - side
+        max_r, max_t = w - side, h - side
         height_map = np.array(obs.observation.feature_screen.height_map)
         while l >= 0 or t < max_t or r < max_r or b >= 0:
             for left, bottom in U._rect_points(l, t, r, b, max_r, max_t):
@@ -182,50 +189,27 @@ class U(object):
             t += 1
             r += 1
             b -= 1
+        logging.warning("no space to place")
         return None
 
     @staticmethod
     def new_pylon_location(obs):
-        w, h = U.screen_size(obs)
-        nexus = U.locations_by_type(obs, units.Protoss.Nexus)
-        base_x, base_y = w // 2, h // 2
-        if len(nexus) > 0:
-            base_x, base_y = nexus[0]
         radius = UnitSize.Pylon
-        side = 2 * radius
-        l = base_x - UnitSize.Nexus - side
-        t = base_y + UnitSize.Nexus
-        r = base_x + UnitSize.Nexus
-        b = base_y - UnitSize.Nexus - side
-        place = U._find_place_xy(l, t, r, b, radius, obs.not_power, obs)
-        if place:
-            return place
-
-        # TODO
-        logging.warning("pylon full")
-        return randint(radius, w - side), randint(radius, h - side)
+        place = U._find_place_xy(radius, obs.not_power, obs)
+        if not place:
+            logging.warning("enough pylon ")
+        return place
 
     @staticmethod
     def new_gateway_location(obs):
-        w, h = U.screen_size(obs)
-        nexus = U.locations_by_type(obs, units.Protoss.Nexus)
-        base_x, base_y = w // 2, h // 2
-        if len(nexus) > 0:
-            base_x, base_y = nexus[0]
         radius = UnitSize.Gateway
-        side = 2 * radius
-        l = base_x - UnitSize.Nexus - side
-        t = base_y + UnitSize.Nexus
-        r = base_x + UnitSize.Nexus
-        b = base_y - UnitSize.Nexus - side
-        return U._find_place_xy(l, t, r, b, radius, obs.power, obs)
+        return U._find_place_xy(radius, obs.power, obs)
 
     @staticmethod
     def new_assimilator_location(obs):
         vesps = U.locations_by_type(obs, units.Neutral.VespeneGeyser)
         assimilators = U.locations_by_type(obs, units.Protoss.Assimilator)
         valid_vespenes = list(set(vesps) - set(assimilators))
-
         if len(valid_vespenes) == 0:
             return None
         x, y = valid_vespenes[randint(0, len(valid_vespenes))]
@@ -233,9 +217,8 @@ class U(object):
 
     @staticmethod
     def new_cyberneticscore_location(obs):
-        screen_w, screen_h = U.screen_size(obs)
-        # TODO
-        return randint(0, screen_w), randint(0, screen_h)
+        radius = UnitSize.CyberneticsCore
+        return U._find_place_xy(radius, obs.power, obs)
 
     @staticmethod
     def mineral_location(obs):
@@ -403,12 +386,14 @@ class U(object):
 
     @staticmethod
     def can_build_pylon(obs):
+        # TODO is there  enough space
         if len(U._all_raw_units(obs, Pylon.build_type)) == 0:
             return False
         return obs.observation.player.minerals >= Pylon.minerals
 
     @staticmethod
     def can_build_gateway(obs):
+        # TODO is there  enough space
         if len(U._all_raw_units(obs, Gateway.build_type)) == 0:
             return False
         for building_type in Gateway.requirement_types:
@@ -431,6 +416,7 @@ class U(object):
         return l
 
     @staticmethod
+    # TODO is there  enough space
     def can_build_cyberneticscore(obs):
         if len(U._all_raw_units(obs, CyberneticsCore.build_type)) == 0:
             return False
@@ -457,7 +443,6 @@ class U(object):
 
     @staticmethod
     def can_train_stalker(obs):
-        # check build unit
         if len(U.minimap_units(
                 obs, Stalker.build_type, U._max_order_filter(5))) == 0:
             return False
@@ -842,13 +827,7 @@ class ProtossMacro(collections.namedtuple(
 _PROTOSS_MACROS = [
     # ProtossMacro.ability(0, "Build_Pylon", build_a_pylon, 0),
     # ProtossMacro.ability(1, "Build_Gateway", build_a_gateway, 1),
-    # ProtossMacro.ability(2, "Build_Assimilator", build_a_assimilator, 2),
-    # ProtossMacro.ability(3, "Build_CyberneticsCore", build_a_cyberneticscore, 3),
-    # ProtossMacro.ability(4, "Train_Probe", training_a_probe, 4),
-    # ProtossMacro.ability(5, "Train_Zealot", training_a_zealot, 5),
-    # ProtossMacro.ability(6, "Train_Stalker", training_a_stalker, 6),
-    # ProtossMacro.ability(7, "Callback_Idle_Workers", callback_idle_workers, 7),
-    # ProtossMacro.ability(8, "Collect_Gas", collect_gas, 8),
+
     # ProtossMacro.ability(9, "Move_TopLeft", move_screen_topleft, 9),
     # ProtossMacro.ability(10, "Move_Top", move_screen_top, 10),
     # ProtossMacro.ability(11, "Move_TopRight", move_screen_topright, 11),
@@ -864,8 +843,12 @@ _PROTOSS_MACROS = [
     ProtossMacro.ability(2, "Train_Probe", training_a_probe, 2),
     ProtossMacro.ability(3, "Train_Zealot", training_a_zealot, 3),
     ProtossMacro.ability(4, "Callback_Idle_Workers", callback_idle_workers, 4),
-    ProtossMacro.ability(5, "Attack_Enemy", attack_enemy, 5),
-    ProtossMacro.ability(6, "No_op", do_nothing, 6)
+    ProtossMacro.ability(5, "Build_Assimilator", build_a_assimilator, 5),
+    ProtossMacro.ability(6, "Build_CyberneticsCore", build_a_cyberneticscore, 6),
+    ProtossMacro.ability(7, "Train_Stalker", training_a_stalker, 7),
+    ProtossMacro.ability(8, "Collect_Gas", collect_gas, 8),
+    ProtossMacro.ability(9, "Attack_Enemy", attack_enemy, 9),
+    ProtossMacro.ability(10, "No_op", do_nothing, 10)
 ]
 
 
@@ -962,13 +945,13 @@ _PROTOSS_UNITS_DICT = {
 _PROTOSS_UNITS_MACROS = {
     PROTOSS_MACROS.Train_Probe.id: Probe,
     PROTOSS_MACROS.Train_Zealot.id: Zealot,
-    # PROTOSS_MACROS.Train_Stalker.id: Stalker
+    PROTOSS_MACROS.Train_Stalker.id: Stalker
 }
 
 _PROTOSS_UNITS_FUNCTIONS = {
     FUNCTIONS.Train_Probe_quick.id: Probe,
     FUNCTIONS.Train_Zealot_quick.id: Zealot,
-    # FUNCTIONS.Train_Stalker_quick.id: Stalker
+    FUNCTIONS.Train_Stalker_quick.id: Stalker
 }
 
 _PROTOSS_BUILDINGS = [
@@ -1002,13 +985,13 @@ _PROTOSS_BUILDINGS_DICT = {
 _PROTOSS_BUILDINGS_MACROS = {
     PROTOSS_MACROS.Build_Pylon.id: Pylon,
     PROTOSS_MACROS.Build_Gateway.id: Gateway,
-    # PROTOSS_MACROS.Build_Assimilator.id: Assimilator,
-    # PROTOSS_MACROS.Build_CyberneticsCore.id: CyberneticsCore
+    PROTOSS_MACROS.Build_Assimilator.id: Assimilator,
+    PROTOSS_MACROS.Build_CyberneticsCore.id: CyberneticsCore
 }
 
 _PROTOSS_BUILDINGS_FUNCTIONS = {
     FUNCTIONS.Build_Pylon_screen.id: Pylon,
     FUNCTIONS.Build_Gateway_screen.id: Gateway,
-    # FUNCTIONS.Build_Assimilator_screen.id: Assimilator,
-    # FUNCTIONS.Build_CyberneticsCore_screen.id: CyberneticsCore
+    FUNCTIONS.Build_Assimilator_screen.id: Assimilator,
+    FUNCTIONS.Build_CyberneticsCore_screen.id: CyberneticsCore
 }

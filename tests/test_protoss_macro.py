@@ -68,8 +68,55 @@ class TestProtossMacro(utils.TestCase):
                 if obs.last():
                     break
 
+    def test_build_assimilator(self):
+        with TestProtossMacro._create_macro_env() as env:
+            obs = env.reset()[0]
+            while True:
+                act = PROTOSS_MACROS.No_op()
+                if U.can_build_assimilator(obs):
+                    act = PROTOSS_MACROS.Build_Assimilator()
+                obs = env.step((act,))[0]
+                if obs.last():
+                    break
+
+    def test_build_cyberneticscore(self):
+        with TestProtossMacro._create_macro_env() as env:
+            obs = env.reset()[0]
+            while True:
+                act = PROTOSS_MACROS.No_op()
+                if U.can_build_cyberneticscore(obs):
+                    act = PROTOSS_MACROS.Build_CyberneticsCore()
+                elif U.can_build_gateway(obs) and obs._unit_counts.get(
+                        units.Protoss.Gateway, 0) < 1:
+                    act = PROTOSS_MACROS.Build_Gateway()
+                elif U.can_build_pylon(obs) and obs._unit_counts.get(
+                        units.Protoss.Pylon, 0) < 1:
+                    act = PROTOSS_MACROS.Build_Pylon()
+                obs = env.step((act,))[0]
+                if obs.last():
+                    break
+
     def test_train_stalker(self):
-        pass
+        with TestProtossMacro._create_macro_env() as env:
+            obs = env.reset()[0]
+            while True:
+                act = PROTOSS_MACROS.No_op()
+                if U.can_train_stalker(obs):
+                    act = PROTOSS_MACROS.Train_Stalker()
+                elif U.can_build_cyberneticscore(obs) and obs._unit_counts.get(
+                        units.Protoss.CyberneticsCore, 0) < 1:
+                    act = PROTOSS_MACROS.Build_CyberneticsCore()
+                elif U.can_build_gateway(obs) and obs._unit_counts.get(
+                        units.Protoss.Gateway, 0) < 1:
+                    act = PROTOSS_MACROS.Build_Gateway()
+                elif U.can_build_assimilator(obs):
+                    act = PROTOSS_MACROS.Build_Assimilator()
+                elif U.can_build_pylon(obs) and obs._unit_counts.get(
+                        units.Protoss.Pylon, 0) < 1:
+                    act = PROTOSS_MACROS.Build_Pylon()
+                obs = env.step((act,))[0]
+                if obs.last():
+                    break
 
     @staticmethod
     def _create_macro_env():
