@@ -6,6 +6,7 @@ import collections
 import numbers
 import numpy as np
 import logging
+import itertools
 
 from random import shuffle
 from numpy.random import randint
@@ -23,7 +24,7 @@ class UnitSize(enum.IntEnum):
     Nexus = 8
     Pylon = 3
     Assimilator = 5
-    Gateway = 7
+    Gateway = 5
     CyberneticsCore = 6
     PylonPower = 18
     Stalker = 2
@@ -160,6 +161,30 @@ class U(object):
         return points
 
     @staticmethod
+    def _find_place_xy(l, t, r, b, radius, ava_places, obs):
+        w, h = U.screen_size(obs)
+        side = radius * 2
+        max_r = w - side
+        max_t = h - side
+        height_map = np.array(obs.observation.feature_screen.height_map)
+        while l >= 0 or t < max_t or r < max_r or b >= 0:
+            for left, bottom in U._rect_points(l, t, r, b, max_r, max_t):
+                xs, ys = [], []
+                for x, y in itertools.product(
+                        range(left, left + side), range(bottom, bottom + side)):
+                    xs.append(x)
+                    ys.append(y)
+                height = height_map[(ys, xs)]
+                if np.min(height) == np.max(height) == 255:
+                    if np.all(ava_places[(ys, xs)]):
+                        return left + radius, bottom + radius
+            l -= 1
+            t += 1
+            r += 1
+            b -= 1
+        return None
+
+    @staticmethod
     def new_pylon_location(obs):
         w, h = U.screen_size(obs)
         nexus = U.locations_by_type(obs, units.Protoss.Nexus)
@@ -172,21 +197,11 @@ class U(object):
         t = base_y + UnitSize.Nexus
         r = base_x + UnitSize.Nexus
         b = base_y - UnitSize.Nexus - side
-        not_power = obs.not_power
-        height_map = np.array(obs.observation.feature_screen.height_map)
-        while l >= 0 or t < h or r < w or b >= 0:
-            for left, bottom in U._rect_points(l, t, r, b, w - side, h - side):
-                xs = range(left, left + side)
-                ys = range(bottom, bottom + side)
-                height = height_map[(ys, xs)]
-                if np.min(height) == np.max(height) == 255:
-                    if np.all(not_power[(ys, xs)]):
-                        return left + radius, bottom + radius
-            l -= 1
-            t += 1
-            r += 1
-            b -= 1
+        place = U._find_place_xy(l, t, r, b, radius, obs.not_power, obs)
+        if place:
+            return place
 
+        # TODO
         logging.warning("pylon full")
         return randint(radius, w - side), randint(radius, h - side)
 
@@ -203,22 +218,7 @@ class U(object):
         t = base_y + UnitSize.Nexus
         r = base_x + UnitSize.Nexus
         b = base_y - UnitSize.Nexus - side
-        power = obs.power
-        height_map = np.array(obs.observation.feature_screen.height_map)
-        while l >= 0 or t < h or r < w or b >= 0:
-            for left, bottom in U._rect_points(l, t, r, b, w - side, h - side):
-                xs = range(left, left + side)
-                ys = range(bottom, bottom + side)
-                height = height_map[(ys, xs)]
-                if np.min(height) == np.max(height) == 255:
-                    if np.all(power[(ys, xs)]):
-                        return left + radius, bottom + radius
-            l -= 1
-            t += 1
-            r += 1
-            b -= 1
-
-        return None
+        return U._find_place_xy(l, t, r, b, radius, obs.power, obs)
 
     @staticmethod
     def new_assimilator_location(obs):

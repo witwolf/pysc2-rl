@@ -5,60 +5,76 @@
 import sys
 
 sys.path.append('.')
+from pysc2.lib import units
 from pysc2.tests import utils
 from absl.testing import absltest
-from pysc2.env import sc2_env
-from pysc2.lib import features
 from lib.protoss_macro import U
 from lib.protoss_macro import PROTOSS_MACROS
 from environment.macro_env import default_macro_env_maker
-from tests.agent_test.protoss_stalker_agent import ProtossStalkerAgent
+from numpy.random import randint
 
 
 class TestProtossMacro(utils.TestCase):
+
+    def test_train_probe(self):
+        with TestProtossMacro._create_macro_env() as env:
+            obs = env.reset()[0]
+            while True:
+                act = PROTOSS_MACROS.No_op()
+                if U.can_train_probe(obs):
+                    act = PROTOSS_MACROS.Train_Probe()
+                obs = env.step((act,))[0]
+                if obs.last():
+                    break
+
     def test_build_pylon(self):
-        with self._create_macro_env() as env:
+        with TestProtossMacro._create_macro_env() as env:
             obs = env.reset()[0]
             while True:
                 act = PROTOSS_MACROS.No_op()
                 if U.can_build_pylon(obs):
                     act = PROTOSS_MACROS.Build_Pylon()
                 obs = env.step((act,))[0]
+                if obs.last():
+                    break
 
     def test_build_gateway(self):
+        with TestProtossMacro._create_macro_env() as env:
+            obs = env.reset()[0]
+            while True:
+                act = PROTOSS_MACROS.No_op()
+                if U.can_build_gateway(obs):
+                    act = PROTOSS_MACROS.Build_Gateway()
+                elif U.can_build_pylon(obs) and randint(0, 4) == 0:
+                    act = PROTOSS_MACROS.Build_Pylon()
+                obs = env.step((act,))[0]
+                if obs.last():
+                    break
+
+    def test_train_zealot(self):
+        with TestProtossMacro._create_macro_env() as env:
+            obs = env.reset()[0]
+            while True:
+                act = PROTOSS_MACROS.No_op()
+                if U.can_train_zealot(obs):
+                    act = PROTOSS_MACROS.Train_Zealot()
+                elif U.can_build_gateway(obs) and obs._unit_counts.get(
+                        units.Protoss.Gateway, 0) < 1:
+                    act = PROTOSS_MACROS.Build_Gateway()
+                elif U.can_build_pylon(obs) and obs._unit_counts.get(
+                        units.Protoss.Pylon, 0) < 1:
+                    act = PROTOSS_MACROS.Build_Pylon()
+                obs = env.step((act,))[0]
+                if obs.last():
+                    break
+
+    def test_train_stalker(self):
         pass
 
-    # def test_stalker_agent(self):
-    #     agent = ProtossStalkerAgent()
-    #     with self._create_sc2env() as env:
-    #         agent.setup(env.observation_spec(), env.action_spec())
-    #         obs = env.reset()
-    #         agent.reset()
-    #         while True:
-    #             step_actions = [agent.step(obs[0])]
-    #             if obs[0].last():
-    #                 break
-    #             obs = env.step(step_actions)
-    #
-    # def test_zealot_agent(self):
-    #     pass
-
-    def _create_macro_env(self):
-        env = default_macro_env_maker(dict(map_name='Simple64'))
-        return env
-
-    def _create_sc2env(self):
-        env = sc2_env.SC2Env(
-            map_name="Simple64",
-            players=[sc2_env.Agent(sc2_env.Race.protoss),
-                     sc2_env.Bot(sc2_env.Race.terran,
-                                 sc2_env.Difficulty.very_easy)],
-            agent_interface_format=features.AgentInterfaceFormat(
-                feature_dimensions=features.Dimensions(screen=84, minimap=64),
-                use_feature_units=True, use_raw_units=True, use_unit_counts=True),
-            step_mul=4,
-            game_steps_per_episode=0,
-            visualize=True)
+    @staticmethod
+    def _create_macro_env():
+        env = default_macro_env_maker(
+            dict(map_name='Simple64', visualize=False))
         return env
 
 
