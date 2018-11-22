@@ -19,7 +19,6 @@ class ProtossRewardAdapter(Adapter):
     def transform(self, timesteps, actions):
         rewards = []
         for timestep, action in zip(timesteps, actions):
-            print(timestep.reward)
             rewards.append(self.get_reward(timestep, action) + 1000 *
                            timestep.reward)
         return np.array(rewards)
