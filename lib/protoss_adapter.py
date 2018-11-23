@@ -75,6 +75,8 @@ class ProtossRewardAdapter(Adapter):
         gateway_num = unit_counts.get(units.Protoss.Gateway, 0)
         gateway_in_queue = building_queue[Gateway.id]
         gateway_num += gateway_in_queue
+        nexus_num = unit_counts.get(units.Protoss.Nexus, 0)
+        assimilator_num = unit_counts.get(units.Protoss.Assimilator, 0)
 
         if building.unit_type == units.Protoss.Pylon:
             pylon_num = unit_counts.get(units.Protoss.Pylon, 0)
@@ -106,7 +108,11 @@ class ProtossRewardAdapter(Adapter):
                 return 2 ** (3 - gateway_num)
             return -2
         elif building.unit_type == units.Protoss.Assimilator:
-            return 4
+            if assimilator_num > 2 * nexus_num or nexus_num == 0:
+                return -8
+            elif gateway_num == 0:
+                return -8
+            return (2 * nexus_num - assimilator_num + 1) / nexus_num
         elif building.unit_type == units.Protoss.CyberneticsCore:
             cybernetics_num = unit_counts.get(units.Protoss.CyberneticsCore, 0)
             cybernetics_in_queue = building_queue[CyberneticsCore.id]
