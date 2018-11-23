@@ -117,9 +117,9 @@ class ProtossRewardAdapter(Adapter):
             cybernetics_num = unit_counts.get(units.Protoss.CyberneticsCore, 0)
             cybernetics_in_queue = building_queue[CyberneticsCore.id]
             cybernetics_num += cybernetics_in_queue
-            if cybernetics_num <= 2:
-                return 3 ** (3 - cybernetics_num)
-            return -3
+            if cybernetics_num <= 1:
+                return 2
+            return -2
         else:
             return -2
 
