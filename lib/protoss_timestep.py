@@ -99,8 +99,6 @@ class ProtossTimeStepFactory():
     def __init__(self, step_mul):
         self._step_mul = step_mul
         self._frames = 0
-        self._buildings = None
-        self._building_queues = None
         self.reset()
 
     def update(self, timestep):
@@ -122,46 +120,44 @@ class ProtossTimeStepFactory():
         not_power[building_indices] = 0
 
         # building information
-        building_queues = self._building_queues
         unit_counts = timestep._unit_counts
-        unit_completed_counts = timestep._unit_completed_counts
-        self_units = [0 for _ in range(len(_PROTOSS_UNITS))]
-        for bid in range(len(_PROTOSS_BUILDINGS)):
-            if building_queues[bid] == 0:
-                continue
-            last_build_count = self._buildings[bid]
-            unit_type = _PROTOSS_BUILDINGS[bid].unit_type
-            build_count = unit_completed_counts.get(unit_type, 0)
-            if build_count > last_build_count:
-                building_queues[bid] -= (build_count - last_build_count)
-            if building_queues[bid] < 0:
-                building_queues[bid] = 0
-            self._buildings[bid] = build_count
-        last_actions = timestep.observation.last_actions
-        for last_action in last_actions:
-            if last_action in _PROTOSS_BUILDINGS_FUNCTIONS:
-                bid = _PROTOSS_BUILDINGS_FUNCTIONS[last_action].id
-                self._building_queues[bid] += 1
+        self_units = [unit_counts.get(_PROTOSS_UNITS[uid].unit_type, 0)
+                      for uid in range(len(_PROTOSS_UNITS))]
 
         # training information
+        building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]
         training_queues = [0 for _ in range(len(_PROTOSS_UNITS))]
         for uid in range(len(_PROTOSS_UNITS)):
             training_queues[uid] = 0
-            self_units[uid] = unit_counts.get(
-                _PROTOSS_UNITS[uid].unit_type, 0)
+
         for orders in timestep.observation.units_orders:
             for order in orders:
-                if order.ability_id == 916:
-                    training_queues[1] += 1
-                elif order.ability_id == 1006:
+                # probe
+                if order.ability_id == 1006:
                     training_queues[0] += 1
+                # zealot
+                elif order.ability_id == 916:
+                    training_queues[1] += 1
+                # stalker
                 elif order.ability_id == 917:
                     training_queues[2] += 1
+                # pylon
+                elif order.ability_id == 881:
+                    building_queues[0] += 1
+                # gateway
+                elif order.ability_id == 883:
+                    building_queues[1] += 1
+                # assimilator
+                elif order.ability_id == 882:
+                    building_queues[2] += 1
+                # cybernetics
+                elif order.ability_id == 894:
+                    building_queues[3] += 1
 
-        feature_vector = self.to_feature(timestep, training_queues)
+        feature_vector = self.to_feature(timestep, training_queues, building_queues)
         timestep.update(
             frame=self._frames,
-            building_queues=self._building_queues,
+            building_queues=building_queues,
             training_queues=training_queues,
             self_units=self_units,
             power=power,
@@ -172,10 +168,8 @@ class ProtossTimeStepFactory():
 
     def reset(self):
         self._frames = 0
-        self._buildings = [0 for _ in range(len(_PROTOSS_BUILDINGS))]
-        self._building_queues = [0 for _ in range(len(_PROTOSS_BUILDINGS))]
 
-    def to_feature(self, timestep, training_queues):
+    def to_feature(self, timestep, training_queues, building_queues):
         # training units
         training_units = [
             training_queues[i] / 20 for i in
@@ -189,7 +183,7 @@ class ProtossTimeStepFactory():
 
         # queued buildings
         queued_buildings = [
-            self._building_queues[i] / 20 for i in
+            building_queues[i] / 20 for i in
             range(len(_PROTOSS_BUILDINGS_MACROS))]
         # exists buildings
         unit_counts = timestep._unit_counts
