@@ -60,7 +60,7 @@ class ProtossRewardAdapter(Adapter):
         if unit.unit_type == units.Protoss.Probe:
             probe_num = unit_counts.get(units.Protoss.Probe, 0)
             probe_in_queue = training_queue[Probe.id]
-            reward = 1 if probe_num + probe_in_queue <= 16 else -2
+            reward = 1 if probe_num + probe_in_queue <= 22 else -2
             return reward
         elif unit.unit_type == units.Protoss.Zealot:
             return 2
