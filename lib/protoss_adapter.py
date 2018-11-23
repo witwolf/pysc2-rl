@@ -35,10 +35,10 @@ class ProtossRewardAdapter(Adapter):
             return -0.125
         # callback idle workers
         if action.id == PROTOSS_MACROS.Callback_Idle_Workers:
-            return 4
+            return 0.02
         # collect gas
         if action.id == PROTOSS_MACROS.Collect_Gas:
-            return 1
+            return 0.01
         # train units macros
         if action.id in _PROTOSS_UNITS_MACROS:
             return self._unit_reward(timestep, action)
@@ -77,12 +77,14 @@ class ProtossRewardAdapter(Adapter):
         gateway_num += gateway_in_queue
 
         if building.unit_type == units.Protoss.Pylon:
-            food_cap = timestep.observation.player.food_cap
-            food_cap += building_queue[Pylon.id] * 8
-            food_future = food_cap - timestep.observation.player.food_used
             pylon_num = unit_counts.get(units.Protoss.Pylon, 0)
-            pylon_in_queue = timestep.building_queues[Pylon.id]
+            pylon_in_queue = building_queue[Pylon.id]
             pylon_num += pylon_in_queue
+
+            food_cap = timestep.observation.player.food_cap
+            food_cap += pylon_in_queue * 8
+            food_future = food_cap - timestep.observation.player.food_used
+
             # if first pylon, give a big reward
             if pylon_num == 1:
                 return 4

@@ -155,6 +155,8 @@ class ProtossTimeStepFactory():
                     training_queues[1] += 1
                 elif order.ability_id == 1006:
                     training_queues[0] += 1
+                elif order.ability_id == 917:
+                    training_queues[2] += 1
 
         feature_vector = self.to_feature(timestep, training_queues)
         timestep.update(
