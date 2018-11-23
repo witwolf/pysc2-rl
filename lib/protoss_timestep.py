@@ -111,11 +111,12 @@ class ProtossTimeStepFactory():
         # power information
         feature_screen = timestep.observation.feature_screen
         power = np.array(feature_screen.power)
-        building = 1 - np.isin(feature_screen.unit_type, [
+        not_building = np.isin(feature_screen.unit_type, [
             0,
             units.Protoss.Probe,
             units.Protoss.Zealot,
             units.Protoss.Stalker])
+        building = 1 - not_building
         building_indices = building.nonzero()
         power[building_indices] = 0
         not_power = 1 - power
@@ -165,6 +166,7 @@ class ProtossTimeStepFactory():
             training_queues=training_queues,
             self_units=self_units,
             power=power,
+            not_building=not_building,
             not_power=not_power,
             timestep_information=feature_vector)
 
