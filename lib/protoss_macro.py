@@ -76,6 +76,14 @@ class U(object):
         return x, y
 
     @staticmethod
+    def enemy_second_minimap_location(obs):
+        enemy_loc = U.enemy_minimap_location(obs)
+        if enemy_loc[0] < 31:
+            return 20, 47
+        else:
+            return 39, 23
+
+    @staticmethod
     def worker_type(obs):
         return units.Protoss.Probe
 
@@ -345,6 +353,9 @@ class U(object):
         if not army_front:
             return None
         enemy_base = U.enemy_minimap_location(obs)
+        # if base is clear, attack next base
+        if U.get_distance(army_front, enemy_base) < 1:
+            enemy_base = U.enemy_second_minimap_location(obs)
         screen_w, screen_h = U.screen_size(obs)
         attack_direction = (
             enemy_base[0] - army_front[0],
