@@ -35,7 +35,7 @@ class ProtossRewardAdapter(Adapter):
             return -0.125
         # callback idle workers
         if action.id == PROTOSS_MACROS.Callback_Idle_Workers:
-            return 0.02
+            return 2
         # collect gas
         if action.id == PROTOSS_MACROS.Collect_Gas:
             return 0.01

@@ -189,7 +189,7 @@ class U(object):
             t += 1
             r += 1
             b -= 1
-        logging.warning("no space to place")
+
         return None
 
     @staticmethod
@@ -197,13 +197,19 @@ class U(object):
         radius = UnitSize.Pylon
         place = U._find_place_xy(radius, obs.not_power, obs)
         if not place:
-            logging.warning("enough pylon ")
+            logging.warning("power full")
+            place = U._find_place_xy(radius, obs.not_building, obs)
+        if not place:
+            logging.warning("no space to place a pylon")
         return place
 
     @staticmethod
     def new_gateway_location(obs):
         radius = UnitSize.Gateway
-        return U._find_place_xy(radius, obs.power, obs)
+        place = U._find_place_xy(radius, obs.power, obs)
+        if not place:
+            logging.warning("no space to place a gateway")
+        return place
 
     @staticmethod
     def new_assimilator_location(obs):
@@ -218,7 +224,10 @@ class U(object):
     @staticmethod
     def new_cyberneticscore_location(obs):
         radius = UnitSize.CyberneticsCore
-        return U._find_place_xy(radius, obs.power, obs)
+        place = U._find_place_xy(radius, obs.power, obs)
+        if not place:
+            logging.warning("no space to place a cyberneticscore")
+        return place
 
     @staticmethod
     def mineral_location(obs):
