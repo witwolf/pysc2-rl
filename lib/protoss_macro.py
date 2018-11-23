@@ -79,9 +79,9 @@ class U(object):
     def enemy_second_minimap_location(obs):
         enemy_loc = U.enemy_minimap_location(obs)
         if enemy_loc[0] < 31:
-            return 20, 47
-        else:
             return 39, 23
+        else:
+            return 20, 47
 
     @staticmethod
     def worker_type(obs):
@@ -351,14 +351,29 @@ class U(object):
         return enemy_pos
 
     @staticmethod
+    def enemy_location(obs):
+        enemy_y, enemy_x = (obs.observation.feature_minimap.player_relative
+                   == features.PlayerRelative.ENEMY).nonzero()
+        print(obs.observation.feature_minimap.player_relative)
+        enemy_base = U.enemy_minimap_location(obs)
+        enemy_second_base = U.enemy_second_minimap_location(obs)
+        enemy_base_count, enemy_second_base_count = 0, 0
+        for enemy_pos in zip(enemy_x, enemy_y):
+            if U.get_distance(enemy_pos, enemy_base) < 16:
+                enemy_base_count += 1
+            if U.get_distance(enemy_pos, enemy_second_base) < 16:
+                enemy_second_base_count += 1
+        if enemy_second_base_count > enemy_base_count:
+            return enemy_second_base
+        return enemy_base
+
+    @staticmethod
     def attack_location_army2enemy(obs):
         army_front = U.army_minimap_location(obs)
         if not army_front:
             return None
         enemy_base = U.enemy_minimap_location(obs)
         # if base is clear, attack next base
-        if U.get_distance(army_front, enemy_base) < 1:
-            enemy_base = U.enemy_second_minimap_location(obs)
         screen_w, screen_h = U.screen_size(obs)
         attack_direction = (
             enemy_base[0] - army_front[0],
