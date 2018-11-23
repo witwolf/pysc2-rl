@@ -176,13 +176,16 @@ class U(object):
         height_map = np.array(obs.observation.feature_screen.height_map)
         while l >= 0 or t < max_t or r < max_r or b >= 0:
             for left, bottom in U._rect_points(l, t, r, b, max_r, max_t):
-                near_worker = False
                 pos = left + radius, bottom + radius
-                for unit in obs._feature_units.get(units.Protoss.Probe, []):
-                    if U.get_distance(pos, (unit.x, unit.y)) <= 2 * radius:
-                        near_worker = True
-                if near_worker:
-                    continue
+                player_relative = \
+                    obs.observation.feature_screen.player_relative
+                neutral = features.PlayerRelative.NEUTRAL
+                neutral_ys, neutral_xs = (player_relative == neutral).nonzero()
+                if len(neutral_ys):
+                    neutral_pos = np.mean(neutral_xs), np.mean(neutral_ys)
+                    neutral_dist = U.get_distance(pos, neutral_pos)
+                    if neutral_dist <= 2 * radius:
+                        continue
                 xs, ys = [], []
                 for x, y in itertools.product(
                         range(left, left + side), range(bottom, bottom + side)):
