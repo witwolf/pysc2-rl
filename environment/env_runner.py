@@ -5,6 +5,7 @@
 import logging
 import numpy as np
 import tensorflow as tf
+import queue
 from tensorflow.python.training.summary_io import SummaryWriterCache
 
 
@@ -30,11 +31,12 @@ class EnvRunner(object):
         self._summary_writer = None
         self._logdir = logdir
         self._episode = 0
-        self._episode_score = 0.0
+        self._terminate_obs = None
         self._summary_writer = SummaryWriterCache.get(logdir)
 
     def run(self, *args, **kwargs):
         self._obs = self._env.reset()
+        self._terminate_obs = [[] for _ in range(len(self._obs))]
         for epoch in range(self._epoch_n):
             logging.warning("epoch:%d" % epoch)
             self._batch()
@@ -90,25 +92,36 @@ class EnvRunner(object):
         return rets
 
     def _record(self, rewards, dones, obs):
-        self._episode_score += rewards[0]
-        if not dones[0]:
-            return
-        # _score may be total dense rewards
-        records = {'_score': self._episode_score}
-        for f in ['score',
-                  'total_value_units',
-                  'total_value_structures',
-                  'killed_value_units',
-                  'killed_value_structures',
-                  'collected_minerals',
-                  'collected_vespene',
-                  'spent_minerals',
-                  'spent_vespene']:
-            records[f] = obs[0].observation.score_cumulative[f]
+        for i, done in enumerate(dones):
+            if done:
+                self._terminate_obs[i].append(obs[i])
+        for ts in self._terminate_obs:
+            if len(ts) == 0:
+                return
+        records = {
+            'score': 0.0,
+            'total_value_units': 0.0,
+            'total_value_structures': 0.0,
+            'killed_value_units': 0.0,
+            'killed_value_structures': 0.0,
+            'collected_minerals': 0.0,
+            'collected_vespene': 0.0,
+            'spent_minerals': 0.0,
+            'spent_vespene': 0.0}
+        win = 0.0
+        for i in range(len(self._terminate_obs)):
+            ts = self._terminate_obs[i]
+            for f in records.keys():
+                records[f] += ts[0].observation.score_cumulative[f]
+            win += int(ts[0].reward == 1)
+            self._terminate_obs[i] = ts[1:]
+
+        for f in records.keys():
+            records[f] = records[f] / len(self._terminate_obs)
+        records['win_rate'] = win / len(self._terminate_obs)
         logging.warning("episode %d: %s", self._episode, records)
         self._summary(step=self._episode, **records)
         self._episode += 1
-        self._episode_score = 0.0
 
     def _summary(self, step=None, summary=None, **kwargs):
         if not self._train or not self._summary_writer:

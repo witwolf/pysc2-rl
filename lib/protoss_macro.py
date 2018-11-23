@@ -184,6 +184,13 @@ class U(object):
         height_map = np.array(obs.observation.feature_screen.height_map)
         while l >= 0 or t < max_t or r < max_r or b >= 0:
             for left, bottom in U._rect_points(l, t, r, b, max_r, max_t):
+                near_worker = False
+                pos = left + radius, bottom + radius
+                for unit in obs._feature_units.get(units.Protoss.Probe, []):
+                    if U.get_distance(pos, (unit.x, unit.y)) <= 2 * radius:
+                        near_worker = True
+                if near_worker:
+                    continue
                 xs, ys = [], []
                 for x, y in itertools.product(
                         range(left, left + side), range(bottom, bottom + side)):
@@ -192,14 +199,7 @@ class U(object):
                 height = height_map[(ys, xs)]
                 if np.min(height) == np.max(height) == 255:
                     if np.all(ava_places[(ys, xs)]):
-                        pos = (left + radius, bottom + radius)
-                        near_worker = False
-                        for unit in obs._feature_units.get(units.Protoss.Probe, []):
-                            if U.get_distance(pos, (unit.x, unit.y)) <= 2 * radius:
-                                near_worker = True
-                                break
-                        if not near_worker:
-                            return pos
+                        return pos
             l -= 1
             t += 1
             r += 1

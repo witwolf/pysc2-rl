@@ -21,8 +21,9 @@ def default_macro_env_maker(kwargs):
 
     screen_sz = kwargs.pop('screen_size', 64)
     minimap_sz = kwargs.pop('minimap_size', 64)
+    difficulty = kwargs.pop('difficulty',
+                            sc2_env.Difficulty.very_easy)
     assert screen_sz == minimap_sz
-
     if 'agent_interface_format' not in kwargs:
         kwargs['agent_interface_format'] = sc2_env.AgentInterfaceFormat(
             use_feature_units=True,
@@ -31,11 +32,12 @@ def default_macro_env_maker(kwargs):
             feature_dimensions=sc2_env.Dimensions(
                 screen=(screen_sz, screen_sz),
                 minimap=(minimap_sz, minimap_sz)))
+
     if 'players' not in kwargs:
         kwargs['players'] = [
             sc2_env.Agent(sc2_env.Race.protoss),
             sc2_env.Bot(sc2_env.Race.terran,
-                        sc2_env.Difficulty.very_easy)]
+                        difficulty)]
     if 'game_steps_per_episode' not in kwargs:
         kwargs['game_steps_per_episode'] = 16000
     if 'visualize' not in kwargs:
