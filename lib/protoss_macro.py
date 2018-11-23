@@ -184,7 +184,14 @@ class U(object):
                 height = height_map[(ys, xs)]
                 if np.min(height) == np.max(height) == 255:
                     if np.all(ava_places[(ys, xs)]):
-                        return left + radius, bottom + radius
+                        pos = (left + radius, bottom + radius)
+                        near_worker = False
+                        for unit in obs._feature_units.get(units.Protoss.Probe, []):
+                            if U.get_distance(pos, (unit.x, unit.y)) <= 2 * radius:
+                                near_worker = True
+                                break
+                        if not near_worker:
+                            return pos
             l -= 1
             t += 1
             r += 1
