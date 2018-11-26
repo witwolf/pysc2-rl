@@ -50,7 +50,7 @@ class EnvRunner(object):
             states.append(ss)
             timestamps.extend(self._obs)
             acts_or_funcs = self._agent.step(
-                state=ss, obs=self._obs, evaluate=not self._train)
+                state=ss, obs=self._obs, evaluate=not self._train, step=step_i)
             acts, func_calls = self._acts_funcs(acts_or_funcs)
             if not actions:
                 actions = [[] for _ in range(len(acts))]
@@ -70,7 +70,7 @@ class EnvRunner(object):
             batch = (states, [np.concatenate(c, axis=0) for c in actions],
                      next_states, np.concatenate(rewards, axis=0),
                      np.concatenate(dones, axis=0), timestamps)
-            summary, step = self._agent.update(*batch)
+            summary, step = self._agent.update(*batch, step=step_i)
             self._summary(summary=summary, step=step)
 
     def _acts_funcs(self, acts_or_funcs):
