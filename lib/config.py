@@ -59,15 +59,14 @@ class Config:
         self._non_spatial_index_table = self._index_table(non_spatial_features)
 
         # available actions
-        # todo , replace it with macros
         self._actions = available_actions
         self._action_indexes = [
-            int(action.id) for action in available_actions]
+            int(getattr(action, 'id', action)) for action in available_actions]
         self._action_index_table = self._index_table(self._action_indexes)
 
         args_set = set()
         for action in available_actions:
-            for action_arg in action.args:
+            for action_arg in getattr(action, 'args', []):
                 args_set.add(action_arg.name)
         action_args = sorted(list(args_set))
         self._action_args = action_args

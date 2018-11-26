@@ -189,3 +189,5 @@ class ProtossMacroAdapter(Adapter):
             macro_id = action_indexes[action]
             macros.append(PROTOSS_MACROS[macro_id]())
         return macros
+
+

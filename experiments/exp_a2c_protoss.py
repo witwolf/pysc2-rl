@@ -24,10 +24,10 @@ from lib.protoss_adapter import ProtossMacroAdapter as MacroAdapter
 from lib.protoss_adapter import ProtossRewardAdapter as RewardAdapter
 
 
-def network_creator(config):
+def network_creator(config, scope='network'):
     def network_creator():
         def _network_creator():
-            with tf.variable_scope('network'):
+            with tf.variable_scope(scope):
                 value, policies, actions, states = FCNNetwork2.build_fcn(config)
             inputs = {
                 'state': states,

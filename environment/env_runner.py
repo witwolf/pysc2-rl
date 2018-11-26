@@ -5,7 +5,6 @@
 import logging
 import numpy as np
 import tensorflow as tf
-import queue
 from tensorflow.python.training.summary_io import SummaryWriterCache
 
 
@@ -50,7 +49,7 @@ class EnvRunner(object):
             states.append(ss)
             timestamps.extend(self._obs)
             acts_or_funcs = self._agent.step(
-                state=ss, obs=self._obs, evaluate=not self._train, step=step_i)
+                state=ss, obs=self._obs, evaluate=not self._train)
             acts, func_calls = self._acts_funcs(acts_or_funcs)
             if not actions:
                 actions = [[] for _ in range(len(acts))]
@@ -70,7 +69,7 @@ class EnvRunner(object):
             batch = (states, [np.concatenate(c, axis=0) for c in actions],
                      next_states, np.concatenate(rewards, axis=0),
                      np.concatenate(dones, axis=0), timestamps)
-            summary, step = self._agent.update(*batch, step=step_i)
+            summary, step = self._agent.update(*batch)
             self._summary(summary=summary, step=step)
 
     def _acts_funcs(self, acts_or_funcs):
@@ -132,3 +131,31 @@ class EnvRunner(object):
             summary = tf.Summary()
             summary.value.add(tag=tag, simple_value=np.mean(value))
             self._summary_writer.add_summary(summary, step)
+
+
+class EnvRunner2(EnvRunner):
+    def __init__(self, env=None,
+                 agent=None,
+                 main_policy_obs_adpt=None,
+                 main_policy_act_adpt=None,
+                 sub_policy_obs_adpts=None,
+                 sub_policy_act_adpts=None,
+                 epoch_n=None,
+                 step_n=16,
+                 train=True,
+                 logdir=None):
+        super().__init__(
+            env, agent, None, None, None, epoch_n, step_n, train, logdir)
+        self._main_policy_obs_adpt = main_policy_obs_adpt
+        self._main_policy_act_adpt = main_policy_act_adpt
+        self._sub_policy_obs_adpts = sub_policy_obs_adpts
+        self._sub_policy_act_adpts = sub_policy_act_adpts
+
+    def _batch(self):
+        states, actions, next_states = [], [], []
+        dones, rewards, timestamps = [], [], []
+        ss, *_ = self._main_policy_obs_adpt.transform(self._obs)
+
+        for step_i in range(self._step_n):
+            # TODO
+            pass
