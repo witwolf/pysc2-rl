@@ -21,6 +21,7 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
                  lr=1e-3,
                  v_coef=0.001,
                  discount=0.99,
+                 summary_family='bc',
                  **kwargs):
 
         if bool(network) == bool(network_creator):
@@ -33,6 +34,7 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
         self._lr = lr
         self._v_coef = v_coef
         self._discount = discount
+        self._summary_family = summary_family
 
         super().__init__(**kwargs)
 
@@ -69,14 +71,15 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
             tf.square(target_value - self._value))
         loss = policy_loss + value_loss
 
+        f = self._summary_family
         summary = tf.summary.merge([
-            tf.summary.scalar('bc/value', tf.reduce_mean(self._value)),
-            tf.summary.scalar('bc/target_value', tf.reduce_mean(target_value)),
-            tf.summary.scalar('bc/policy_loss', policy_loss),
-            tf.summary.scalar('bc/value_loss', value_loss),
-            tf.summary.scalar('bc/loss', loss)])
+            tf.summary.scalar('value', tf.reduce_mean(self._value), family=f),
+            tf.summary.scalar('target_value', tf.reduce_mean(target_value), family=f),
+            tf.summary.scalar('policy_loss', policy_loss, family=f),
+            tf.summary.scalar('value_loss', value_loss, family=f),
+            tf.summary.scalar('loss', loss, family=f)])
 
-        step = tf.train.get_or_create_global_step()
+        step = tf.Variable(0, trainable=False)
         opt = tf.train.RMSPropOptimizer(
             learning_rate=self._lr,
             decay=0.99, epsilon=1e-5)

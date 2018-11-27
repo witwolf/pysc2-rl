@@ -22,11 +22,13 @@ from algorithm.a2c import A2C
 from algorithm.mlsh import MLSH
 from lib.protoss_adapter import ProtossObservationAdapter as ObservationAdapter
 from lib.protoss_adapter import ProtossMacroAdapter as MacroAdapter
+from utils.utility import Utility
 
 
 class MLSHProtossExperiment(DistributedExperiment):
     def __init__(self):
         super().__init__()
+        # TODO
         parser = argparse.ArgumentParser()
         parser.add_argument("--map_name", type=str, default="MoveToBeacon")
         parser.add_argument("--env_num", type=int, default=32)
@@ -49,13 +51,10 @@ class MLSHProtossExperiment(DistributedExperiment):
             'timestep_information',
             'available_actions']
 
-        def _select(_list, _indices):
-            return [_list[i] for i in _indices]
-
         operate_config = Config(
             screen_features=[],
             minimap_features=[],
-            available_actions=_select(PROTOSS_MACROS._macro_list, [
+            available_actions=Utility.select(PROTOSS_MACROS._macro_list, [
                 0, 1, 2, 3, 4, 5, 6, 7]),
             non_spatial_features=non_spatial_features,
             non_spatial_feature_dims=dict(
@@ -64,7 +63,7 @@ class MLSHProtossExperiment(DistributedExperiment):
         combat_config = Config(
             screen_features=[],
             minimap_features=[],
-            available_actions=_select(PROTOSS_MACROS._macro_list, [8, 9]),
+            available_actions=Utility.select(PROTOSS_MACROS._macro_list, [8, 9]),
             non_spatial_features=non_spatial_features,
             non_spatial_feature_dims=dict(
                 timestep_information=(19,),
@@ -85,19 +84,26 @@ class MLSHProtossExperiment(DistributedExperiment):
         with tf.device(self.tf_device(global_args)):
             operate = A2C(
                 network_creator=network_creator(operate_config, 'operate'),
-                lr=local_args.lr, td_step=local_args.td_step,
-                ent_coef=local_args.ent_coef, v_coef=local_args.v_coef)
+                lr=local_args.lr,
+                td_step=local_args.K,
+                ent_coef=local_args.ent_coef,
+                v_coef=local_args.v_coef, summary_family='operate')
             combat = A2C(
                 network_creator=network_creator(combat_config, 'combat'),
-                lr=local_args.lr, td_step=local_args.td_step,
-                ent_coef=local_args.ent_coef, v_coef=local_args.v_coef)
+                lr=local_args.lr,
+                td_step=local_args.K,
+                ent_coef=local_args.ent_coef,
+                v_coef=local_args.v_coef, summary_family='combat')
             agent = MLSH(
                 sub_policies=[operate, combat],
-                K=local_args.K,
                 network_creator=network_creator(config, 'main_policy'),
-                lr=local_args.lr, td_step=local_args.td_step,
-                ent_coef=local_args.ent_coef, v_coef=local_args.v_coef)
-        with agent.create_session(**self.tf_sess_opts(global_args)):
+                lr=local_args.lr,
+                td_step=local_args.td_step,
+                ent_coef=local_args.ent_coef,
+                v_coef=local_args.v_coef, summary_family='main')
+        with agent.create_session(**self.tf_sess_opts(global_args)) as sess:
+            operate.set_sess(sess)
+            combat.set_sess(sess)
             env = ParallelEnvs.new(
                 mode=local_args.mode,
                 env_makers=default_macro_env_maker,
@@ -113,8 +119,8 @@ class MLSHProtossExperiment(DistributedExperiment):
 
             env_runner = EnvRunner2(
                 agent=agent, env=env,
+                K=local_args.K,
                 main_policy_obs_adpt=main_policy_obs_adpt,
-                main_policy_act_adpt=None,
                 sub_policy_obs_adpts=[
                     operate_obs_adapter, combat_obs_adapter],
                 sub_policy_act_adpts=[

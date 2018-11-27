@@ -19,6 +19,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
                  v_coef=0.25,
                  ent_coef=1e-3,
                  discount=0.99,
+                 summary_family='a2c',
                  **kwargs):
         if bool(network) == bool(network_creator):
             raise Exception()
@@ -30,6 +31,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
         self._lr = lr
         self._v_coef = v_coef
         self._ent_coef = ent_coef
+        self._summary_family = summary_family
 
         super().__init__(**kwargs)
 
@@ -76,18 +78,20 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
         value_loss = self._v_coef * tf.reduce_mean(
             tf.square(target_value - self._value))
         loss = policy_loss + entropy_loss + value_loss
+        f = self._summary_family
         summary = tf.summary.merge([
-            tf.summary.scalar('a2c/advantage', tf.reduce_mean(advantage)),
-            tf.summary.scalar('a2c/log_pi', tf.reduce_mean(log_pi)),
-            tf.summary.scalar('a2c/value', tf.reduce_mean(self._value)),
-            tf.summary.scalar('a2c/target_value', tf.reduce_mean(target_value)),
-            tf.summary.scalar('a2c/policy_loss', policy_loss),
-            tf.summary.scalar('a2c/entropy', entropy),
-            tf.summary.scalar('a2c/entropy_loss', entropy_loss),
-            tf.summary.scalar('a2c/value_loss', value_loss),
-            tf.summary.scalar('a2c/reward', tf.reduce_mean(self._reward_input)),
-            tf.summary.scalar('a2c/loss', loss)])
-        step = tf.train.get_or_create_global_step()
+            tf.summary.scalar('advantage', tf.reduce_mean(advantage), family=f),
+            tf.summary.scalar('log_pi', tf.reduce_mean(log_pi), family=f),
+            tf.summary.scalar('value', tf.reduce_mean(self._value), family=f),
+            tf.summary.scalar('target_value', tf.reduce_mean(target_value), family=f),
+            tf.summary.scalar('policy_loss', policy_loss, family=f),
+            tf.summary.scalar('entropy', entropy, family=f),
+            tf.summary.scalar('entropy_loss', entropy_loss, family=f),
+            tf.summary.scalar('value_loss', value_loss, family=f),
+            tf.summary.scalar('reward', tf.reduce_mean(self._reward_input), family=f),
+            tf.summary.scalar('loss', loss, family=f)])
+
+        step = tf.Variable(0, trainable=False)
         opt = tf.train.RMSPropOptimizer(
             learning_rate=self._lr,
             decay=0.99, epsilon=1e-5)
@@ -99,7 +103,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
             train_op, step, summary)
         return None
 
-    def step(self, state=None, **kwargs):
+    def step(self, state=None, *args, **kwargs):
         feed_dict = dict(zip(self._state_input, state))
         return self._sess.run(self._actions, feed_dict=feed_dict)
 

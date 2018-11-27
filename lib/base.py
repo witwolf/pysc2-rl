@@ -113,6 +113,7 @@ def MonitoredTrainingSession(
         restore_var_list=None,
         save_checkpoint_steps=None,
         config=None):
+    tf.train.get_or_create_global_step()
     if not is_chief:
         session_creator = tf.train.WorkerSessionCreator(
             master=master, config=config)

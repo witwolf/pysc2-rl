@@ -6,6 +6,75 @@ import logging
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.training.summary_io import SummaryWriterCache
+from utils.utility import Utility
+
+
+class Sample():
+    @staticmethod
+    def _flatten_state(states):
+        columns = len(states[0])
+        rets = [[] for _ in range(columns)]
+        for row in states:
+            for c in range(columns):
+                rets[c].append(row[c])
+        rets = [np.concatenate(c, axis=0) for c in rets]
+        return rets
+
+    def __init__(self):
+        self._states = []
+        self._actions = []
+        self._next_states = []
+        self._rewards = []
+        self._dones = []
+        self._timestamps = []
+
+    def append(self, state, action,
+               next_state, reward, done, timestamp):
+        self._states.append(state)
+        if not self._actions:
+            self._actions = [[] for _ in range(len(action))]
+        for c, e in zip(self._actions, action):
+            c.append(e)
+        self._next_states.append(next_state)
+        self._rewards.append(reward)
+        self._dones.append(done)
+        self._timestamps.append(timestamp)
+
+    def select(self, indices):
+        for row in self._states:
+            for column in row:
+                column = column[indices]
+
+        for row in self._actions:
+            for column in row:
+                column = column[indices]
+
+        for row in self._next_states:
+            for column in row:
+                column = column[indices]
+
+        for row in self._dones:
+            row = row[indices]
+
+        for row in self._rewards:
+            row = row[indices]
+
+        for row in self._timestamps:
+            row = row[indices]
+
+    def __call__(self, *args, **kwargs):
+        states = Sample._flatten_state(self._states)
+        next_states = Sample._flatten_state(self._next_states)
+        batch = (
+            states,
+            [np.concatenate(c, axis=0) for c in self._actions],
+            next_states, np.concatenate(self._rewards, axis=0),
+            np.concatenate(self._dones, axis=0),
+            self._timestamps)
+        return batch
+
+    def __len__(self):
+        return len(self._states)
 
 
 class EnvRunner(object):
@@ -42,55 +111,40 @@ class EnvRunner(object):
 
     def _batch(self):
         # train batch
-        states, actions, next_states = [], [], []
-        dones, rewards, timestamps = [], [], []
+        cache = Sample()
         ss, *_ = self._obs_adapter.transform(self._obs)
         for step_i in range(self._step_n):
-            states.append(ss)
-            timestamps.extend(self._obs)
+            obs = self._obs
             acts_or_funcs = self._agent.step(
-                state=ss, obs=self._obs, evaluate=not self._train)
-            acts, func_calls = self._acts_funcs(acts_or_funcs)
-            if not actions:
-                actions = [[] for _ in range(len(acts))]
-            for c, e in zip(actions, acts):
-                c.append(e)
-            self._obs = self._env.step([(f,) for f in func_calls])
-            ss, rs, ds, _ = self._obs_adapter.transform(self._obs)
+                state=ss, obs=obs, evaluate=not self._train)
+            acts, func_calls = self._acts_funcs(
+                acts_or_funcs, self._act_adapter)
+            next_obs = self._env.step([(f,) for f in func_calls])
+            ns, rs, ds, _ = self._obs_adapter.transform(next_obs)
             if self._reward_adapter:
-                rs = self._reward_adapter.transform(self._obs, func_calls)
-            self._record(rs, ds, self._obs)
-            next_states.append(ss)
-            rewards.append(rs)
-            dones.append(ds)
+                rs = self._reward_adapter.transform(next_obs, func_calls)
+            cache.append(ss, acts, ns, rs, ds, obs)
+            ss = ns
+            self._obs = next_obs
+            self._record(ds, self._obs)
+            resets = [i for i in range(len(ds)) if ds[i]]
+            for i, o in zip(resets, self._env.reset(resets)):
+                self._obs[i] = o
         if self._train:
-            states = self._flatten_state(states)
-            next_states = self._flatten_state(next_states)
-            batch = (states, [np.concatenate(c, axis=0) for c in actions],
-                     next_states, np.concatenate(rewards, axis=0),
-                     np.concatenate(dones, axis=0), timestamps)
+            batch = cache()
             summary, step = self._agent.update(*batch)
             self._summary(summary=summary, step=step)
 
-    def _acts_funcs(self, acts_or_funcs):
+    def _acts_funcs(self, acts_or_funcs, act_adapter=None):
         if isinstance(acts_or_funcs[0], tuple):
             funcs = acts_or_funcs
-            acts = self._act_adapter.transform(funcs)
+            acts = act_adapter.transform(funcs)
         else:
             acts = acts_or_funcs
-            funcs = self._act_adapter.reverse(acts)
+            funcs = act_adapter.reverse(acts)
         return acts, funcs
 
-    def _flatten_state(self, states):
-        columns = len(states[0])
-        rets = [[] for _ in range(columns)]
-        for row in states:
-            for c in range(columns):
-                rets[c].append(row[c])
-        rets = [np.concatenate(c, axis=0) for c in rets]
-        return rets
-
-    def _record(self, rewards, dones, obs):
+    def _record(self, dones, obs):
         for i, done in enumerate(dones):
             if done:
                 self._terminate_obs[i].append(obs[i])
@@ -134,28 +188,90 @@ class EnvRunner(object):
 
 
 class EnvRunner2(EnvRunner):
+
     def __init__(self, env=None,
                  agent=None,
                  main_policy_obs_adpt=None,
-                 main_policy_act_adpt=None,
                  sub_policy_obs_adpts=None,
                  sub_policy_act_adpts=None,
                  epoch_n=None,
+                 K=8,
                  step_n=16,
                  train=True,
                  logdir=None):
         super().__init__(
-            env, agent, None, None, None, epoch_n, step_n, train, logdir)
-        self._main_policy_obs_adpt = main_policy_obs_adpt
-        self._main_policy_act_adpt = main_policy_act_adpt
-        self._sub_policy_obs_adpts = sub_policy_obs_adpts
-        self._sub_policy_act_adpts = sub_policy_act_adpts
+            env, agent, None, None, None,
+            epoch_n, step_n, train, logdir)
+        self._K = K
+        self._main_p_obs_adpt = main_policy_obs_adpt
+        self._sub_p_obs_adpts = sub_policy_obs_adpts
+        self._sub_p_act_adpts = sub_policy_act_adpts
+        self._policy_steps = None
+
+    def run(self, *args, **kwargs):
+        self._obs = self._env.reset()
+        env_num = len(self._obs)
+        self._terminate_obs = [[] for _ in range(env_num)]
+        for epoch in range(self._epoch_n):
+            logging.warning("epoch:%d" % epoch)
+            self._batch()
 
     def _batch(self):
-        states, actions, next_states = [], [], []
-        dones, rewards, timestamps = [], [], []
-        ss, *_ = self._main_policy_obs_adpt.transform(self._obs)
-
+        cache = Sample()
         for step_i in range(self._step_n):
-            # TODO
-            pass
+            obs = self._obs
+            ss, *_ = self._main_p_obs_adpt.transform(self._obs)
+            act = self._agent.step(ss, 0)
+            rs = self._step_k(act)
+            ns, _, ds, _ = self._main_p_obs_adpt.transform(self._obs)
+            cache.append(ss, act, ns, rs, ds, obs)
+            self._record(ds, self._obs)
+            resets = [j for j in range(len(ds)) if ds[j]]
+            for j, o in zip(resets, self._env.reset(resets)):
+                self._obs[j] = o
+        if self._train:
+            batch = cache()
+            summary, step = self._agent.update(*batch, 0)
+            self._summary(summary=summary, step=step)
+
+    def _step_k(self, act):
+        env_num = len(self._obs)
+        sub_p_num = len(self._sub_p_act_adpts)
+        rewards = np.zeros((env_num,), dtype=np.float32)
+        policies = np.zeros((env_num, sub_p_num))
+        policies[..., act] = 1
+        for i in range(sub_p_num):
+            indices = policies[..., i].nonzero()[0]
+            if len(indices == 0):
+                continue
+            obs_adapter = self._sub_p_obs_adpts[i]
+            act_adapter = self._sub_p_act_adpts[i]
+            cache = Sample()
+            for _ in range(self._K):
+                if len(indices == 0):
+                    break
+                obs = Utility.select(self._obs, indices)
+                ss, *_ = obs_adapter.transform(obs)
+                acts = self._agent.step(ss, i + 1)
+                func_calls = act_adapter.reverse(acts)
+                next_obs = self._env.step([(f,) for f in func_calls], indices)
+                ns, rs, ds, _ = obs_adapter.transform(next_obs)
+                cache.append(ss, acts, ns, rs, ds, obs)
+                rewards[indices] += rs
+                obs = next_obs
+                for j, o in zip(indices, obs):
+                    self._obs[j] = o
+                _indices = [j for j, o in enumerate(obs) if not o.last()]
+
+                # TODO check
+                # some env terminate , drop this fragment
+                if len(_indices) != len(indices):
+                    cache.select(indices)
+                    indices = indices[_indices]
+
+            if self._train:
+                batch = cache()
+                summary, step = self._agent.update(*batch, i + 1)
+                self._summary(summary=summary, step=step)
+
+        return rewards

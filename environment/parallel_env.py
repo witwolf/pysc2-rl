@@ -63,13 +63,23 @@ class MultiThreadEnvs(object):
     def observation_spec(self):
         return list(env.observation_spec()[0] for env in self._envs)
 
-    def step(self, actions):
+    def step(self, actions, indices=None):
+        envs = self._envs
+        if indices is not None:
+            envs = [self._envs[i] for i in indices]
+        if not envs:
+            return []
         obs = self._parallel.run(
-            (env.step, acts) for env, acts in zip(self._envs, actions))
+            (env.step, acts) for env, acts in zip(envs, actions))
         return [o[0] for o in obs]
 
-    def reset(self):
-        obs = self._parallel.run(env.reset for env in self._envs)
+    def reset(self, indices=None):
+        envs = self._envs
+        if indices is not None:
+            envs = [self._envs[i] for i in indices]
+        if not envs:
+            return []
+        obs = self._parallel.run(env.reset for env in envs)
         return [o[0] for o in obs]
 
     def close(self):
@@ -151,16 +161,26 @@ class MultiProcessEnvs(object):
         results = [remote.recv() for remote in self._remotes]
         return results
 
-    def step(self, actions):
-        for remote, action in zip(self._remotes, actions):
+    def step(self, actions, indices=None):
+        remotes = self._remotes
+        if indices is not None:
+            remotes = [self._remotes[i] for i in indices]
+        if not remotes:
+            return []
+        for remote, action in zip(remotes, actions):
             remote.send(('step', PickleWrapper(action)))
-        results = [remote.recv() for remote in self._remotes]
+        results = [remote.recv() for remote in remotes]
         return results
 
-    def reset(self):
-        for remote in self._remotes:
+    def reset(self, indices=None):
+        remotes = self._remotes
+        if indices is not None:
+            remotes = [self._remotes[i] for i in indices]
+        if not remotes:
+            return []
+        for remote in remotes:
             remote.send(('reset', None))
-        results = [remote.recv() for remote in self._remotes]
+        results = [remote.recv() for remote in remotes]
         return results
 
     def close(self):
