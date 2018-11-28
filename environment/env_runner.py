@@ -41,26 +41,18 @@ class Sample():
         self._timestamps.append(timestamp)
 
     def select(self, indices):
-        for row in self._states:
-            for column in row:
-                column = column[indices]
-
-        for row in self._actions:
-            for column in row:
-                column = column[indices]
-
-        for row in self._next_states:
-            for column in row:
-                column = column[indices]
-
-        for row in self._dones:
-            row = row[indices]
-
-        for row in self._rewards:
-            row = row[indices]
-
-        for row in self._timestamps:
-            row = row[indices]
+        self._states = [
+            [c[indices] for c in r] for r in self._states]
+        self._actions = [
+            [c[indices] for c in r] for r in self._actions]
+        self._next_states = [
+            [c[indices] for c in r] for r in self._next_states]
+        self._rewards = [
+            r[indices] for r in self._rewards]
+        self._dones = [
+            r[indices] for r in self._dones]
+        self._timestamps = [
+            Utility.select(r, indices) for r in self._timestamps]
 
     def __call__(self, *args, **kwargs):
         states = Sample._flatten_state(self._states)
@@ -230,7 +222,7 @@ class EnvRunner2(EnvRunner):
             for j, o in zip(resets, self._env.reset(resets)):
                 self._obs[j] = o
         if self._train:
-            batch = cache()
+            batch = cache()[:5]
             summary, step = self._agent.update(*batch, 0)
             self._summary(summary=summary, step=step)
 
@@ -242,13 +234,13 @@ class EnvRunner2(EnvRunner):
         policies[..., act] = 1
         for i in range(sub_p_num):
             indices = policies[..., i].nonzero()[0]
-            if len(indices == 0):
+            if len(indices) == 0:
                 continue
             obs_adapter = self._sub_p_obs_adpts[i]
             act_adapter = self._sub_p_act_adpts[i]
             cache = Sample()
             for _ in range(self._K):
-                if len(indices == 0):
+                if len(indices) == 0:
                     break
                 obs = Utility.select(self._obs, indices)
                 ss, *_ = obs_adapter.transform(obs)
@@ -262,16 +254,14 @@ class EnvRunner2(EnvRunner):
                 for j, o in zip(indices, obs):
                     self._obs[j] = o
                 _indices = [j for j, o in enumerate(obs) if not o.last()]
-
-                # TODO check
-                # some env terminate , drop this fragment
                 if len(_indices) != len(indices):
-                    cache.select(indices)
+                    cache.select(_indices)
                     indices = indices[_indices]
-
+            if len(indices) == 0:
+                logging.warning("all terminated, drop this fragment")
+                continue
             if self._train:
-                batch = cache()
+                batch = cache()[:5]
                 summary, step = self._agent.update(*batch, i + 1)
                 self._summary(summary=summary, step=step)
-
         return rewards
