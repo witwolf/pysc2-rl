@@ -55,15 +55,15 @@ class MLSHProtossExperiment(DistributedExperiment):
             screen_features=[],
             minimap_features=[],
             available_actions=Utility.select(PROTOSS_MACROS._macro_list, [
-                0, 1, 2, 3, 4, 5, 6, 7]),
+                0, 1, 2, 3, 4, 5, 6, 7, 8]),
             non_spatial_features=non_spatial_features,
             non_spatial_feature_dims=dict(
                 timestep_information=(19,),
-                available_actions=(8,)))
+                available_actions=(9,)))
         combat_config = Config(
             screen_features=[],
             minimap_features=[],
-            available_actions=Utility.select(PROTOSS_MACROS._macro_list, [8, 9]),
+            available_actions=Utility.select(PROTOSS_MACROS._macro_list, [9, 10]),
             non_spatial_features=non_spatial_features,
             non_spatial_feature_dims=dict(
                 timestep_information=(19,),
