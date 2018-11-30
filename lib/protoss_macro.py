@@ -692,6 +692,8 @@ def collect_gas():
     funcs = [
         # move camera to base
         FUNCTIONS.move_camera,
+        # select base
+        FUNCTIONS.select_point,
         # select a worker
         FUNCTIONS.select_point,
         # collect gas
@@ -699,6 +701,8 @@ def collect_gas():
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
         # todo select an `idle` worker
+        lambda obs: ("select", U.rand_unit_location(
+            obs, units.Protoss.Nexus)),
         lambda obs: ("select", U.rand_unit_location(
             obs, U.worker_type(obs))),
         lambda obs: ("now", U.gas_location(obs))]
