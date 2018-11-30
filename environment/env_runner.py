@@ -186,6 +186,7 @@ class EnvRunner2(EnvRunner):
                  main_policy_obs_adpt=None,
                  sub_policy_obs_adpts=None,
                  sub_policy_act_adpts=None,
+                 sub_policy_rwd_adapts=None,
                  epoch_n=None,
                  K=8,
                  step_n=16,
@@ -198,6 +199,7 @@ class EnvRunner2(EnvRunner):
         self._main_p_obs_adpt = main_policy_obs_adpt
         self._sub_p_obs_adpts = sub_policy_obs_adpts
         self._sub_p_act_adpts = sub_policy_act_adpts
+        self._sub_p_rwd_adpts = sub_policy_rwd_adapts
         self._policy_steps = None
 
     def run(self, *args, **kwargs):
@@ -238,6 +240,7 @@ class EnvRunner2(EnvRunner):
                 continue
             obs_adapter = self._sub_p_obs_adpts[i]
             act_adapter = self._sub_p_act_adpts[i]
+            rwd_adapter = self._sub_p_rwd_adpts[i]
             cache = Sample()
             for _ in range(self._K):
                 if len(indices) == 0:
@@ -248,6 +251,7 @@ class EnvRunner2(EnvRunner):
                 func_calls = act_adapter.reverse(acts)
                 next_obs = self._env.step([(f,) for f in func_calls], indices)
                 ns, rs, ds, _ = obs_adapter.transform(next_obs)
+                rs = rwd_adapter.transform(next_obs, func_calls)
                 cache.append(ss, acts, ns, rs, ds, obs)
                 rewards[indices] += rs
                 obs = next_obs

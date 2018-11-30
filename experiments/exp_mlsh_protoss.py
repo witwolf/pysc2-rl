@@ -22,6 +22,7 @@ from algorithm.a2c import A2C
 from algorithm.mlsh import MLSH
 from lib.protoss_adapter import ProtossObservationAdapter as ObservationAdapter
 from lib.protoss_adapter import ProtossMacroAdapter as MacroAdapter
+from lib.protoss_adapter import ProtossRewardAdapter as RewardAdapter
 from utils.utility import Utility
 
 
@@ -117,6 +118,9 @@ class MLSHProtossExperiment(DistributedExperiment):
             operate_act_adapter = MacroAdapter(operate_config)
             combat_act_adapter = MacroAdapter(combat_config)
 
+            operate_rwd_adapter = RewardAdapter(operate_config)
+            combat_rwd_adapter = RewardAdapter(combat_config)
+
             env_runner = EnvRunner2(
                 agent=agent, env=env,
                 K=local_args.K,
@@ -125,6 +129,8 @@ class MLSHProtossExperiment(DistributedExperiment):
                     operate_obs_adapter, combat_obs_adapter],
                 sub_policy_act_adpts=[
                     operate_act_adapter, combat_act_adapter],
+                sub_policy_rwd_adapts=[
+                    operate_rwd_adapter, combat_rwd_adapter],
                 train=global_args.train,
                 epoch_n=local_args.epoch,
                 step_n=local_args.td_step,
