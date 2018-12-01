@@ -14,6 +14,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
     def __init__(self,
                  network=None,
                  network_creator=None,
+                 use_global_step=True,
                  td_step=16,
                  lr=1e-4,
                  v_coef=0.25,
@@ -26,6 +27,7 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
 
         self._network = network
         self._network_creator = network_creator
+        self._use_global_step = use_global_step
         self._td_step = td_step
         self._discount = discount
         self._lr = lr
@@ -91,7 +93,10 @@ class A2C(BaseDeepAgent, BaseSC2Agent):
             tf.summary.scalar('reward', tf.reduce_mean(self._reward_input), family=f),
             tf.summary.scalar('loss', loss, family=f)])
 
-        step = tf.Variable(0, trainable=False)
+        if self._use_global_step:
+            step = tf.train.get_or_create_global_step()
+        else:
+            step = tf.Variable(0, trainable=False)
         opt = tf.train.RMSPropOptimizer(
             learning_rate=self._lr,
             decay=0.99, epsilon=1e-5)

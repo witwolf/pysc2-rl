@@ -10,9 +10,9 @@ class MLSH(A2C):
 
     def __init__(self,
                  sub_policies=None,
-                 K=1,
                  network=None,
                  network_creator=None,
+                 use_global_step=True,
                  td_step=16,
                  lr=1e-4,
                  v_coef=0.25,
@@ -20,12 +20,12 @@ class MLSH(A2C):
                  discount=0.99,
                  summary_family='mlsh',
                  **kwargs):
-        self._K = K
         self._sub_policies = sub_policies
         self._agents = [super()] + sub_policies
         super().__init__(
             network,
             network_creator,
+            use_global_step,
             td_step,
             lr, v_coef,
             ent_coef,

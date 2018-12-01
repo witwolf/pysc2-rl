@@ -34,14 +34,20 @@ class MLSHProtossExperiment(DistributedExperiment):
         parser.add_argument("--map_name", type=str, default="MoveToBeacon")
         parser.add_argument("--env_num", type=int, default=32)
         parser.add_argument("--epoch", type=int, default=8096),
-        parser.add_argument("--td_step", type=int, default=16, help='td(n)')
-        parser.add_argument("--logdir", type=str, default='log/a2c')
-        parser.add_argument("--v_coef", type=float, default=0.25)
-        parser.add_argument("--ent_coef", type=float, default=1e-3)
-        parser.add_argument("--lr", type=float, default=7e-4)
+        parser.add_argument("--main_td_step", type=int, default=8, help='td(n)')
+        parser.add_argument("--sub_td_step", type=int, default=8)
+        parser.add_argument("--main_v_coef", type=float, default=0.25)
+        parser.add_argument("--main_ent_coef", type=float, default=1e-3)
+        parser.add_argument("--main_lr", type=float, default=7e-4)
+        parser.add_argument("--combat_v_coef", type=float, default=0.25)
+        parser.add_argument("--combat_ent_coef", type=float, default=1e-3)
+        parser.add_argument("--combat_lr", type=float, default=7e-4)
+        parser.add_argument("--operate_v_coef", type=float, default=0.25)
+        parser.add_argument("--operate_ent_coef", type=float, default=1e-3)
+        parser.add_argument("--operate_lr", type=float, default=7e-4)
         parser.add_argument("--visualize", type=ast.literal_eval, default=False)
         parser.add_argument("--difficulty", type=int, default=1)
-        parser.add_argument("--K", type=int, default=8)
+        parser.add_argument("--logdir", type=str, default='log/mlsh')
         parser.add_argument("--mode", type=str, default='multi_thread')
         args, _ = parser.parse_known_args()
         self._local_args = args
@@ -85,23 +91,25 @@ class MLSHProtossExperiment(DistributedExperiment):
         with tf.device(self.tf_device(global_args)):
             operate = A2C(
                 network_creator=network_creator(operate_config, 'operate'),
-                lr=local_args.lr,
-                td_step=local_args.K,
-                ent_coef=local_args.ent_coef,
-                v_coef=local_args.v_coef, summary_family='operate')
+                use_global_step=False,
+                lr=local_args.operate_lr,
+                td_step=local_args.sub_td_step,
+                ent_coef=local_args.operate_ent_coef,
+                v_coef=local_args.operate_v_coef, summary_family='operate')
             combat = A2C(
                 network_creator=network_creator(combat_config, 'combat'),
-                lr=local_args.lr,
-                td_step=local_args.K,
-                ent_coef=local_args.ent_coef,
-                v_coef=local_args.v_coef, summary_family='combat')
+                use_global_step=False,
+                lr=local_args.combat_lr,
+                td_step=local_args.sub_td_step,
+                ent_coef=local_args.combat_ent_coef,
+                v_coef=local_args.combat_v_coef, summary_family='combat')
             agent = MLSH(
                 sub_policies=[operate, combat],
                 network_creator=network_creator(config, 'main_policy'),
-                lr=local_args.lr,
-                td_step=local_args.td_step,
-                ent_coef=local_args.ent_coef,
-                v_coef=local_args.v_coef, summary_family='main')
+                lr=local_args.main_lr,
+                td_step=local_args.main_td_step,
+                ent_coef=local_args.main_ent_coef,
+                v_coef=local_args.main_v_coef, summary_family='main')
         with agent.create_session(**self.tf_sess_opts(global_args)) as sess:
             operate.set_sess(sess)
             combat.set_sess(sess)
@@ -123,7 +131,6 @@ class MLSHProtossExperiment(DistributedExperiment):
 
             env_runner = EnvRunner2(
                 agent=agent, env=env,
-                K=local_args.K,
                 main_policy_obs_adpt=main_policy_obs_adpt,
                 sub_policy_obs_adpts=[
                     operate_obs_adapter, combat_obs_adapter],
@@ -133,7 +140,8 @@ class MLSHProtossExperiment(DistributedExperiment):
                     operate_rwd_adapter, combat_rwd_adapter],
                 train=global_args.train,
                 epoch_n=local_args.epoch,
-                step_n=local_args.td_step,
+                step_n=local_args.main_td_step,
+                step_n2=local_args.sub_td_step,
                 logdir=local_args.logdir)
             env_runner.run()
 

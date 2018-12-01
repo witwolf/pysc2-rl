@@ -79,7 +79,7 @@ class BehaviorClone(BaseDeepAgent, BaseAgent):
             tf.summary.scalar('value_loss', value_loss, family=f),
             tf.summary.scalar('loss', loss, family=f)])
 
-        step = tf.Variable(0, trainable=False)
+        step = tf.train.get_or_create_global_step()
         opt = tf.train.RMSPropOptimizer(
             learning_rate=self._lr,
             decay=0.99, epsilon=1e-5)
