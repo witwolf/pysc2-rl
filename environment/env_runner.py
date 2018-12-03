@@ -93,17 +93,16 @@ class EnvRunner(object):
         records = {
             'score': 0.0,
             'collected_minerals': 0.0, 'spent_minerals': 0.0,
-            'collected_vespene': 0.0, 'spent_vespene': 0.0,
-            'win': 0.0, 'lost': 0.0, 'tie': 0.0}
-
+            'collected_vespene': 0.0, 'spent_vespene': 0.0}
+        ratios = {'win': 0.0, 'lost': 0.0, 'tie': 0.0}
         for i in range(self._env_num):
             ts = self._terminate_obs[i]
             for f in records.keys():
-                records[f] += ts[0].observation.score_cumulative[f]
-                records[['tie', 'win', 'lost'][int(ts[0].reward)]] += 1
+                score_cumulative = ts[0].observation.score_cumulative[f]
+                records[f] += score_cumulative / self._env_num
+            ratios[['tie', 'win', 'lost'][int(ts[0].reward)]] += 1 / self._env_num
             self._terminate_obs[i] = ts[1:]
-        for f in records.keys():
-            records[f] = records[f] / self._env_num
+        records.update(ratios)
         logging.warning("episode %d: %s", self._episode, records)
         self._summary(step=self._episode, **records)
         self._episode += 1
