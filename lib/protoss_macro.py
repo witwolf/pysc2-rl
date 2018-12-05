@@ -341,12 +341,34 @@ class U(object):
         army_ys, army_xs = (player_relative == player_self).nonzero()
         if len(army_ys) == 0:
             return None
-        army_c_x, army_c_y = (army_xs.mean(), army_ys.mean())
-        distances = np.ndarray(shape=[len(enemy_xs)], dtype=np.float32)
-        for i, x, y in zip(range(len(enemy_xs)), enemy_xs, enemy_ys):
-            distances[i] = abs(x - army_c_x) + abs(y - army_c_y)
+
+        # split enemy unit into different parts
+        enemy_attacker, enemy_worker, enemy_others = [], [], []
+        for unit in obs.observation.raw_units:
+            if unit.alliance == 4:
+                if unit.unit_type == units.Terran.Marine or \
+                        unit.unit_type == units.Terran.Marauder:
+                    enemy_attacker.append((unit.x, unit.y))
+                elif unit.unit_type == units.Terran.SCV:
+                    enemy_worker.append((unit.x, unit.y))
+                else:
+                    enemy_others.append((unit.x, unit.y))
+        enemy_cand = []
+        if len(enemy_attacker) > 0:
+            enemy_cand = enemy_attacker
+        elif len(enemy_worker) > 0:
+            enemy_cand = enemy_worker
+        else:
+            enemy_cand = enemy_others
+        if len(enemy_cand) == 0:
+            return None
+
+        army_pos = (army_xs.mean(), army_ys.mean())
+        distances = np.ndarray(shape=[len(enemy_cand)], dtype=np.float32)
+        for i, enemy_pos in zip(range(len(enemy_cand)), enemy_cand):
+            distances[i] = U.get_distance(enemy_pos, army_pos)
         pos = np.argmin(distances)
-        x, y = enemy_xs[pos], enemy_ys[pos]
+        x, y = enemy_cand[pos]
         enemy_pos = U._valid_screen_x_y(x, y, obs)
         return enemy_pos
 
@@ -354,7 +376,6 @@ class U(object):
     def enemy_location(obs):
         enemy_y, enemy_x = (obs.observation.feature_minimap.player_relative
                    == features.PlayerRelative.ENEMY).nonzero()
-        print(obs.observation.feature_minimap.player_relative)
         enemy_base = U.enemy_minimap_location(obs)
         enemy_second_base = U.enemy_second_minimap_location(obs)
         enemy_base_count, enemy_second_base_count = 0, 0
@@ -373,6 +394,21 @@ class U(object):
         if not army_front:
             return None
         enemy_base = U.enemy_minimap_location(obs)
+        # find closest enemy on minimap
+        player_relative = \
+            obs.observation.feature_minimap.player_relative
+        player_enemy = features.PlayerRelative.ENEMY
+        enemy_y, enemy_x = (player_relative == player_enemy).nonzero()
+        min_dist = 1000
+        closest_enemy = None
+        for x, y in zip(enemy_x, enemy_y):
+            dist = U.get_distance((x, y), army_front)
+            if dist < min_dist:
+                min_dist = dist
+                closest_enemy = (x, y)
+        # if enemy on minimap, find enemy
+        if closest_enemy:
+            enemy_base = closest_enemy
         # if base is clear, attack next base
         screen_w, screen_h = U.screen_size(obs)
         attack_direction = (
