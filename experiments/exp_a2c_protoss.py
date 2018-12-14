@@ -11,8 +11,9 @@ import tensorflow as tf
 
 from experiments.experiment import DistributedExperiment
 from experiments.experiment import Experiment
-from experiments.exp_bc import network_creator
+from experiments.fcn import FCNNetwork2
 from lib.config import Config
+from lib.base import Network
 from lib.protoss_macro import PROTOSS_MACROS
 from environment.parallel_env import ParallelEnvs
 from environment.macro_env import default_macro_env_maker
@@ -21,6 +22,28 @@ from algorithm.a2c import A2C
 from lib.protoss_adapter import ProtossObservationAdapter as ObservationAdapter
 from lib.protoss_adapter import ProtossMacroAdapter as MacroAdapter
 from lib.protoss_adapter import ProtossRewardAdapter as RewardAdapter
+
+
+def network_creator(config):
+    def network_creator():
+        def _network_creator():
+            with tf.variable_scope('network'):
+                value, policies, actions, states = FCNNetwork2.build_fcn(config)
+            inputs = {
+                'state': states,
+                'reward': tf.placeholder(tf.float32, [None]),
+                'done': tf.placeholder(tf.float32, [None]),
+                'action': [tf.placeholder(tf.int32, [None]) for _ in range(len(actions))],
+                'value': tf.placeholder(tf.float32, [None])}
+            nets = {
+                'policies': policies,
+                'value': value,
+                'actions': actions}
+            return inputs, nets
+
+        return Network(_network_creator, var_scope='network')
+
+    return network_creator
 
 
 class A2CProtossExperiment(DistributedExperiment):
@@ -36,7 +59,6 @@ class A2CProtossExperiment(DistributedExperiment):
         parser.add_argument("--ent_coef", type=float, default=1e-3)
         parser.add_argument("--lr", type=float, default=7e-4)
         parser.add_argument("--visualize", type=ast.literal_eval, default=False)
-        parser.add_argument("--debug", type=ast.literal_eval, default=False)
         parser.add_argument("--mode", type=str, default='multi_thread')
         args, _ = parser.parse_known_args()
         self._local_args = args
@@ -44,14 +66,18 @@ class A2CProtossExperiment(DistributedExperiment):
     def run(self, global_args):
         local_args = self._local_args
         config = Config(
+            screen_features=[],
+            minimap_features=[],
             available_actions=PROTOSS_MACROS._macro_list,
+            non_spatial_features=[
+                'timestep_information',
+                'available_actions'],
             non_spatial_feature_dims=dict(
-                player=(11,),
+                timestep_information=(16,),
                 available_actions=(len(PROTOSS_MACROS),)))
         env_args = [{'map_name': "Simple64"}
                     for _ in range(local_args.env_num)]
         env_args[0]['visualize'] = local_args.visualize
-        env_args[0]['debug'] = local_args.debug
         with tf.device(self.tf_device(global_args)):
             agent = A2C(
                 network_creator=network_creator(config),

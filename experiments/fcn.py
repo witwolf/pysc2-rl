@@ -118,3 +118,41 @@ class FCNNetwork():
         masked = probs * mask
         masked_sum = tf.reduce_sum(masked, axis=1, keep_dims=True)
         return masked / tf.clip_by_value(masked_sum, 1e-12, 1.0)
+
+
+class FCNNetwork2():
+    @staticmethod
+    def build_fcn(config):
+        inputs, states = [], []
+        with tf.variable_scope('nonspatial'):
+            for dim, field in zip(
+                    config.non_spatial_dims,
+                    config._non_spatial_features):
+                input_ph = tf.placeholder(tf.float32, [None, *dim])
+                inputs.append(input_ph)
+                if field != 'available_actions':
+                    states.append(input_ph)
+        state = tf.concat(states, axis=1)
+        fc = layers.fully_connected(state, num_outputs=256, scope='fc')
+        fc = layers.fully_connected(fc, num_outputs=256, scope='fc1')
+        value = layers.fully_connected(
+            fc, num_outputs=1, activation_fn=None, scope='value')
+        value = tf.squeeze(value, axis=1)
+        policy_dims = config.policy_dims
+        policies = []
+        act_dim, _ = policy_dims[0]
+        act_policy = layers.fully_connected(
+            fc, num_outputs=act_dim, scope='act_policy',
+            activation_fn=tf.nn.softmax)
+        if 'available_actions' in config._non_spatial_index_table:
+            available_actions = inputs[
+                config._non_spatial_index_table['available_actions']]
+            act_policy = FCNNetwork.mask_probs(act_policy, available_actions)
+        policies.append(act_policy)
+
+        for arg_dim, is_spatial in policy_dims[1:]:
+            arg_policy = layers.fully_connected(
+                fc, num_outputs=arg_dim, activation_fn=tf.nn.softmax)
+            policies.append(arg_policy)
+        actions = [FCNNetwork._sample(p) for p in policies]
+        return value, policies, actions, inputs

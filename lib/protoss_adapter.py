@@ -27,85 +27,82 @@ class ProtossRewardAdapter(Adapter):
                 timestep.observation.player.food_used)
 
     def get_reward(self, timestep, action):
-        if not timestep.macro_success:
-            return 0
+        if not timestep._macro_success:
+            return -1
         features, minerals, gas, food = self.get_feature_vector(timestep)
+        food_cap = timestep._unit_counts.get(units.Protoss.Nexus, 0) * 15
+        # add future pylon
+        food_cap += timestep._unit_counts.get(units.Protoss.Pylon, 0) * 8
+        food_cap += timestep.building_queues[_PROTOSS_BUILDINGS_DICT[units.Protoss.Pylon].id] * 8
+        food_future = food_cap - timestep.observation.player.food_used
+
+        if action.id == PROTOSS_MACROS.No_op:
+            return -1
         # check unit requirements
         if action.id in _PROTOSS_UNITS_MACROS:
             unit = _PROTOSS_UNITS_MACROS[action.id]
-            for requirement in unit.requirement_types:
-                # if requirements miss
-                if features.get(requirement, 0) == 0:
-                    return -1
             # if worker
             if unit.unit_type == units.Protoss.Probe:
-                protos_nexus = timestep._raw_units.get(units.Protoss.Nexus, [])
-                lack_harvesters = [unit.ideal_harvesters - unit.assigned_harvesters
-                                   for unit in protos_nexus]
-                lack_harvesters = sum(lack_harvesters) if len(lack_harvesters) > 0 else 0
-                nexus_num = timestep._unit_counts.get(_PROTOSS_BUILDINGS_DICT[units.Protoss.Nexus].id, 0)
-                if nexus_num == 0:
-                    return -1
+                probe_num = timestep._unit_counts.get(units.Protoss.Probe, 0)
                 probe_in_queue = \
-                    len(timestep.training_queues[_PROTOSS_UNITS_DICT[units.Protoss.Probe].id])
-                return (lack_harvesters - probe_in_queue) / nexus_num
-            return float(unit.minerals + unit.gas + unit.gas) / 1000.0
+                    timestep.training_queues[_PROTOSS_UNITS_DICT[units.Protoss.Probe].id]
+                # max 16 probe
+                if probe_num + probe_in_queue <= 16:
+                    return 1
+                else:
+                    return -1
+            # if zealot
+            elif unit.unit_type == units.Protoss.Zealot:
+                return 1
+            return -1
 
         # check building requirements
         if action.id in _PROTOSS_BUILDINGS_MACROS:
             building = _PROTOSS_BUILDINGS_MACROS[action.id]
-            for requirement in building.requirement_types:
-                # if requirements miss
-                if features.get(requirement, 0) == 0:
-                    return -1
             # if need food
             if building.unit_type == units.Protoss.Pylon:
+                pylon_num = timestep._unit_counts.get(units.Protoss.Pylon, 0)
+                pylon_in_queue = timestep.building_queues[_PROTOSS_BUILDINGS_DICT[units.Protoss.Pylon].id]
                 # if first pylon, give a big reward
-                if features.get(units.Protoss.Pylon, 0) == 0:
+                if pylon_num + pylon_in_queue == 1:
                     return 10
                 # if food urgent, give a big reward
-                if food <= 2 and timestep.observation.player.food_cap < 200:
+                elif food_future <= 10 and timestep.observation.player.food_cap < 200:
                     return 10
-                # if too much food, give a neg reward
-                elif food >= 16:
-                    return -1
-                # if much food and no gateway, give a neg reward
-                elif food >= 4 and features.get(units.Protoss.Gateway, 0) == 0:
-                    return -1
                 # if food cap, give neg reward
                 elif timestep.observation.player.food_cap >= 200:
                     return -1
-                # if enough food, give no reward
-                elif food >= 8:
-                    return 0
+                # if too much food, give a neg reward
+                elif food_future >= 24:
+                    return -1
+                # if much food and no gateway, give a neg reward
+                elif food_future >= 12 and features.get(units.Protoss.Gateway, 0) == 0:
+                    return -1
                 else:
                     return 1
-            # quick gateway
-            elif building.unit_type != units.Protoss.Gateway and \
-                    features.get(units.Protoss.Gateway, 0) == 0:
-                return -1
-            # first building return 1
-            elif features.get(building.unit_type, 0) == 0:
-                return 1
+            elif building.unit_type == units.Protoss.Gateway:
+                gateway_num = timestep._unit_counts.get(units.Protoss.Gateway, 0)
+                gateway_in_queue = timestep.building_queues[_PROTOSS_BUILDINGS_DICT[units.Protoss.Gateway].id]
+                if gateway_num + gateway_in_queue <= 4:
+                    return 4 - gateway_num - gateway_in_queue + 0.5
+                else:
+                    return -1
             else:
-                reward = np.exp(-features.get(building.unit_type, 0))
-                if not building.trainable:
-                    reward /= 2
-                return reward
+                return -1
 
         if action.id == PROTOSS_MACROS.Callback_Idle_Workers:
-            if timestep.observation.player.idle_worker_count == 0:
-                return 1
-            else:
-                return -1
+            return 10
 
-        if action.id == PROTOSS_MACROS.Collect_Gas:
-            if timestep._feature_unit_completed_counts.get(units.Protoss.Assimilator, 0) == 0:
+        if action.id == PROTOSS_MACROS.Attack_Enemy:
+            # if not enough zealot, don't attack
+            zealot_num = timestep._unit_counts.get(units.Protoss.Zealot, 0)
+            if zealot_num <= 12:
                 return -1
-            return 1
+            else:
+                return 0.1
 
         # other function return 0
-        return 0
+        return 1e-2
 
     def get_damage(self, timestep, last_timestep):
         if not last_timestep:
@@ -141,13 +138,13 @@ class ProtossRewardAdapter(Adapter):
             if timestep.last():
                 game_end = True
             last_timestep = None
-            if timestep.macro_success:
+            if timestep._macro_success:
                 if step_i < self._memory_step_n:
                     last_timestep = self._memory_step_obs[step_i]
                 else:
                     last_timestep = timesteps[step_i - self._memory_step_n]
             rewards.append(self.get_reward(timestep, action) +
-                           self.get_damage(timestep, last_timestep) +
+                           # self.get_damage(timestep, last_timestep) +
                            timestep.reward)
             step_i += 1
         if not game_end:
@@ -170,6 +167,12 @@ class ProtossObservationAdapter(DefaultObservationAdapter):
             if cond(timestep):
                 feature[i] = 1
         return feature[action_indexes]
+
+    def _nonspatial_feature(self, timestep, field):
+        f = getattr(timestep, field, None)
+        if not f:
+            return timestep.observation[field]
+        return f
 
 
 class ProtossMacroAdapter(Adapter):

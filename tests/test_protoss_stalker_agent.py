@@ -20,7 +20,7 @@ class TestProtossMacro(utils.TestCase):
                          sc2_env.Bot(sc2_env.Race.terran,
                                      sc2_env.Difficulty.very_easy)],
                 agent_interface_format=features.AgentInterfaceFormat(
-                    feature_dimensions=features.Dimensions(screen=84, minimap=64),
+                    feature_dimensions=features.Dimensions(screen=64, minimap=64),
                     use_feature_units=True, use_raw_units=True, use_unit_counts=True),
                 step_mul=4,
                 game_steps_per_episode=0,

@@ -28,6 +28,7 @@ _NEU = units.Neutral
 
 class UnitSize(enum.IntEnum):
     '''units' radius'''
+    '''
     Nexus=10
     Pylon=4
     Assimilator=6
@@ -35,6 +36,25 @@ class UnitSize(enum.IntEnum):
     CyberneticsCore=7
     PylonPower=23
     Stalker=2
+    '''
+
+    Nexus = 8
+    Pylon = 3
+    Assimilator = 5
+    Gateway = 6
+    CyberneticsCore = 6
+    PylonPower = 18
+    Stalker = 2
+
+
+_PROTOSS_BUILDINGS_SIZE = {
+    units.Protoss.Nexus: UnitSize.Nexus.value,
+    units.Protoss.Pylon: UnitSize.Pylon.value,
+    units.Protoss.Assimilator: UnitSize.Assimilator.value,
+    units.Protoss.Gateway: UnitSize.Gateway.value,
+    units.Protoss.CyberneticsCore: UnitSize.CyberneticsCore.value,
+}
+
 
 class U(object):
     @staticmethod
@@ -168,6 +188,10 @@ class U(object):
     '''
     @staticmethod
     def get_distance(position1, position2):
+        if type(position1) == type(()):
+            position1 = [position1]
+        if type(position2) == type(()):
+            position2 = [position2]
         position1 = np.array(position1)
         position2 = np.array(position2)
         try:
@@ -245,6 +269,27 @@ class U(object):
         else:
             return True
 
+
+    @staticmethod
+    def search_buildable_location(obs, pos, screen_size, unit_size):
+        if U.building_location_judge(obs, pos, unit_size):
+            return pos
+
+        for radius in range(int(unit_size * 3 / 2)):
+            for x in range(pos[0] - radius, pos[0] + radius + 1):
+                if x < 0 or x >= screen_size[0]:
+                    continue
+                y = pos[1] - radius
+                if 0 <= y < screen_size[1]:
+                    if U.building_location_judge(obs, (x, pos[1]), unit_size):
+                        return x, pos[1]
+                y = pos[1] + radius
+                if 0 <= y < screen_size[1]:
+                    if U.building_location_judge(obs, (x, pos[1]), unit_size):
+                        return x, pos[1]
+
+        return None
+
     @staticmethod
     def get_pylon_location(obs):
         screen_w, screen_h = U.screen_size(obs)
@@ -280,7 +325,7 @@ class U(object):
                             distances = U.get_distance(nexus_location, positions)
                             if distances[0] > UnitSize.Nexus.value and \
                                     distances[1] > UnitSize.Nexus.value:
-                                index = 0 if distances[0] < distances[1] else 1
+                                        index = 0 if distances[0] < distances[1] else 1
                             else:
                                 index = 0 if distances[0] > distances[1] else 1
                         else:
@@ -317,18 +362,18 @@ class U(object):
 
     @staticmethod
     def new_pylon_location(obs):
-        (x,y)=U.get_pylon_location(obs)
-        return x,y
+        (x, y)=U.get_pylon_location(obs)
+        return x, y
 
     @staticmethod
     def new_gateway_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        power_map = obs.observation.power_map
-        if len(power_map) == 0:
+        power_list = obs.power_list
+        if len(power_list) == 0:
             return None
         try_time = 0
         while try_time < 100:
-            x, y = power_map[randint(0, len(power_map))]
+            x, y = power_list[randint(0, len(power_list))]
             if U.building_location_judge(obs, (x, y), UnitSize.Gateway):
                 return x, y
             try_time += 1
@@ -348,12 +393,12 @@ class U(object):
     @staticmethod
     def new_cyberneticscore_location(obs):
         screen_w, screen_h = U.screen_size(obs)
-        power_map = obs.observation.power_map
-        if len(power_map) == 0:
+        power_list = obs.power_list
+        if len(power_list) == 0:
             return None
         try_time = 0
         while try_time < 100:
-            x, y = power_map[randint(0, len(power_map))]
+            x, y = power_list[randint(0, len(power_list))]
             if U.building_location_judge(obs, (x, y), UnitSize.CyberneticsCore):
                 return x, y
             try_time += 1
@@ -426,7 +471,7 @@ class U(object):
         ys, xs = \
             (player_relative == player_self).nonzero()
         if len(xs) == 0:
-            return U.base_minimap_location(obs)
+            return None
         enemy_x, enemy_y = U.enemy_minimap_location(obs)
         dists = np.ndarray(shape=[len(xs)], dtype=np.float32)
         for (i, x, y) in zip(range(len(xs)), xs, ys):
@@ -445,7 +490,8 @@ class U(object):
             (player_relative == player_enemy).nonzero()
         if len(enemy_xs) == 0:
             # if no enemy on screen follow army-enemy direction
-            return U.attack_location_army2enemy(obs)
+            enemy_dir = U.attack_location_army2enemy(obs)
+            return enemy_dir
 
         # if enemy on screen follow enemy closest
         army_ys, army_xs = (player_relative == player_self).nonzero()
@@ -455,7 +501,8 @@ class U(object):
             distances[i] = abs(x - army_c_x) + abs(y - army_c_y)
         pos = np.argmin(distances)
         x, y = enemy_xs[pos], enemy_ys[pos]
-        return U._valid_screen_x_y(x, y, obs)
+        enemy_pos = U._valid_screen_x_y(x, y, obs)
+        return enemy_pos
 
     @staticmethod
     def attack_location_army2enemy(obs):
@@ -467,11 +514,13 @@ class U(object):
             enemy_base[1] - army_front[1])
         radius = attack_direction[0] * attack_direction[0] \
                  + attack_direction[1] * attack_direction[1]
+        radius = np.sqrt(radius)
 
         radius = np.clip(radius, 1e-1, None)
-        ratio = float(min(screen_w, screen_h) / 2.5) / float(radius)
-        x, y = (attack_direction[0] * ratio - screen_h / 2,
-                attack_direction[1] * ratio - screen_h / 2)
+        radius_screen = min(screen_w, screen_h) / 2.5
+        ratio = float(radius_screen) / float(radius)
+        x, y = (attack_direction[0] * ratio + screen_h / 2,
+                attack_direction[1] * ratio + screen_w / 2)
         return U._valid_screen_x_y(x, y, obs)
 
     @staticmethod
@@ -516,10 +565,14 @@ class U(object):
 
     @staticmethod
     def can_build_pylon(obs):
+        if len(U._all_raw_units(obs, Pylon.build_type)) == 0:
+            return False
         return obs.observation.player.minerals >= Pylon.minerals
 
     @staticmethod
     def can_build_gateway(obs):
+        if len(U._all_raw_units(obs, Gateway.build_type)) == 0:
+            return False
         for building_type in Gateway.requirement_types:
             if len(U._all_raw_units(obs, building_type)) == 0:
                 return False
@@ -527,6 +580,8 @@ class U(object):
 
     @staticmethod
     def can_build_assimilator(obs):
+        if len(U._all_raw_units(obs, Assimilator.build_type)) == 0:
+            return False
         nexus_num = len(U._all_raw_units(obs, units.Protoss.Nexus))
         assimilator_num = len(U._all_raw_units(obs, units.Protoss.Assimilator))
         return (assimilator_num < nexus_num * 2) and (
@@ -539,6 +594,8 @@ class U(object):
 
     @staticmethod
     def can_build_cyberneticscore(obs):
+        if len(U._all_raw_units(obs, CyberneticsCore.build_type)) == 0:
+            return False
         for building in CyberneticsCore.requirement_types:
             if len(U._all_raw_units(obs, building)) == 0:
                 return False
@@ -546,8 +603,8 @@ class U(object):
 
     @staticmethod
     def can_train_probe(obs):
-        f = U._max_order_filter(5)
-        if len(U.minimap_units(obs, Probe.build_type, _filter=f)) == 0:
+        if len(U.minimap_units(
+                obs, Probe.build_type, _filter=U._max_order_filter(5))) == 0:
             return False
         minerals, vespene, food = U._resources(obs)
         return minerals >= Probe.minerals and food >= Probe.food
@@ -573,7 +630,8 @@ class U(object):
 
     @staticmethod
     def can_select_army(obs):
-        return FUNCTIONS.select_army.id in obs.observation.available_actions
+        action_id = FUNCTIONS.select_army.id
+        return action_id in obs.observation.available_actions
 
     @staticmethod
     def can_collect_gas(obs):
@@ -585,18 +643,29 @@ class U(object):
         return False
 
 
+def do_nothing():
+    funcs = [
+        FUNCTIONS.no_op]
+    funcs_args = [lambda obs: ()]
+    cond = lambda obs: True
+    return cond, funcs, funcs_args
+
+
 def build_a_pylon():
     funcs = [
-        # move camera to base
+        # move camera to worker
         FUNCTIONS.move_camera,
         # select all workers
         FUNCTIONS.select_point,
+        # move camera to base
+        FUNCTIONS.move_camera,
         # build a pylon
         FUNCTIONS.Build_Pylon_screen]
     funcs_args = [
-        lambda obs: (U.base_minimap_location(obs),),
+        lambda obs: (U.rand_minimap_unit_location(obs, units.Protoss.Nexus),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
+        lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("now", U.new_pylon_location(obs))]
     cond = U.can_build_pylon
     return cond, funcs, funcs_args
@@ -604,16 +673,19 @@ def build_a_pylon():
 
 def build_a_gateway():
     funcs = [
-        # move camera to base
+        # move camera to worker
         FUNCTIONS.move_camera,
         # select all workers
         FUNCTIONS.select_point,
+        # move camera to base
+        FUNCTIONS.move_camera,
         # build a gateway
         FUNCTIONS.Build_Gateway_screen]
     funcs_args = [
         lambda obs: (U.rand_minimap_unit_location(obs, U.worker_type(obs)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
+        lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("now", U.new_gateway_location(obs))]
     cond = U.can_build_gateway
     return cond, funcs, funcs_args
@@ -621,16 +693,19 @@ def build_a_gateway():
 
 def build_a_assimilator():
     funcs = [
-        # move camera to base
+        # move camera to worker
         FUNCTIONS.move_camera,
         # select all workers
         FUNCTIONS.select_point,
+        # move camera to base
+        FUNCTIONS.move_camera,
         # build a assimilator
         FUNCTIONS.Build_Assimilator_screen]
     funcs_args = [
         lambda obs: (U.rand_minimap_unit_location(obs, U.worker_type(obs)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
+        lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("now", U.new_assimilator_location(obs))]
     cond = U.can_build_assimilator
     return cond, funcs, funcs_args
@@ -639,16 +714,19 @@ def build_a_assimilator():
 def build_a_cyberneticscore():
     cond = U.can_build_cyberneticscore
     funcs = [
-        # move camera to base
+        # move camera to worker
         FUNCTIONS.move_camera,
         # select all workers
         FUNCTIONS.select_point,
+        # move camera to base
+        FUNCTIONS.move_camera,
         # build a CyberneticsCore
         FUNCTIONS.Build_CyberneticsCore_screen]
     funcs_args = [
         lambda obs: (U.rand_minimap_unit_location(obs, U.worker_type(obs)),),
         lambda obs: ("select_all_type", U.rand_unit_location(
             obs, U.worker_type(obs))),
+        lambda obs: (U.base_minimap_location(obs),),
         lambda obs: ("now", U.new_cyberneticscore_location(obs))]
     return cond, funcs, funcs_args
 
@@ -708,7 +786,8 @@ def training_a_stalker():
 
 
 def callback_idle_workers():
-    cond = lambda obs: FUNCTIONS.select_idle_worker in obs.observation.available_actions
+    action_id = FUNCTIONS.select_idle_worker.id
+    cond = lambda obs: action_id in obs.observation.available_actions
     funcs = [
         # select idle workers
         FUNCTIONS.select_idle_worker,
@@ -751,6 +830,7 @@ def collect_gas():
         FUNCTIONS.Harvest_Gather_screen]
     funcs_args = [
         lambda obs: (U.base_minimap_location(obs),),
+        # todo select an `idle` worker
         lambda obs: ("select", U.rand_unit_location(
             obs, U.worker_type(obs))),
         lambda obs: ("now", U.gas_location(obs))]
@@ -939,8 +1019,16 @@ _PROTOSS_MACROS = [
     ProtossMacro.ability(14, "Move_Bottom", move_screen_bottom, 14),
     ProtossMacro.ability(15, "Move_BottomLeft", move_screen_bottomleft, 15),
     ProtossMacro.ability(16, "Move_Left", move_screen_left, 16),
-    ProtossMacro.ability(17, "Attack_Enemy", attack_enemy, 17)
-    # ProtossMacro.ability(8, "Collect_Mineral", collect_minerals, 8),
+    ProtossMacro.ability(17, "Attack_Enemy", attack_enemy, 17),
+    ProtossMacro.ability(18, "No_op", do_nothing, 18)
+    
+    #ProtossMacro.ability(0, "Build_Pylon", build_a_pylon, 0),
+    #ProtossMacro.ability(1, "Build_Gateway", build_a_gateway, 1),
+    #ProtossMacro.ability(2, "Train_Probe", training_a_probe, 2),
+    #ProtossMacro.ability(3, "Train_Zealot", training_a_zealot, 3),
+    #ProtossMacro.ability(4, "Callback_Idle_Workers", callback_idle_workers, 4),
+    #ProtossMacro.ability(5, "Attack_Enemy", attack_enemy, 5),
+    #ProtossMacro.ability(6, "No_op", do_nothing, 6)
 ]
 
 
@@ -1047,21 +1135,21 @@ _PROTOSS_UNITS_FUNCTIONS = {
 }
 
 _PROTOSS_BUILDINGS = [
-    Nexus, Pylon, Assimilator, Gateway,
-    WarpGate, Forge, CyberneticsCore,
+    Pylon, Gateway, Assimilator,
+    Forge, CyberneticsCore, Nexus, WarpGate,
     PhotonCannon, ShieldBattery,
     RoboticsFacility, Stargate, TwilightCouncil,
     RoboticsBay, FleetBeacon, TemplarArchive, DarkShrine,
     StasisTrap]
 
 _PROTOSS_BUILDINGS_DICT = {
-    units.Protoss.Nexus: Nexus,
     units.Protoss.Pylon: Pylon,
-    units.Protoss.Assimilator: Assimilator,
     units.Protoss.Gateway: Gateway,
-    units.Protoss.WarpGate: WarpGate,
+    units.Protoss.Assimilator: Assimilator,
     units.Protoss.Forge: Forge,
     units.Protoss.CyberneticsCore: CyberneticsCore,
+    units.Protoss.Nexus: Nexus,
+    units.Protoss.WarpGate: WarpGate,
     units.Protoss.PhotonCannon: PhotonCannon,
     units.Protoss.ShieldBattery: ShieldBattery,
     units.Protoss.RoboticsFacility: RoboticsFacility,

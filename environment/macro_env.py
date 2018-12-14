@@ -3,9 +3,10 @@
 #
 
 
+import sys
 import logging
 from pysc2.env import sc2_env
-import sys
+from pysc2.lib.actions import FUNCTIONS
 
 sys.path.append('.')
 from lib.protoss_timestep import ProtossTimeStepFactory
@@ -36,7 +37,7 @@ def default_macro_env_maker(kwargs):
             sc2_env.Bot(sc2_env.Race.terran,
                         sc2_env.Difficulty.very_easy)]
     if 'game_steps_per_episode' not in kwargs:
-        kwargs['game_steps_per_episode'] = 0
+        kwargs['game_steps_per_episode'] = 20000
     if 'visualize' not in kwargs:
         kwargs['visualize'] = False
     if 'step_mul' not in kwargs:
@@ -67,7 +68,6 @@ class MacroEnv(sc2_env.SC2Env):
                  score_multiplier=None,
                  random_seed=None,
                  disable_fog=False,
-                 debug=False,
                  ensure_available_actions=True):
         super().__init__(
             _only_use_kwargs,
@@ -89,60 +89,43 @@ class MacroEnv(sc2_env.SC2Env):
             disable_fog,
             ensure_available_actions)
 
-        self._debug = debug
-        self._timestep_factory = ProtossTimeStepFactory(None, None, self._step_mul)
+        self._timestep_factory = ProtossTimeStepFactory(self._step_mul)
 
     def reset(self):
         obs = super().reset()
         self._timestep_factory.reset()
-        self._last_obs = (self._timestep_factory.process(obs[0]),)
+        self._last_obs = (self._timestep_factory.update(obs[0]),)
         return self._last_obs
 
     def step(self, macros, update_observation=None):
         macro = macros[0]
         success = True
-        err_msg = None
         for act_func, arg_func in macro:
             obs = self._last_obs[0]
-            # action not available
-            if not act_func.id in obs.observation.available_actions:
+            act = self.valid_func_call(act_func, arg_func, obs, macro)
+            if act is None:
                 success = False
-                err_msg = "%s not available" % act_func.id
-                break
-
-            args = arg_func(obs)
-            if not args:
-                err_msg = 'args none'
-                success = False
-                break
-
-            for arg in args:
-                if not arg:
-                    err_msg = 'args none'
-                    success = False
-
+                act = (FUNCTIONS.no_op(),)
+            obs = super().step(act, update_observation)
+            self._last_obs = (self._timestep_factory.update(obs[0]),)
             if not success:
                 break
-
-            act = (act_func(*args),)
-            obs = super().step(act, update_observation)
-            self._last_obs = (self._timestep_factory.process(obs[0]),)
-            #  TODO remove this check temporary
-
-            # last_actions = obs.observation.last_actions
-            # if len(last_actions) == 0 or last_actions[0] != act_func.id:
-            #     if self._debug:
-            #         logging.warning(
-            #             "%s execute failed, last_action:%s, macro: %s", act_func.id,
-            #             last_actions[0] if len(last_actions) else 'None', macro)
-            #     return [TimestepWrapper(self._last_obs[0], False)]
-
-        if self._debug:
-            if err_msg:
-                logging.warning("%s execute failed, err:%s", macro, err_msg)
-            else:
-                logging.warning("%s execute success", macro)
-        self._last_obs[0].macro_success = success
+        logging.debug("%s execute %s", macro, "success" if success else "failed")
+        self._last_obs[0]._macro_success = success
         if self._last_obs[0].last():
             self._timestep_factory.reset()
         return self._last_obs
+
+    def valid_func_call(self, act_func, args_func, obs, macro):
+        if not act_func.id in obs.observation.available_actions:
+            logging.debug("%s not available in %s", act_func.id, macro)
+            return None
+        args = args_func(obs)
+        if args is None:
+            logging.debug("arg none")
+            return None
+        for arg in args:
+            if arg is None:
+                logging.debug("arg none")
+                return None
+        return (act_func(*args),)

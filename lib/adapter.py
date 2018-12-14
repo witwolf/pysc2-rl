@@ -51,7 +51,7 @@ class DefaultObservationAdapter(Adapter):
             minimaps.append(minimap_features)
 
             for i, field in enumerate(nonspatial_features):
-                feature = observation[field]
+                feature = self._nonspatial_feature(timestep, field)
                 if field == 'available_actions':
                     feature = self._available_actions(timestep)
                 nonspatials[i].append(feature)
@@ -59,8 +59,17 @@ class DefaultObservationAdapter(Adapter):
         screen = np.array(screens).transpose((0, 2, 3, 1))
         minimap = np.array(minimaps).transpose((0, 2, 3, 1))
         nonspatial = [np.array(e) for e in nonspatials]
-        states = [screen, minimap] + nonspatial
+        states = []
+        if screen:
+            states.append(screen)
+        if minimap:
+            states.append(minimap)
+        if nonspatials:
+            states.extend(nonspatial)
         return (states, np.array(rewards), np.array(dones), timesteps)
+
+    def _nonspatial_feature(self, timestep, field):
+        return timestep.observation[field]
 
     def _available_actions(self, timestep):
         action_indexes = self._config._action_indexes

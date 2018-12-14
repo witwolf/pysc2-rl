@@ -193,19 +193,19 @@ Mothership = Unit(
     minerals=400, gas=400, time=114, food=8)
 
 # protoss buildings
-Nexus = Building(
-    id=0,
-    build_type=units.Protoss.Probe,
-    unit_type=units.Protoss.Nexus,
-    requirement_types=[], minerals=400,
-    gas=0, time=71, trainable=True)
-
 Pylon = Building(
-    id=1,
+    id=0,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.Pylon,
     requirement_types=[], minerals=100,
     gas=0, time=100, trainable=False)
+
+Gateway = Building(
+    id=1,
+    build_type=units.Protoss.Probe,
+    unit_type=units.Protoss.Gateway,
+    requirement_types=[units.Protoss.Nexus, units.Protoss.Pylon],
+    minerals=150, gas=0, time=260, trainable=True)
 
 Assimilator = Building(
     id=2,
@@ -214,33 +214,33 @@ Assimilator = Building(
     requirement_types=[],
     minerals=75, gas=0, time=120, trainable=False)
 
-Gateway = Building(
-    id=3,
-    build_type=units.Protoss.Probe,
-    unit_type=units.Protoss.Gateway,
-    requirement_types=[units.Protoss.Nexus, units.Protoss.Pylon],
-    minerals=150, gas=0, time=260, trainable=True)
-
-WarpGate = Building(
-    id=4,
-    build_type=units.Protoss.Probe,
-    unit_type=units.Protoss.WarpGate,
-    requirement_types=[units.Protoss.Gateway],
-    minerals=0, gas=0, time=7, trainable=True)
-
 Forge = Building(
-    id=5,
+    id=3,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.Forge,
     requirement_types=[units.Protoss.Nexus],
     minerals=150, gas=0, time=32, trainable=False)
 
 CyberneticsCore = Building(
-    id=6,
+    id=4,
     build_type=units.Protoss.Probe,
     unit_type=units.Protoss.CyberneticsCore,
     requirement_types=[units.Protoss.Gateway],
     minerals=150, gas=0, time=200, trainable=False)
+
+Nexus = Building(
+    id=5,
+    build_type=units.Protoss.Probe,
+    unit_type=units.Protoss.Nexus,
+    requirement_types=[], minerals=400,
+    gas=0, time=71, trainable=True)
+
+WarpGate = Building(
+    id=6,
+    build_type=units.Protoss.Probe,
+    unit_type=units.Protoss.WarpGate,
+    requirement_types=[units.Protoss.Gateway],
+    minerals=0, gas=0, time=7, trainable=True)
 
 PhotonCannon = Building(
     id=7,

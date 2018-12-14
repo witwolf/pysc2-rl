@@ -104,15 +104,15 @@ def working_process(remote, env_maker_wrapper, env_arg):
     while True:
         cmd, data = remote.recv()
         if cmd == 'observation_spec':
-            remote.send(env.observation_spec())
+            remote.send(env.observation_spec()[0])
         elif cmd == 'action_spec':
-            remote.send(env.action_spec())
+            remote.send(env.action_spec()[0])
         elif cmd == 'step':
-            obs = env.step(data)
-            remote.send(obs)
+            obs = env.step(data.x)
+            remote.send(obs[0])
         elif cmd == 'reset':
             obs = env.reset()
-            remote.send(obs)
+            remote.send(obs[0])
         elif cmd == 'close':
             env.close()
             break
@@ -142,25 +142,25 @@ class MultiProcessEnvs(object):
     def action_spec(self):
         for remote in self._remotes:
             remote.send(('action_spec', None))
-        results = [remote.recv()[0] for remote in self._remotes]
+        results = [remote.recv() for remote in self._remotes]
         return results
 
     def observation_spec(self):
         for remote in self._remotes:
             remote.send(('observation_spec', None))
-        results = [remote.recv()[0] for remote in self._remotes]
+        results = [remote.recv() for remote in self._remotes]
         return results
 
     def step(self, actions):
         for remote, action in zip(self._remotes, actions):
-            remote.send(('step', action))
-        results = [remote.recv()[0] for remote in self._remotes]
+            remote.send(('step', PickleWrapper(action)))
+        results = [remote.recv() for remote in self._remotes]
         return results
 
     def reset(self):
         for remote in self._remotes:
             remote.send(('reset', None))
-        results = [remote.recv()[0] for remote in self._remotes]
+        results = [remote.recv() for remote in self._remotes]
         return results
 
     def close(self):
